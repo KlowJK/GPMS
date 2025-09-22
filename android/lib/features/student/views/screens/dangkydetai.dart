@@ -1,0 +1,438 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const DangKyDeTaiApp());
+}
+
+class DangKyDeTaiApp extends StatelessWidget {
+  const DangKyDeTaiApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    const seed = Color(0xFF2F7CD3);
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Đăng ký đề tài',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: seed),
+        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
+      ),
+      home: const RegisterProjectPage(),
+    );
+  }
+}
+
+/// Kết quả trả về sau khi đăng ký (để bạn có thể dùng Navigator.pop)
+class RegisterResult {
+  final String title;
+  final String advisor;
+  final String? overviewFile;
+
+  RegisterResult({required this.title, required this.advisor, this.overviewFile});
+}
+
+class RegisterProjectPage extends StatefulWidget {
+  const RegisterProjectPage({super.key});
+
+  @override
+  State<RegisterProjectPage> createState() => _RegisterProjectPageState();
+}
+
+class _RegisterProjectPageState extends State<RegisterProjectPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _fileCtrl = TextEditingController();
+
+  final _focusTitle = FocusNode();
+  final _focusDesc = FocusNode();
+
+  bool _sending = false;
+  String? _advisor;
+
+  final _advisors = const [
+    'TS. Trần Văn B',
+    'PGS. Nguyễn Thị C',
+    'ThS. Lê Văn D',
+    'ThS. Phạm Thu E',
+  ];
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _fileCtrl.dispose();
+    _focusTitle.dispose();
+    _focusDesc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFileName() async {
+    final txt = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đính kèm tổng quan (tùy chọn)'),
+        content: TextField(
+          controller: _fileCtrl,
+          decoration: const InputDecoration(
+            hintText: 'Nhập tên tệp hoặc đường dẫn (PDF/DOCX)…',
+          ),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()), child: const Text('Lưu')),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (txt != null) setState(() {}); // _fileCtrl đã giữ giá trị
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      if (_advisor == null) {
+        FocusScope.of(context).unfocus();
+      } else if (_titleCtrl.text.trim().isEmpty) {
+        _focusTitle.requestFocus();
+      }
+      return;
+    }
+
+    setState(() => _sending = true);
+    // TODO: gọi API thực tế tại đây
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    setState(() => _sending = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Đã gửi đăng ký đề tài. Đang chờ duyệt!')),
+    );
+
+    // Nếu dùng trong app lớn, bạn có thể pop kèm kết quả:
+    // Navigator.pop(context, RegisterResult(title: _titleCtrl.text.trim(), advisor: _advisor!, overviewFile: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
+    // Breakpoint + content width
+    final double maxContentWidth = w >= 1200
+        ? 1000
+        : w >= 900
+        ? 840
+        : w >= 600
+        ? 560
+        : w;
+    final double pad = w >= 900 ? 24 : 16;
+    final double gap = w >= 900 ? 16 : 12;
+
+    final border = OutlineInputBorder(
+      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+      borderRadius: BorderRadius.circular(10),
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2F7CD3),
+        title: const Text('Đăng ký thực hiện đề tài', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+              children: [
+                // ====== THÔNG TIN ĐĂNG KÝ ======
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: EdgeInsets.all(gap),
+                    child: Form(
+                      key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Thông tin đăng ký',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: const ShapeDecoration(color: Color(0xFFDBEAFE), shape: StadiumBorder()),
+                                child: Text(
+                                  'Đợt 10/2025',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(color: const Color(0xFF1E3A8A)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: gap),
+
+                          // GVHD
+                          DropdownButtonFormField<String>(
+                            value: _advisor,
+                            items: _advisors
+                                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                .toList(),
+                            decoration: InputDecoration(
+                              labelText: 'Giảng viên hướng dẫn',
+                              hintText: 'Vui lòng chọn giảng viên',
+                              border: border,
+                              enabledBorder: border,
+                              focusedBorder: border.copyWith(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              isDense: true,
+                            ),
+                            validator: (v) => v == null ? 'Hãy chọn giảng viên hướng dẫn' : null,
+                            onChanged: (v) => setState(() => _advisor = v),
+                          ),
+                          SizedBox(height: gap),
+
+                          // Tên đề tài
+                          TextFormField(
+                            controller: _titleCtrl,
+                            focusNode: _focusTitle,
+                            textInputAction: TextInputAction.next,
+                            onEditingComplete: () => _focusDesc.requestFocus(),
+                            decoration: InputDecoration(
+                              labelText: 'Tên đề tài',
+                              hintText: 'Ví dụ: Hệ thống quản lý đồ án tốt nghiệp',
+                              border: border,
+                              enabledBorder: border,
+                              focusedBorder: border.copyWith(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              isDense: true,
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Hãy nhập tên đề tài'
+                                : null,
+                          ),
+                          SizedBox(height: gap),
+
+                          // Mô tả ngắn
+                          TextFormField(
+                            controller: _descCtrl,
+                            focusNode: _focusDesc,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              labelText: 'Mô tả ngắn (tùy chọn)',
+                              hintText: 'Tóm tắt mục tiêu, phạm vi, công nghệ dự kiến…',
+                              border: border,
+                              enabledBorder: border,
+                              focusedBorder: border.copyWith(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: gap),
+
+                          // Đính kèm tổng quan
+                          _AttachFileTile(
+                            fileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+                            onPick: _pickFileName,
+                            onClear: _fileCtrl.text.trim().isEmpty
+                                ? null
+                                : () => setState(_fileCtrl.clear),
+                          ),
+
+                          SizedBox(height: gap),
+
+                          // “Ảnh xem trước” (layout responsive)
+                          _PreviewTile(gap: gap),
+
+                          const Divider(height: 24),
+
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: FilledButton.icon(
+                              onPressed: _sending ? null : _submit,
+                              icon: _sending
+                                  ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                                  : const Icon(Icons.send),
+                              label: const Text('Gửi đăng ký'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: gap),
+
+                // ====== GHI CHÚ ======
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: EdgeInsets.all(gap),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Lưu ý: ',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const TextSpan(
+                                  text:
+                                  'Bạn có thể chỉnh sửa hồ sơ khi trạng thái còn “Chờ duyệt”. '
+                                      'Sau khi được duyệt, hệ thống mở chức năng nộp đề cương.',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Khoảng trống dưới để tránh che nút ở máy có gesture bar
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+
+      // Thanh điều hướng dưới (demo, không điều hướng thật)
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 1,
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
+          NavigationDestination(icon: Icon(Icons.folder), label: 'Đồ án'),
+          NavigationDestination(icon: Icon(Icons.edit_note_outlined), label: 'Nhật ký'),
+          NavigationDestination(icon: Icon(Icons.groups_outlined), label: 'Hội đồng'),
+          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttachFileTile extends StatelessWidget {
+  const _AttachFileTile({
+    required this.fileName,
+    required this.onPick,
+    this.onClear,
+  });
+
+  final String? fileName;
+  final VoidCallback onPick;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFile = (fileName != null && fileName!.isNotEmpty);
+    final fileText = hasFile ? fileName! : 'Chưa có tệp đính kèm (PDF/DOCX)…';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.insert_drive_file_outlined),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(fileText, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
+          if (hasFile && onClear != null)
+            IconButton(tooltip: 'Xóa tệp', onPressed: onClear, icon: const Icon(Icons.close)),
+          FilledButton.tonal(onPressed: onPick, child: Text(hasFile ? 'Sửa' : 'Đính kèm')),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewTile extends StatelessWidget {
+  const _PreviewTile({required this.gap});
+  final double gap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: EdgeInsets.all(gap),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          // Ảnh demo tỉ lệ 16:9, tự co giãn theo không gian
+          Expanded(
+            flex: 3,
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Icon(Icons.image_outlined, size: 42),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: gap),
+          // Mô tả ngắn bên phải
+          Expanded(
+            flex: 4,
+            child: Text(
+              'Xem nhanh nội dung/tổng quan tệp đính kèm (nếu có). '
+                  'Khi tích hợp thật, phần này có thể hiển thị thumbnail PDF hoặc thông tin file.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
