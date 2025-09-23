@@ -20,8 +20,16 @@ class FigmaToCodeApp extends StatelessWidget {
 }
 
 /// -------------------- MÀN TIẾN ĐỘ (RESPONSIVE) --------------------
-class ProgressScreen extends StatelessWidget {
+class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
+
+  @override
+  State<ProgressScreen> createState() => _ProgressScreenState();
+}
+
+class _ProgressScreenState extends State<ProgressScreen> {
+  final weeks = List.generate(15, (i) => 'Tuần ${i + 1}');
+  String selectedWeek = 'Tuần 2';
 
   @override
   Widget build(BuildContext context) {
@@ -65,26 +73,35 @@ class ProgressScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Phần thông tin tuần và thời hạn
+            // Phần thời gian + ghi chú tuần
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               sliver: SliverToBoxAdapter(
                 child: _WeekHeader(
                   from: DateTime(2025, 9, 15, 10, 0, 0),
                   to: DateTime(2025, 9, 21, 23, 59, 33),
-                  weekLabel: 'Tuần 2',
-                  note: 'Thời hạn nộp nhật ký',
+                  note: 'Thời hạn nộp nhật ký $selectedWeek :',
                 ),
               ),
             ),
 
-            // Tiêu đề danh sách
+            // Tiêu đề + Dropdown tuần ở BÊN PHẢI
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               sliver: SliverToBoxAdapter(
-                child: Text(
-                  'Danh sách sinh viên:',
-                  style: Theme.of(context).textTheme.titleMedium,
+                child: Row(
+                  children: [
+                    Text(
+                      'Danh sách sinh viên:',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(width: 8),
+                    _WeekDropdown(
+                      value: selectedWeek,
+                      items: weeks,
+                      onChanged: (v) => setState(() => selectedWeek = v!),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -117,32 +134,61 @@ class ProgressScreen extends StatelessWidget {
   }
 }
 
-/// -------------------- HEADER TUẦN --------------------
+/// -------------------- DROPDOWN TUẦN (list box) --------------------
+class _WeekDropdown extends StatelessWidget {
+  const _WeekDropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String value;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    // Tạo “list box” viền mảnh giống hình
+    return Container(
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isDense: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+          onChanged: onChanged,
+          items: items
+              .map((w) => DropdownMenuItem(
+            value: w,
+            child: Text(w, style: Theme.of(context).textTheme.bodyMedium),
+          ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+/// -------------------- HEADER THỜI GIAN --------------------
 class _WeekHeader extends StatelessWidget {
   const _WeekHeader({
     required this.from,
     required this.to,
-    required this.weekLabel,
     required this.note,
   });
 
   final DateTime from;
   final DateTime to;
-  final String weekLabel;
   final String note;
 
   @override
   Widget build(BuildContext context) {
-    final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(weekLabel, style: Theme.of(context).textTheme.bodyMedium),
-    );
-
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -155,14 +201,12 @@ class _WeekHeader extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Ngày bắt đầu: ${_fmtDateTime(from)}\n'
-                    'Ngày kết thúc: ${_fmtDateTime(to)}\n'
-                    '$note:',
+                'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
+                    'Ngày kết thúc : ${_fmtDateTime(to)}\n'
+                    '$note',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-            const SizedBox(width: 8),
-            chip,
           ],
         ),
       ),
@@ -171,7 +215,8 @@ class _WeekHeader extends StatelessWidget {
 
   String _fmtDateTime(DateTime d) {
     String two(int x) => x.toString().padLeft(2, '0');
-    return '${two(d.day)}-${two(d.month)}-${d.year} ${two(d.hour)}:${two(d.minute)}:${two(d.second)}';
+    return '${two(d.day)}-${two(d.month)}-${d.year} '
+        '${two(d.hour)}:${two(d.minute)}:${two(d.second)}';
   }
 }
 
@@ -180,7 +225,6 @@ class _BulletList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 3 chấm tròn vàng nhạt (thay vì 3 Positioned cố định)
     Widget dot() => Opacity(
       opacity: 0.5,
       child: Container(
@@ -193,7 +237,6 @@ class _BulletList extends StatelessWidget {
         ),
       ),
     );
-
     return Column(children: [dot(), dot(), dot()]);
   }
 }
@@ -231,7 +274,6 @@ class _StudentCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // Hàng 1: Avatar + Họ tên + Lớp + Trạng thái
             Row(
               children: [
                 CircleAvatar(
@@ -244,23 +286,41 @@ class _StudentCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(info.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        info.name,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
                       const SizedBox(height: 2),
-                      Text(info.studentId, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280))),
+                      Text(
+                        info.studentId,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: const Color(0xFF6B7280)),
+                      ),
                     ],
                   ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(info.className, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(info.className,
+                        style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 2),
                     RichText(
                       text: TextSpan(
                         style: Theme.of(context).textTheme.bodyMedium,
                         children: [
                           const TextSpan(text: 'Trạng thái: '),
-                          TextSpan(text: statusText(info.status), style: TextStyle(color: statusColor(info.status), fontWeight: FontWeight.w500)),
+                          TextSpan(
+                            text: statusText(info.status),
+                            style: TextStyle(
+                                color: statusColor(info.status),
+                                fontWeight: FontWeight.w500),
+                          ),
                         ],
                       ),
                     ),
@@ -268,13 +328,11 @@ class _StudentCard extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
-
-            // Hàng 2: Đề tài
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Đề tài: ${info.topic}', style: Theme.of(context).textTheme.bodyMedium),
+              child: Text('Đề tài: ${info.topic}',
+                  style: Theme.of(context).textTheme.bodyMedium),
             ),
           ],
         ),
