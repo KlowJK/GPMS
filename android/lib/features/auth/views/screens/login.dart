@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../viewmodels/auth_viewmodel.dart';
 
 class GPMSLoginApp extends StatelessWidget {
   const GPMSLoginApp({super.key});
@@ -14,13 +17,7 @@ class GPMSLoginApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: seed),
         scaffoldBackgroundColor: const Color(0xFFF3F6FA),
       ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
-          brightness: Brightness.dark,
-        ),
-      ),
+
       home: const LoginScreen(),
     );
   }
@@ -52,14 +49,38 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!ok) return;
 
     setState(() => _loading = true);
-    // TODO: Gọi API / Firebase tại đây
-    await Future.delayed(const Duration(milliseconds: 800));
-    setState(() => _loading = false);
+    try {
+      await context.read<AuthViewModel>().login(
+        _accountCtrl.text.trim(),
+        _passwordCtrl.text,
+      );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đăng nhập thành công (demo)')),
-    );
+      if (!mounted) return;
+
+      // Ví dụ: điều hướng theo vai trò
+      final vm = context.read<AuthViewModel>();
+      final role = vm.user?.role ?? '';
+      if (role.contains('GIANG') || role.contains('TEACHER')) {
+        Navigator.pushReplacementNamed(
+          context,
+          '../../lecturer/views/screens/home_giangvien.dart',
+        );
+      } else if (role.contains('SINH') || role.contains('STUDENT')) {
+        Navigator.pushReplacementNamed(
+          context,
+          '../../student/views/screens/home_sinhvien.dart',
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, '/');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
