@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'features/auth/views/screens/login.dart';
+import 'features/auth/views/screens/login.dart' show GPMSLoginApp;
 
 void main() => runApp(const GPMSApp());
 
