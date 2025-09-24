@@ -19,6 +19,7 @@ class FigmaToCodeApp extends StatelessWidget {
   }
 }
 
+/// -------------------- Màn hình chi tiết báo cáo --------------------
 class ReportDetailScreen extends StatelessWidget {
   const ReportDetailScreen({super.key});
 
@@ -28,6 +29,10 @@ class ReportDetailScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF2F7CD3),
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {}, // để trống theo yêu cầu
+        ),
         title: const Text('Thông tin chi tiết báo cáo'),
       ),
       body: ListView(
@@ -39,15 +44,15 @@ class ReportDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Khối thông tin sinh viên
+          // Thông tin sinh viên
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+            child: const Padding(
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   _InfoRow(label: 'Họ tên', value: 'Hà Văn Thắng'),
                   Divider(),
                   _InfoRow(label: 'Email', value: 'havanthang@e.tlu.vn'),
@@ -67,22 +72,17 @@ class ReportDetailScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-          Text(
-            'Các phiên bản báo cáo:',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Các phiên bản báo cáo:', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
 
-          // Phiên bản 1
-          _ReportVersionCard(
+          const _ReportVersionCard(
             version: 1,
             date: '15/12/2025',
             file: '225117362_DuongVanHung_1.pdf',
           ),
           const SizedBox(height: 12),
 
-          // Phiên bản 2
-          _ReportVersionCard(
+          const _ReportVersionCard(
             version: 2,
             date: '16/12/2025',
             file: '225117362_DuongVanHung_2.pdf',
@@ -90,8 +90,9 @@ class ReportDetailScreen extends StatelessWidget {
         ],
       ),
 
+      // Thanh điều hướng dưới
       bottomNavigationBar: NavigationBar(
-        selectedIndex: 3,
+        selectedIndex: 3, // tab đang chọn là "Báo cáo"
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
           NavigationDestination(icon: Icon(Icons.assignment), label: 'Đồ án'),
@@ -104,6 +105,7 @@ class ReportDetailScreen extends StatelessWidget {
   }
 }
 
+/// -------------------- Dòng thông tin --------------------
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -120,6 +122,7 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
+/// -------------------- Card phiên bản báo cáo --------------------
 class _ReportVersionCard extends StatelessWidget {
   final int version;
   final String date;
@@ -161,20 +164,35 @@ class _ReportVersionCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                // Nút Từ chối
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
                     onPressed: () {},
-                    child: const Text('Duyệt'),
+                    child: const Text('Từ chối'),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                // Nút Duyệt
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
                     onPressed: () {},
-                    child: const Text('Từ chối'),
+                    child: const Text('Duyệt'),
                   ),
                 ),
               ],
