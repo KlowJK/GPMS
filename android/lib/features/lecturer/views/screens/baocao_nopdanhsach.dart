@@ -16,21 +16,20 @@ class FigmaToCodeApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CD3)),
         useMaterial3: true,
       ),
-      home: const StudentListScreen(),
+      home: const StudentTabsScreen(),
     );
   }
 }
 
-/// -------------------- MÀN HÌNH DANH SÁCH SINH VIÊN --------------------
-class StudentListScreen extends StatefulWidget {
-  const StudentListScreen({super.key});
+/// ================== MÀN HÌNH CÓ TAB ==================
+class StudentTabsScreen extends StatefulWidget {
+  const StudentTabsScreen({super.key});
 
   @override
-  State<StudentListScreen> createState() => _StudentListScreenState();
+  State<StudentTabsScreen> createState() => _StudentTabsScreenState();
 }
 
-class _StudentListScreenState extends State<StudentListScreen> {
-  // Demo dữ liệu (thay bằng API/Provider khi cần)
+class _StudentTabsScreenState extends State<StudentTabsScreen> {
   final List<StudentItem> _items = List.generate(
     10,
         (i) => StudentItem(
@@ -44,108 +43,112 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        backgroundColor: const Color(0xFF2F7CD3),
-        foregroundColor: Colors.white,
-        title: const Text('Đồ án'),
-      ),
-      body: SafeArea(
-        child: Column(
+    final primary = const Color(0xFF2F7CD3);
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          titleSpacing: 0,
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          title: const Text('Đồ án'),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Container(
+              color: Colors.white,
+              child: TabBar(
+                labelColor: primary,
+                unselectedLabelColor: Colors.black87,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                indicator: const UnderlineTabIndicator(
+                  borderSide: BorderSide(width: 2, color: Color(0xFF2F7CD3)),
+                  insets: EdgeInsets.symmetric(horizontal: 24),
+                ),
+                tabs: const [
+                  Tab(text: 'Sinh viên'),
+                  Tab(text: 'Duyệt Đề tài'),
+                ],
+              ),
+            ),
+          ),
+        ),
+        body: TabBarView(
           children: [
-            // Thanh tiêu đề + nút nộp
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Danh sách sinh viên (${_items.length}):',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+            // ===== Tab Sinh viên =====
+            Column(
+              children: [
+                // Hàng tiêu đề + nút xanh "Nộp danh sách"
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Danh sách sinh viên (${_items.length}):',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      _GreenPillButton(
+                        icon: Icons.upload_file,
+                        label: 'Nộp danh sách',
+                        onPressed: _onSubmitList,
+                      ),
+                    ],
                   ),
-                  FilledButton.icon(
-                    onPressed: _onSubmitList,
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text('Nộp danh sách'),
+                ),
+                // Danh sách
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, c) {
+                      final isWide = c.maxWidth >= 1000;
+                      final isMedium = c.maxWidth >= 700 && c.maxWidth < 1000;
+                      final cross = isWide ? 3 : (isMedium ? 2 : 1);
+
+                      if (cross == 1) {
+                        return ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _items.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, i) => _StudentCard(item: _items[i]),
+                        );
+                      }
+
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: cross,
+                          mainAxisExtent: 110,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: _items.length,
+                        itemBuilder: (_, i) => _StudentCard(item: _items[i]),
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
 
-            // Tabs “Sinh viên / Duyệt đề tài” theo UI gốc (không fixed size)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<int>(
-                segments: const [
-                  ButtonSegment(value: 0, label: Text('Sinh viên'), icon: Icon(Icons.people_alt)),
-                  ButtonSegment(value: 1, label: Text('Duyệt đề tài'), icon: Icon(Icons.fact_check)),
-                ],
-                selected: const {0}, // mặc định ở "Sinh viên" cho màn hình này
-                onSelectionChanged: (s) {
-                  if (s.contains(1)) {
-                    // Chuyển sang màn hình duyệt đề tài (nếu có)
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const TopicsApprovalScreen(),
-                    ));
-                  }
-                },
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // Danh sách responsive
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final isWide = c.maxWidth >= 1000;
-                  final isMedium = c.maxWidth >= 700 && c.maxWidth < 1000;
-                  final cross = isWide ? 3 : (isMedium ? 2 : 1);
-
-                  if (cross == 1) {
-                    // List cho mobile
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (_, i) => _StudentCard(item: _items[i]),
-                    );
-                  }
-
-                  // Grid cho tablet/desktop
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: cross,
-                      mainAxisExtent: 110,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: _items.length,
-                    itemBuilder: (_, i) => _StudentCard(item: _items[i]),
-                  );
-                },
-              ),
-            ),
+            // ===== Tab Duyệt Đề tài =====
+            const TopicsApprovalScreen(),
           ],
         ),
-      ),
 
-      // Bottom Navigation tương ứng UI gốc
-      bottomNavigationBar: NavigationBar(
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.assignment), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.timeline_outlined), label: 'Tiến độ'),
-          NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-        ],
-        selectedIndex: 1,
-        onDestinationSelected: (i) {
-          // TODO: Điều hướng thật sự theo app của bạn
-        },
+        // Bottom Navigation (minh họa)
+        bottomNavigationBar: NavigationBar(
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
+            NavigationDestination(icon: Icon(Icons.assignment), label: 'Đồ án'),
+            NavigationDestination(icon: Icon(Icons.timeline_outlined), label: 'Tiến độ'),
+            NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
+            NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
+          ],
+          selectedIndex: 1,
+          onDestinationSelected: (i) {},
+        ),
       ),
     );
   }
@@ -174,7 +177,37 @@ class _StudentListScreenState extends State<StudentListScreen> {
   }
 }
 
-/// -------------------- CARD SINH VIÊN --------------------
+/// ================== NÚT XANH DẠNG PILL ==================
+class _GreenPillButton extends StatelessWidget {
+  const _GreenPillButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF16A34A), // xanh lá như ảnh
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        shape: const StadiumBorder(), // bo tròn “pill”
+        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        elevation: 0,
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    );
+  }
+}
+
+/// ================== CARD SINH VIÊN ==================
 class _StudentCard extends StatelessWidget {
   const _StudentCard({required this.item});
 
@@ -202,7 +235,10 @@ class _StudentCard extends StatelessWidget {
                 spacing: 8,
                 children: [
                   Text(item.name, style: Theme.of(context).textTheme.titleMedium),
-                  Text(item.studentId, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                  Text(
+                    item.studentId,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                  ),
                   const SizedBox(width: 8),
                   Text(item.className, style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(width: 8),
@@ -211,9 +247,7 @@ class _StudentCard extends StatelessWidget {
                     children: [
                       Text('CV: ', style: Theme.of(context).textTheme.bodyMedium),
                       InkWell(
-                        onTap: () {
-                          // TODO: mở/tải file CV
-                        },
+                        onTap: () {},
                         child: Text(
                           item.cvFile,
                           style: Theme.of(context)
@@ -236,7 +270,7 @@ class _StudentCard extends StatelessWidget {
             IconButton(
               tooltip: 'Sửa',
               onPressed: () => _showEditStudentModal(context, item),
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.chevron_right), // giống dấu >> trong ảnh
             ),
           ],
         ),
@@ -245,7 +279,7 @@ class _StudentCard extends StatelessWidget {
   }
 }
 
-/// -------------------- MODEL --------------------
+/// ================== MODEL ==================
 class StudentItem {
   final String name;
   final String className;
@@ -278,7 +312,7 @@ class StudentItem {
   }
 }
 
-/// -------------------- FORM SỬA SINH VIÊN (bottom sheet) --------------------
+/// ================== FORM SỬA (bottom sheet) ==================
 void _showEditStudentModal(BuildContext context, StudentItem item) {
   final name = TextEditingController(text: item.name);
   final className = TextEditingController(text: item.className);
@@ -333,7 +367,6 @@ void _showEditStudentModal(BuildContext context, StudentItem item) {
                   Expanded(
                     child: FilledButton(
                       onPressed: () {
-                        // TODO: lưu dữ liệu (API/Provider/Bloc)
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Đã cập nhật sinh viên')),
@@ -363,22 +396,14 @@ Widget _field(String label, TextEditingController controller, {int maxLines = 1}
   );
 }
 
-/// -------------------- MÀN HÌNH DUYỆT ĐỀ TÀI (place-holder điều hướng) --------------------
+/// ================== TAB 2: DUYỆT ĐỀ TÀI ==================
 class TopicsApprovalScreen extends StatelessWidget {
   const TopicsApprovalScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        backgroundColor: const Color(0xFF2F7CD3),
-        foregroundColor: Colors.white,
-        title: const Text('Duyệt đề tài'),
-      ),
-      body: const Center(
-        child: Text('Màn hình Duyệt đề tài (sẽ gắn code sau)'),
-      ),
+    return const Center(
+      child: Text('Màn hình Duyệt đề tài (gắn nội dung sau)'),
     );
   }
 }
