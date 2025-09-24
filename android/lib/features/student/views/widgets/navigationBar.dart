@@ -1,47 +1,59 @@
 import 'package:flutter/material.dart';
 
-class _navigationBar extends StatelessWidget implements PreferredSizeWidget {
-  _navigationBar({super.key});
-  int _index = 0;
+class AppBottomNavBar extends StatelessWidget {
+  const AppBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onChanged,
+  });
 
-  final double _height = 60;
-  @override
-  Size get preferredSize => Size.fromHeight(_height);
+  final int currentIndex;
+  final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: _index,
-      onDestinationSelected: (i) => setState(() => _index = i),
-      destinations: const [
-        NavigationDestination(
+    final cs = Theme.of(context).colorScheme;
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      onTap: onChanged,
+      selectedItemColor: cs.primary,      // màu xanh mục đang chọn
+      unselectedItemColor: Colors.black,  // giống ảnh
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      items: const [
+        BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
+          activeIcon: Icon(Icons.home),
           label: 'Trang chủ',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.folder_outlined),
-          selectedIcon: Icon(Icons.folder),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.article_outlined),
+          activeIcon: Icon(Icons.article),
           label: 'Đồ án',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.edit_note_outlined),
-          selectedIcon: Icon(Icons.edit_note),
+        BottomNavigationBarItem(
+          // túi + tick -> dùng bag thay thế gần giống ảnh
+          icon: Icon(Icons.shopping_bag_outlined),
+          activeIcon: Icon(Icons.shopping_bag),
+          label: 'Báo cáo',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.event_note_outlined),
+          activeIcon: Icon(Icons.event_note),
           label: 'Nhật ký',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.groups_outlined),
-          selectedIcon: Icon(Icons.groups),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.apartment_outlined),
+          activeIcon: Icon(Icons.apartment),
           label: 'Hội đồng',
         ),
-        NavigationDestination(
+        BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
+          activeIcon: Icon(Icons.person),
           label: 'Hồ sơ',
         ),
       ],
     );
   }
-
-  void setState(int Function() param0) {}
 }
