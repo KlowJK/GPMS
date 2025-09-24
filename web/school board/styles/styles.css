@@ -1,0 +1,205 @@
+:root{
+  --primary:#2F7CD3;
+  --primary-600:#0071C6;
+  --text:#0F172A;
+  --muted:#757575;
+  --border:#E5E7EB;
+  --border-2:#F1F1F1;
+  --head:#F8FAFC;
+  --shadow:0 10px 30px rgba(2,6,23,.08);
+}
+
+/* Reset */
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--text);font-family:Roboto,Inter,sans-serif}
+
+/* Layout */
+.app{
+  display:grid;
+  grid-template-rows:90px 1fr;
+  grid-template-columns:259px 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar main";
+  min-height:100vh;
+}
+
+/* Header */
+.header{
+  grid-area:header;
+  background:#fff;
+  border-bottom:1px solid #F1F1F3;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 40px;
+  box-shadow:4px 4px 4px rgba(0,0,0,.25);
+}
+.brand{display:flex;align-items:center;gap:20px}
+.brand img{width:73px;height:57px}
+.ttl .t1{font-size:18px;font-weight:500;text-transform:uppercase}
+.ttl .t2{font-size:13px;text-transform:uppercase}
+.right-tools{display:flex;align-items:center;gap:30px}
+.user{display:flex;align-items:center;gap:12px}
+.user img{width:36px;height:36px;border-radius:50%}
+.user .name{font:400 18px "Be Vietnam Pro",sans-serif}
+
+/* Sidebar */
+.sidebar{grid-area:sidebar;background:var(--primary);padding:20px}
+.nav{display:flex;flex-direction:column;gap:10px}
+.item{padding:12px;border-radius:12px;font:500 16px Inter,sans-serif;color:#fff}
+.item.white{background:#fff;color:#000}
+.item.selected{background:var(--primary-600)}
+
+/* Main */
+.main{grid-area:main;padding:24px 40px}
+.page-title{font:600 40px Poppins,sans-serif;margin:0 0 16px}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.input,.select,.ghost-btn{
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  height:42px;display:flex;align-items:center;padding:0 14px;
+}
+.input{width:374px;color:var(--muted)}
+.select{width:280px}
+.ghost-btn{width:180px;justify-content:center}
+
+.card{background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:17px}
+.table-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--head);padding:14px;text-align:left;font-weight:700}
+tbody td{padding:13px 14px;border-bottom:1px solid var(--border)}
+
+.pill{display:inline-block;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700}
+.pill.gray{background:#E2E8F0;color:#334155}
+.pill.warn{background:#FEF3C7;color:#92400E}
+.pill.ok{background:#DCFCE7;color:#166534}
+
+.btn-text{border:1px solid var(--border);border-radius:12px;padding:8px 16px;background:#fff}
+.btn-icon{width:25px;height:25px;display:inline-block;background:#1890FF;border-radius:6px;margin-right:6px}
+
+.pagination{display:flex;justify-content:center;gap:5px}
+.pg{width:32px;height:32px;border:1px solid var(--border-2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px}
+.pg.current{background:#2F80ED;color:#fff}
+.pg.square{border-radius:8px}
+
+.note{margin-top:10px;font-size:16px}
+/* ========== Modal: Ghi biên bản ========== */
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none;                /* Ẩn mặc định; thêm .is-open để hiện */
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  font-family: Roboto, Inter, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+}
+.modal.is-open{ display: flex; }
+
+.modal__backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(2,6,23,.45); /* overlay tối */
+}
+
+.modal__card{
+  position: relative;
+  width: 440.72px;
+  max-width: calc(100vw - 32px);
+  height: 524px;                /* theo thiết kế */
+  max-height: calc(100dvh - 32px);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 10px 30px rgba(2,6,23,.08);
+  padding: 24px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 1;
+}
+
+/* Tiêu đề */
+.modal__title{
+  margin: 0;
+  font-size: 18px;              /* ~17.82px */
+  font-weight: 700;
+  color: #000;
+}
+
+/* Hàng meta (Sinh viên / Mã SV) */
+.modal__row--meta{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+.meta__label{
+  color: #64748B;
+  font-size: 12px;              /* ~11.81px */
+  margin-bottom: 4px;
+}
+.meta__value{
+  color: #000;
+  font-size: 16px;
+}
+
+/* Nhóm field */
+.modal__group{ display: flex; flex-direction: column; gap: 6px; }
+.field__label{
+  color: #64748B;
+  font-size: 12px;              /* ~11.25px */
+}
+.field__text{
+  color: #000;
+  font-size: 16px;
+}
+
+/* Textarea */
+.textarea-wrap{
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.textarea-wrap textarea{
+  display: block;
+  width: 100%;
+  height: 255px;                /* theo thiết kế */
+  padding: 12px 14px;
+  border: 0;
+  outline: none;
+  resize: none;
+  font: 400 13.3px/1.5 Roboto, Inter, sans-serif;
+  color: #000;
+}
+.textarea-wrap textarea::placeholder{ color:#9aa4b2; }
+
+/* Action buttons */
+.modal__actions{
+  margin-top: auto;             /* đẩy xuống đáy modal */
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.btn{
+  height: 45px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  background: #fff;
+  color: #000;
+  font: 400 13.3px Roboto, Inter, sans-serif;
+  cursor: pointer;
+}
+.btn--primary{
+  background: #155EEF;
+  color: #fff;
+  border-color: transparent;
+}
+.btn:active{ transform: translateY(1px); }
+.btn:focus{ outline: 3px solid rgba(21,94,239,.25); outline-offset: 1px; }
+
+/* Màn nhỏ: co bớt chiều cao */
+@media (max-width: 480px){
+  .modal__card{ height: auto; padding-bottom: 16px; }
+  .textarea-wrap textarea{ height: 180px; }
+}
+

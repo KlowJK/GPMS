@@ -1,0 +1,201 @@
+:root{
+  --blue-500:#2F7CD3;      /* màu nền tổng thể */
+  --blue-600:#457B9D;      /* màu nút/link theo thiết kế */
+  --text:#111;
+  --muted:#717171;
+  --card-bg:#fff;
+  --input-bg:#F6F6F6;
+  --shadow: 0 6px 24px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08);
+  --radius-card:50px;
+  --radius:8px;
+}
+
+/* Reset nhỏ gọn */
+* { box-sizing: border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: var(--blue-500);
+}
+
+/* Khung trang với ảnh nền */
+.page{
+  min-height:100dvh;
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+}
+
+.bg{
+  position:absolute;
+  inset:0;
+  background:
+    /* ảnh nền 1440x1024 như bản gốc */
+    url("https://placehold.co/1440x1024") center/cover no-repeat,
+    var(--blue-500);
+  filter: none;
+  z-index:0;
+}
+
+/* Card đăng nhập */
+.card{
+  position:relative;
+  z-index:1;
+  width:min(720px, 92vw);
+  /* chiều cao tự giãn; khi màn hình cao đủ sẽ gần giống 961px */
+  padding: clamp(20px, 4vw, 48px);
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap: clamp(12px, 2.5vh, 28px);
+}
+
+/* Ảnh minh hoạ phía trên */
+.brand-illustration{
+  width:min(244px, 40vw);
+  height:auto;
+  margin-top: clamp(8px, 3vh, 24px);
+}
+
+/* Tiêu đề */
+.title{
+  margin: 0;
+  text-align:center;
+  font-weight:600;
+  font-size: clamp(28px, 3.5vw, 35px);
+  line-height:1.25;
+  color: var(--text);
+}
+
+/* Form */
+.form{
+  width:100%;
+  max-width: 500px; /* theo thiết kế gốc */
+  display:flex;
+  flex-direction:column;
+  gap: clamp(16px, 2.5vh, 24px);
+}
+
+/* Field */
+.field{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.field > label{
+  color: var(--muted);
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight:400;
+}
+
+.field input{
+  width:100%;
+  height:56px;                         /* đúng với bản gốc */
+  background: var(--input-bg);
+  border:none;
+  border-radius:4px;
+  box-shadow: 1px 1px 4px rgba(0,0,0,.25);
+  padding: 0 16px;
+  font-size: 16px;
+  outline: none;
+  transition: box-shadow .2s ease, background-color .2s ease;
+}
+
+.field input::placeholder{
+  color:#9a9a9a;
+}
+
+.field input:focus{
+  box-shadow:
+    0 0 0 3px rgba(69,123,157,.25),
+    1px 1px 4px rgba(0,0,0,.25);
+  background:#fff;
+}
+
+/* Ô mật khẩu có icon ở bên phải */
+.password-wrap{
+  position: relative;
+}
+
+.password-wrap input{
+  padding-right: 48px; /* chừa chỗ cho icon */
+}
+
+.password-wrap .eye{
+  position:absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width:24px; height:24px;
+  pointer-events: none; /* chỉ trang trí, không JS */
+  opacity:.85;
+}
+
+/* Hàng nút */
+.actions{
+  display:flex;
+  justify-content:center;
+  margin-top: clamp(8px, 1.5vh, 16px);
+}
+
+.btn-primary{
+  appearance: none;
+  border: none;
+  border-radius: var(--radius);
+  padding: 14px 34px;
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 27px;
+  color: #fff;
+  background: var(--blue-600);
+  cursor: pointer;
+  transition: transform .04s ease, filter .2s ease, box-shadow .2s ease;
+  box-shadow: 0 6px 16px rgba(69,123,157,.25);
+}
+
+.btn-primary:hover{
+  filter: brightness(1.05);
+}
+
+.btn-primary:active{
+  transform: translateY(1px);
+}
+
+/* Link quên mật khẩu */
+.forgot{
+  display:block;
+  margin: 8px auto 0;
+  width:max-content;
+  color: var(--blue-600);
+  font-size: clamp(16px, 1.6vw, 20px);
+  text-decoration: underline;
+}
+
+/* Thông báo lỗi (để sẵn chỗ) */
+.error{
+  margin: 4px 2px 0;
+  min-height: 1.25em;
+  font-size: 13px;
+  color: #d64545;
+}
+
+/* Đảm bảo cảm giác “giống Figma” ở màn lớn 1440x1024 */
+@media (min-width: 1360px) and (min-height: 900px){
+  .page{ min-height: 1024px; }
+  .card{
+    padding: 48px 64px 56px;
+  }
+}
+
+/* Màn nhỏ: giảm bo tròn & đệm để vừa vặn */
+@media (max-width: 600px){
+  :root{ --radius-card: 28px; }
+  .brand-illustration{ margin-top: 8px; }
+}
