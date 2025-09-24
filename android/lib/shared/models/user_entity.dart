@@ -18,21 +18,31 @@ class UserEntity {
   });
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
-    final user = (json['user'] ?? {}) as Map<String, dynamic>;
-    int? toInt(dynamic v) {
+    // Ép kiểu map an toàn
+    Map<String, dynamic> _asMap(dynamic v) =>
+        v is Map ? Map<String, dynamic>.from(v as Map) : <String, dynamic>{};
+
+    int? _toInt(dynamic v) {
       if (v == null) return null;
       if (v is int) return v;
-      return int.tryParse('$v');
+      return int.tryParse(v.toString());
     }
 
+    final user = _asMap(json['user']); // có thể rỗng
+
+    final token = (json['token'] ?? json['accessToken'] ?? '').toString();
+    final email = (user['email'] ?? json['email'] ?? '').toString();
+    final role = (user['role'] ?? json['role'] ?? '').toString();
+    final id = _toInt(user['id'] ?? json['id']) ?? 0;
+
     return UserEntity(
-      email: (user['email'] ?? '').toString(),
-      token: (json['token'] ?? '').toString(),
-      role: (user['role'] ?? '').toString(),
-      id: toInt(user['id']) ?? 0,
-      teacherId: toInt(user['teacherId']),
-      studentId: toInt(user['studentId']),
-      fullName: user['fullName']?.toString(),
+      email: email,
+      token: token,
+      role: role,
+      id: id,
+      teacherId: _toInt(user['teacherId'] ?? json['teacherId']),
+      studentId: _toInt(user['studentId'] ?? json['studentId']),
+      fullName: (user['fullName'] ?? json['fullName'])?.toString(),
     );
   }
 }

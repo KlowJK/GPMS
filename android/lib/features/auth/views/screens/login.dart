@@ -1,27 +1,9 @@
+import 'package:GPMS/features/lecturer/views/screens/home_giangvien.dart';
+import 'package:GPMS/features/student/views/screens/home_sinhvien.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
-
-class GPMSLoginApp extends StatelessWidget {
-  const GPMSLoginApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2F7CD3);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'GPMS Login',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF3F6FA),
-      ),
-
-      home: const LoginScreen(),
-    );
-  }
-}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -61,14 +43,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final vm = context.read<AuthViewModel>();
       final role = vm.user?.role ?? '';
       if (role.contains('GIANG') || role.contains('TEACHER')) {
-        Navigator.pushReplacementNamed(
+        Navigator.pushReplacement(
           context,
-          '../../lecturer/views/screens/home_giangvien.dart',
+          MaterialPageRoute(builder: (context) => const HomeGiangvien()),
         );
       } else if (role.contains('SINH') || role.contains('STUDENT')) {
-        Navigator.pushReplacementNamed(
+        Navigator.pushReplacement(
           context,
-          '../../student/views/screens/home_sinhvien.dart',
+          MaterialPageRoute(builder: (context) => const HomeSinhvien()),
         );
       } else {
         Navigator.pushReplacementNamed(context, '/');
@@ -189,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   validator: (v) {
                                     if (v == null || v.isEmpty)
                                       return 'Vui lòng nhập mật khẩu';
-                                    if (v.length < 6)
+                                    if (v.length < 2)
                                       return 'Mật khẩu tối thiểu 6 ký tự';
                                     return null;
                                   },

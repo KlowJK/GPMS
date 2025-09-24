@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const GPMSApp());
-
-class GPMSApp extends StatelessWidget {
-  const GPMSApp({super.key});
+class HomeGiangvien extends StatelessWidget {
+  const HomeGiangvien({super.key});
 
   @override
   Widget build(BuildContext context) {
