@@ -1,26 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const ReportApp());
-
-class ReportApp extends StatelessWidget {
-  const ReportApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2563EB);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Báo cáo',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF2F4F7),
-      ),
-      home: const ReportListPage(),
-    );
-  }
-}
-
 /* ===================== MODEL ===================== */
 
 enum ReportStatus { pending, approved, rejected }
@@ -51,14 +30,22 @@ class ReportListPage extends StatefulWidget {
 }
 
 class _ReportListPageState extends State<ReportListPage> {
-  final List<ReportItem> _items = []; // ban đầu trống
+  final List<ReportItem> _items = []; // dữ liệu demo
+
+  int _nextVersion() {
+    if (_items.isEmpty) return 1;
+    int maxVer = 0;
+    for (final e in _items) {
+      if (e.version > maxVer) maxVer = e.version;
+    }
+    return maxVer + 1;
+  }
 
   Future<void> _goSubmit() async {
-    final nextVersion = _items.length + 1;
     final result = await Navigator.push<ReportItem>(
       context,
       MaterialPageRoute(
-        builder: (_) => SubmitReportPage(nextVersion: nextVersion),
+        builder: (_) => SubmitReportPage(nextVersion: _nextVersion()),
       ),
     );
     if (!mounted) return;
@@ -88,6 +75,7 @@ class _ReportListPageState extends State<ReportListPage> {
         backgroundColor: const Color(0xFF2563EB),
         title: const Text('Báo cáo', style: TextStyle(color: Colors.white)),
         centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: Center(
@@ -236,7 +224,6 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
   @override
   void initState() {
     super.initState();
-    // Gán phiên bản mặc định (đã khởi tạo controller -> KHÔNG còn LateInitializationError)
     _verCtrl.text = widget.nextVersion.toString();
   }
 
@@ -269,13 +256,23 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       ),
     );
     if (!mounted) return;
-    if (txt != null) setState(() {}); // _fileCtrl giữ giá trị mới
+    if (txt != null) setState(() {}); // refresh UI
   }
 
   Future<void> _submit() async {
-    if (_fileCtrl.text.trim().isEmpty) {
+    final name = _fileCtrl.text.trim();
+    final ver = int.tryParse(_verCtrl.text.trim()) ?? widget.nextVersion;
+
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng chọn/nhập tệp báo cáo')),
+      );
+      return;
+    }
+    if (!name.toLowerCase().endsWith('.pdf') &&
+        !name.toLowerCase().endsWith('.docx')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chỉ chấp nhận tệp .pdf hoặc .docx')),
       );
       return;
     }
@@ -285,7 +282,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.help_outline, size: 40, color: Color(0xFF2563EB)),
         title: const Text('Xác nhận nộp báo cáo'),
-        content: Text('Gửi tệp “${_fileCtrl.text.trim()}”?'),
+        content: Text('Gửi tệp “$name”?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Quay lại')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xác nhận')),
@@ -298,18 +295,18 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     // TODO: upload thật lên server
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-
     setState(() => _sending = false);
-    // Navigator.pop(
-    //   context,
-    //   ReportItem(
-    //     fileName: _fileCtrl.text.trim(),
-    //     createdAt: DateTime.now(),
-    //     version: int.tryParse(_verCtrl.text.trim()) ?? widget.nextVersion,
-    //     status: ReportStatus.pending,
-    //     note: _mienBu ? 'Miễn bù đã được ghi nhận' : null,
-    //   ),
-    // );
+
+    Navigator.pop(
+      context,
+      ReportItem(
+        fileName: name,
+        createdAt: DateTime.now(),
+        version: ver,
+        status: ReportStatus.pending,
+        note: _mienBu ? 'Miễn bù đã được ghi nhận' : null,
+      ),
+    );
   }
 
   @override
@@ -335,17 +332,16 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         backgroundColor: const Color(0xFF2563EB),
         title: const Text('Nộp báo cáo', style: TextStyle(color: Colors.white)),
         centerTitle: true,
-        // để nút back và actions màu trắng
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxW), // maxW là double
+            constraints: BoxConstraints(maxWidth: maxW),
             child: ListView(
               padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
               children: [
-                // ======= FORM CARD =======
+                // ======= FORM =======
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -375,7 +371,20 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                         ),
                         SizedBox(height: gap),
 
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text('Miễn bù?',
+                                  style: Theme.of(context).textTheme.bodyLarge),
+                            ),
+                            Switch(
+                              value: _mienBu,
+                              onChanged: (v) => setState(() => _mienBu = v),
+                            ),
+                          ],
+                        ),
                         SizedBox(height: gap),
+
                         _AttachFileTile(
                           fileName: _fileCtrl.text.trim().isEmpty
                               ? null
@@ -385,6 +394,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                               ? null
                               : () => setState(_fileCtrl.clear),
                         ),
+
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
@@ -394,8 +404,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                                 ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child:
-                              CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                                 : const Text('Nộp báo cáo'),
                           ),
@@ -415,9 +424,9 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                     padding: EdgeInsets.all(gap),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.info_outline),
-                        const SizedBox(width: 12),
+                      children: const [
+                        Icon(Icons.info_outline),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'Chấp nhận tệp PDF/DOCX. Sau khi nộp, trạng thái là “Chờ duyệt”. '
@@ -435,7 +444,6 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       ),
     );
   }
-
 }
 
 /* ================== COMMON WIDGETS ================== */
@@ -467,7 +475,9 @@ class _AttachFileTile extends StatelessWidget {
         children: [
           const Icon(Icons.insert_drive_file_outlined),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis)),
+          Expanded(
+            child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
           const SizedBox(width: 8),
           if (has && onClear != null)
             IconButton(onPressed: onClear, icon: const Icon(Icons.close), tooltip: 'Xóa'),
@@ -504,7 +514,10 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
@@ -523,15 +536,11 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: const ShapeDecoration(shape: StadiumBorder(), color: Colors.transparent),
-      child: DecoratedBox(
-        decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
-        ),
+    return DecoratedBox(
+      decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
       ),
     );
   }
