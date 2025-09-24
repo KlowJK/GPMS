@@ -22,35 +22,36 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Màn hình “Thông tin giảng viên” viết lại theo layout co giãn
+/// Màn hình “Thông tin giảng viên” với header + avatar + thông tin
 class ThongTinGiangVienPage extends StatelessWidget {
   const ThongTinGiangVienPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final pad = MediaQuery.of(context).size.width * 0.05; // padding theo màn hình
+    final pad = MediaQuery.of(context).size.width * 0.05;
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2F7CD3),
-        foregroundColor: Colors.white,
-        title: const Text('Thông tin chi tiết'),
         elevation: 0,
+        toolbarHeight: 0, // ẩn tiêu đề AppBar
       ),
       body: SafeArea(
         child: ListView(
-          padding: EdgeInsets.fromLTRB(pad, 16, pad, 24),
+          padding: EdgeInsets.fromLTRB(pad, 0, pad, 24),
           children: [
-            // Header
-            _HeaderCard(
+            // Header Giảng viên
+            const _TeacherHeader(
               name: 'ThS. Lê Đức Anh',
               department: 'Khoa Công nghệ thông tin',
+              avatarUrl: 'https://placehold.co/120x120',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             // Thông tin cá nhân
             const Text(
               'Thông tin cá nhân',
+              textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
@@ -126,11 +127,11 @@ class ThongTinGiangVienPage extends StatelessWidget {
         ),
       ),
 
-      // Thanh điều hướng dưới (minh họa)
+      // Thanh điều hướng dưới (demo)
       bottomNavigationBar: NavigationBar(
-        selectedIndex: 2, // ví dụ đang ở "Hồ sơ"
+        selectedIndex: 2,
         onDestinationSelected: (i) {
-          // TODO: điều hướng các tab
+          // TODO: điều hướng tab
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
@@ -143,55 +144,81 @@ class ThongTinGiangVienPage extends StatelessWidget {
   }
 }
 
-/// Header Card với nền xanh + avatar
-class _HeaderCard extends StatelessWidget {
+/// Header Giảng viên với nền xanh + avatar + mũi nhọn
+class _TeacherHeader extends StatelessWidget {
   final String name;
   final String department;
+  final String? avatarUrl;
 
-  const _HeaderCard({required this.name, required this.department});
+  const _TeacherHeader({
+    required this.name,
+    required this.department,
+    this.avatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2F7CD3),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 30,
-            backgroundImage: AssetImage('assets/avatar_placeholder.png'),
-            // Nếu chưa có asset, có thể dùng backgroundColor:
-            // backgroundColor: Colors.white24,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 190,
+          width: double.infinity,
+          color: const Color(0xFF2F7CD3),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.white24,
+                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+                child: avatarUrl == null
+                    ? const Icon(Icons.person, size: 40, color: Colors.white)
+                    : null,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                department,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: DefaultTextStyle(
-              style: const TextStyle(color: Colors.white),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(
-                    department,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
+        ),
+        Positioned(
+          bottom: -8,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Transform.rotate(
+              angle: 3.14159,
+              child: const Icon(
+                Icons.arrow_drop_up,
+                size: 32,
+                color: Color(0xFF2F7CD3),
               ),
             ),
-          )
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// Thẻ thông tin dạng nhãn-trị
+/// Thẻ thông tin
 class _InfoCard extends StatelessWidget {
   final List<_InfoRow> rows;
 
@@ -221,7 +248,7 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-/// Một dòng thông tin: Label bên trái, Value bên phải
+/// Một dòng thông tin
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -230,14 +257,12 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(color: Colors.black87);
-    final valueStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF393938));
+    final labelStyle =
+    Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black87);
+    final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: const Color(0xFF393938),
+    );
 
     return Row(
       children: [
