@@ -29,7 +29,11 @@ class RegisterResult {
   final String advisor;
   final String? overviewFile;
 
-  RegisterResult({required this.title, required this.advisor, this.overviewFile});
+  RegisterResult({
+    required this.title,
+    required this.advisor,
+    this.overviewFile,
+  });
 }
 
 class RegisterProjectPage extends StatefulWidget {
@@ -83,7 +87,10 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()), child: const Text('Lưu')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
+            child: const Text('Lưu'),
+          ),
         ],
       ),
     );
@@ -91,7 +98,8 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
     if (txt != null) setState(() {}); // _fileCtrl đã giữ giá trị
   }
 
-  Future<void> _submit() async {
+  Future<void> _confirmAndSubmit() async {
+    // Validate trước khi hỏi xác nhận
     if (!_formKey.currentState!.validate()) {
       if (_advisor == null) {
         FocusScope.of(context).unfocus();
@@ -101,25 +109,65 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
       return;
     }
 
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: CircleAvatar(
+          radius: 22,
+          backgroundColor: const Color(0xFF2F7CD3),
+          child: const Icon(Icons.help_outline, color: Colors.white),
+        ),
+        title: const Text('Bạn có chắc chắn muốn gửi đăng ký đề tài không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Quay lại'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!ok) return;
+
+    await _submit();
+  }
+
+  Future<void> _submit() async {
     setState(() => _sending = true);
+
     // TODO: gọi API thực tế tại đây
     await Future.delayed(const Duration(milliseconds: 600));
+
     if (!mounted) return;
     setState(() => _sending = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã gửi đăng ký đề tài. Đang chờ duyệt!')),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(content: Text('Đã gửi đăng ký đề tài. Đang chờ duyệt!')),
+      );
 
-    // Nếu dùng trong app lớn, bạn có thể pop kèm kết quả:
-    // Navigator.pop(context, RegisterResult(title: _titleCtrl.text.trim(), advisor: _advisor!, overviewFile: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim()));
+    // Trả kết quả về màn trước (nếu được mở qua Navigator.push)
+    Navigator.pop(
+      context,
+      RegisterResult(
+        title: _titleCtrl.text.trim(),
+        advisor: _advisor!,
+        overviewFile: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
-    // Breakpoint + content width
+    // Breakpoint + content width (responsive)
     final double maxContentWidth = w >= 1200
         ? 1000
         : w >= 900
@@ -137,7 +185,7 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CD3),
+        backgroundColor: const Color(0xFF2563EB),
         title: const Text('Đăng ký thực hiện đề tài', style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
@@ -173,7 +221,10 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: const ShapeDecoration(color: Color(0xFFDBEAFE), shape: StadiumBorder()),
+                                decoration: const ShapeDecoration(
+                                  color: Color(0xFFDBEAFE),
+                                  shape: StadiumBorder(),
+                                ),
                                 child: Text(
                                   'Đợt 10/2025',
                                   style: Theme.of(context)
@@ -204,7 +255,8 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               ),
                               isDense: true,
                             ),
-                            validator: (v) => v == null ? 'Hãy chọn giảng viên hướng dẫn' : null,
+                            validator: (v) =>
+                            v == null ? 'Hãy chọn giảng viên hướng dẫn' : null,
                             onChanged: (v) => setState(() => _advisor = v),
                           ),
                           SizedBox(height: gap),
@@ -227,9 +279,8 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               ),
                               isDense: true,
                             ),
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? 'Hãy nhập tên đề tài'
-                                : null,
+                            validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Hãy nhập tên đề tài' : null,
                           ),
                           SizedBox(height: gap),
 
@@ -271,7 +322,7 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: FilledButton.icon(
-                              onPressed: _sending ? null : _submit,
+                              onPressed: _sending ? null : _confirmAndSubmit,
                               icon: _sending
                                   ? const SizedBox(
                                 width: 16,
@@ -326,24 +377,11 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                   ),
                 ),
 
-                // Khoảng trống dưới để tránh che nút ở máy có gesture bar
                 SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
               ],
             ),
           ),
         ),
-      ),
-
-      // Thanh điều hướng dưới (demo, không điều hướng thật)
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 1,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.folder), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.edit_note_outlined), label: 'Nhật ký'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), label: 'Hội đồng'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-        ],
       ),
     );
   }
