@@ -36,6 +36,7 @@ class AuthService {
     if (kDebugMode) {
       print('🔐 Attempting login to: $uri');
       print('👤 email: $email');
+      print('🔑 password length: ${password.length}');
     }
 
     try {
