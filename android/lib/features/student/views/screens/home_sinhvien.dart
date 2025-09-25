@@ -1,30 +1,13 @@
 
 import 'package:flutter/material.dart';
-
-import 'doan.dart';
 import 'home_tab.dart';
+import 'trangbaocao.dart'; // ReportListPage
+import 'doan.dart';       // ProjectApp
+import 'traghatky.dart';  // DiaryListPage  (đổi tên file cho đúng nếu khác)
+import 'tranghoidong.dart';    // <-- THÊM: chứa CouncilListPage
 
 void main() {
-  runApp(const DangKyDeTaiApp());
-}
-
-class DangKyDeTaiApp extends StatelessWidget {
-  const DangKyDeTaiApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2F7CD3);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Đăng ký đề tài',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
-      ),
-      home: const HomeSinhvien(),
-    );
-  }
+  runApp(const HomeSinhvien());
 }
 
 class HomeSinhvien extends StatelessWidget {
@@ -62,8 +45,8 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
     final pages = <Widget>[
       const HomeTab(), // Trang chủ
       const ProjectApp(), // TODO: thay bằng màn hình thật
-      const PlaceholderCenter(title: 'Nhật ký'),
-      const PlaceholderCenter(title: 'Hội đồng'),
+      const DiaryListPage(),
+      const CouncilListPage(),
       const PlaceholderCenter(title: 'Hồ sơ'),
     ];
 
