@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+
 import 'doan.dart';
 import 'home_tab.dart';
 
@@ -27,6 +29,7 @@ class DangKyDeTaiApp extends StatelessWidget {
 
 class HomeSinhvien extends StatelessWidget {
   const HomeSinhvien({super.key});
+
   @override
   Widget build(BuildContext context) {
     const seed = Color(0xFF2563EB);
@@ -44,7 +47,7 @@ class HomeSinhvien extends StatelessWidget {
   }
 }
 
-/// Shell sau khi đăng nhập: NavigationBar 5 tab
+
 class AfterLoginShell extends StatefulWidget {
   const AfterLoginShell({super.key});
   @override
@@ -53,6 +56,7 @@ class AfterLoginShell extends StatefulWidget {
 
 class _AfterLoginShellState extends State<AfterLoginShell> {
   int _index = 0;
+
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
@@ -73,6 +77,7 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Trang chủ',
+
           ),
           NavigationDestination(
             icon: Icon(Icons.folder_outlined),
@@ -84,6 +89,7 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
             selectedIcon: Icon(Icons.edit_note),
             label: 'Nhật ký',
           ),
+
           NavigationDestination(
             icon: Icon(Icons.groups_outlined),
             selectedIcon: Icon(Icons.groups),
