@@ -19,6 +19,7 @@ class CouncilItem {
 }
 
 /* ================ DEMO DATA (tĩnh) ================= */
+
 final List<CouncilItem> demoCouncils = [
   CouncilItem(
     name: 'Hội đồng A',
@@ -59,23 +60,24 @@ class CouncilListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final w = constraints.maxWidth;
-          final double maxW =
-          w >= 1200 ? 1100 : w >= 900 ? 900 : w >= 600 ? 600 : w;
-          final double pad = w >= 900 ? 24 : 16;
-          final double gap = w >= 900 ? 16 : 12;
+    return Scaffold(
+      // Đặt AppBar TRỰC TIẾP ở Scaffold (không bọc SafeArea bên ngoài)
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white, // đảm bảo chữ/icon trắng trong M3
+        centerTitle: true,
+        title: const Text('Hội đồng'),
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final double maxW =
+            w >= 1200 ? 1100 : w >= 900 ? 900 : w >= 600 ? 600 : w;
+            final double pad = w >= 900 ? 24 : 16;
+            final double gap = w >= 900 ? 16 : 12;
 
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: const Color(0xFF2563EB),
-              title: const Text('Hội đồng', style: TextStyle(color: Colors.white)),
-              centerTitle: true,
-              iconTheme: const IconThemeData(color: Colors.white),
-            ),
-            body: Center(
+            return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxW),
                 child: ListView(
@@ -101,21 +103,23 @@ class CouncilListPage extends StatelessWidget {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: demoCouncils.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _CouncilCard(item: demoCouncils[i]),
+                        separatorBuilder: (_, __) =>
+                        const SizedBox(height: 10),
+                        itemBuilder: (_, i) =>
+                            _CouncilCard(item: demoCouncils[i]),
                       ),
                   ],
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-/* ================== CARD HIỆN HỘI ĐỒNG ================== */
+/* ================== CARD HIỂN THỊ HỘI ĐỒNG ================== */
 
 class _CouncilCard extends StatelessWidget {
   const _CouncilCard({required this.item});
@@ -125,7 +129,7 @@ class _CouncilCard extends StatelessWidget {
     String two(int v) => v.toString().padLeft(2, '0');
     final date = '${two(d.day)}/${two(d.month)}/${d.year}';
     final time = '${two(d.hour)}:${two(d.minute)}';
-    // Nếu giờ phút = 00:00 thì chỉ hiển thị ngày
+    // nếu giờ:phút là 00:00 -> chỉ hiển thị ngày
     return (d.hour == 0 && d.minute == 0) ? date : '$date $time';
   }
 
@@ -154,20 +158,17 @@ class _CouncilCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // icon tròn
             CircleAvatar(
               radius: 24,
               backgroundColor: cs.primaryContainer,
               child: const Icon(Icons.apartment_rounded),
             ),
             const SizedBox(width: 12),
-
-            // nội dung
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tên + badge trạng thái
+                  // Tên + trạng thái
                   Row(
                     children: [
                       Expanded(
@@ -190,8 +191,7 @@ class _CouncilCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-
-                  // Ngày
+                  // Thời gian
                   Text.rich(
                     TextSpan(
                       children: [
@@ -202,12 +202,13 @@ class _CouncilCard extends StatelessWidget {
                               .bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
-                        TextSpan(text: '${_fmt(item.startDate)}  –  ${_fmt(item.endDate)}'),
+                        TextSpan(
+                          text:
+                          '${_fmt(item.startDate)}  –  ${_fmt(item.endDate)}',
+                        ),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -274,8 +275,12 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
-      child: Padding(
+      decoration: const ShapeDecoration(
+        shape: StadiumBorder(),
+        // màu set qua Container để auto match theme brightness
+      ),
+      child: Container(
+        decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
       ),
