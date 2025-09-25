@@ -501,17 +501,23 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final h = MediaQuery.of(context).size.height;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+      // ➜ ép khung trắng rộng full và cao tối thiểu 62% màn hình
+      width: double.infinity,
+      constraints: BoxConstraints(minHeight: h * 0.62),
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // căn giữa đẹp hơn
         children: [
-          Icon(icon, size: 56, color: cs.primary),
-          const SizedBox(height: 12),
+          Icon(icon, size: 64, color: cs.primary),
+          const SizedBox(height: 14),
           Text(
             title,
             style: Theme.of(context)
@@ -520,13 +526,14 @@ class _EmptyState extends StatelessWidget {
                 ?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(subtitle, textAlign: TextAlign.center),
         ],
       ),
     );
   }
 }
+
 
 class _Badge extends StatelessWidget {
   const _Badge({required this.text, required this.bg, required this.fg});

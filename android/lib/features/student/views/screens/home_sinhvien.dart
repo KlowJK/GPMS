@@ -1,9 +1,16 @@
-import 'package:flutter/material.dart';
-import 'trangbaocao.dart'; // chứa ReportListPage
-import 'doan.dart';
 
-class HomeSinhvien extends StatelessWidget {
-  const HomeSinhvien({super.key});
+import 'package:flutter/material.dart';
+import 'trangbaocao.dart'; // ReportListPage
+import 'doan.dart';       // ProjectApp
+import 'traghatky.dart';  // DiaryListPage  (đổi tên file cho đúng nếu khác)
+import 'tranghoidong.dart';    // <-- THÊM: chứa CouncilListPage
+
+void main() {
+  runApp(const HomeSinhvienApp());
+}
+
+class HomeSinhvienApp extends StatelessWidget {
+  const HomeSinhvienApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +28,7 @@ class HomeSinhvien extends StatelessWidget {
   }
 }
 
-/// Shell sau khi đăng nhập
+/// Shell sau khi đăng nhập: 6 tab
 class AfterLoginShell extends StatefulWidget {
   const AfterLoginShell({super.key});
   @override
@@ -31,21 +38,27 @@ class AfterLoginShell extends StatefulWidget {
 class _AfterLoginShellState extends State<AfterLoginShell> {
   int _index = 0;
 
+  void _goReportTab()   => setState(() => _index = 2);
+  void _goDiaryTab()    => setState(() => _index = 3);
+  void _goCouncilTab()  => setState(() => _index = 4); // <-- THÊM
+
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      const HomeTab(),            // 0 Trang chủ
+      HomeTab(
+        onGoReport: _goReportTab,
+        onGoDiary:  _goDiaryTab,
+        onGoCouncil: _goCouncilTab, // <-- THÊM
+      ),                          // 0 Trang chủ
       const ProjectApp(),         // 1 Đồ án
-      const ReportListPage(),     // 2 Báo cáo  ← dùng trang báo cáo thật
-      const DiaryPage(),          // 3 Nhật ký
-      const CouncilPage(),        // 4 Hội đồng
+      const ReportListPage(),     // 2 Báo cáo
+      const DiaryListPage(),      // 3 Nhật ký
+      const CouncilListPage(),    // 4 Hội đồng  <-- DÙNG TRANG HỘI ĐỒNG MỚI
       const ProfilePage(),        // 5 Hồ sơ
     ];
 
     return Scaffold(
-      appBar: _HeaderBar(
-        onBellTap: () => setState(() => _index = 2), // mở tab Báo cáo khi bấm chuông
-      ),
+      appBar: _HeaderBar(onBellTap: _goReportTab),
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _index,
@@ -55,64 +68,7 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
   }
 }
 
-/// BottomNavigationBar hiển thị đúng như ảnh (6 mục)
-class AppBottomNavBar extends StatelessWidget {
-  const AppBottomNavBar({
-    super.key,
-    required this.currentIndex,
-    required this.onChanged,
-  });
-
-  final int currentIndex;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex,
-      onTap: onChanged,
-      selectedItemColor: cs.primary,
-      unselectedItemColor: Colors.black,
-      showSelectedLabels: true,
-      showUnselectedLabels: true,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Trang chủ',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.article_outlined),
-          activeIcon: Icon(Icons.article),
-          label: 'Đồ án',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.fact_check_outlined), // "Báo cáo"
-          activeIcon: Icon(Icons.fact_check),
-          label: 'Báo cáo',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.event_note_outlined),
-          activeIcon: Icon(Icons.event_note),
-          label: 'Nhật ký',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.apartment_outlined),
-          activeIcon: Icon(Icons.apartment),
-          label: 'Hội đồng',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Hồ sơ',
-        ),
-      ],
-    );
-  }
-}
-
+/// App bar
 class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
   const _HeaderBar({super.key, this.onBellTap});
   final VoidCallback? onBellTap;
@@ -132,9 +88,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(
             width: 55,
             height: 55,
-            child: Image(
-              image: AssetImage("assets/images/logo.png"),
-            ),
+            child: Image(image: AssetImage("assets/images/logo.png")),
           ),
           const SizedBox(width: 12),
           Flexible(
@@ -181,9 +135,75 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
+/// BottomNavigationBar 6 mục
+class AppBottomNavBar extends StatelessWidget {
+  const AppBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onChanged,
+  });
+
+  final int currentIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      onTap: onChanged,
+      selectedItemColor: cs.primary,
+      unselectedItemColor: Colors.black,
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Trang chủ',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.article_outlined),
+          activeIcon: Icon(Icons.article),
+          label: 'Đồ án',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.fact_check_outlined),
+          activeIcon: Icon(Icons.fact_check),
+          label: 'Báo cáo',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.event_note_outlined),
+          activeIcon: Icon(Icons.event_note),
+          label: 'Nhật ký',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.apartment_outlined),
+          activeIcon: Icon(Icons.apartment),
+          label: 'Hội đồng',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Hồ sơ',
+        ),
+      ],
+    );
+  }
+}
+
 /// ================== TAB TRANG CHỦ ==================
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+  const HomeTab({
+    super.key,
+    required this.onGoReport,
+    required this.onGoDiary,
+    required this.onGoCouncil, // <-- THÊM
+  });
+  final VoidCallback onGoReport;
+  final VoidCallback onGoDiary;
+  final VoidCallback onGoCouncil; // <-- THÊM
 
   @override
   Widget build(BuildContext context) {
@@ -286,10 +306,7 @@ class HomeTab extends StatelessWidget {
                   SectionHeader(
                     title: 'Việc tuần này',
                     trailing: TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AllTasksPage()),
-                      ),
+                      onPressed: () {},
                       child: const Text('Xem tất cả'),
                     ),
                   ),
@@ -299,23 +316,23 @@ class HomeTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
                         _TaskTile(
                           title: 'Ghi nhật ký tuần 5',
                           subtitle: 'Hạn: 23:59-20/09',
                           actionText: 'Thực hiện',
-                          statusColor: null,
+                          onAction: onGoDiary,
+                          onTap: onGoDiary,
                         ),
-                        Divider(height: 1),
-                        _TaskTile(
+                        const Divider(height: 1),
+                        const _TaskTile(
                           title: 'Chỉnh sửa đề cương theo góp ý',
                           subtitle: 'Hạn: 23:59-22/09',
                           actionText: 'Thực hiện',
-                          statusColor: null,
                         ),
-                        Divider(height: 1),
-                        _TaskTile(
+                        const Divider(height: 1),
+                        const _TaskTile(
                           title: 'Nộp bản cập nhật tuần 4',
                           subtitle: 'Hạn: 23:59-15/09 ',
                           actionText: 'Thực hiện',
@@ -332,15 +349,7 @@ class HomeTab extends StatelessWidget {
                   SectionHeader(
                     title: 'Thông báo',
                     trailing: TextButton(
-                      onPressed: () {
-                        // Mở danh sách Báo cáo (thay vì trang AllNoti)
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ReportListPage(),
-                          ),
-                        );
-                      },
+                      onPressed: onGoReport,
                       child: const Text('Xem tất cả'),
                     ),
                   ),
@@ -350,25 +359,28 @@ class HomeTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
                         _NotiTile(
-                          color: Color(0xFFDBEAFE),
+                          color: const Color(0xFFDBEAFE),
                           title: 'Đề cương #P-2025-031 đang chờ duyệt',
                           subtitle: 'GVHD: TS. Trần Văn B • 10:30 18/09',
+                          onOpen: onGoReport,
                         ),
-                        Divider(height: 1),
+                        const Divider(height: 1),
                         _NotiTile(
-                          color: Color(0xFFDCFCE7),
+                          color: const Color(0xFFDCFCE7),
                           title: 'Đề tài của bạn đã được duyệt',
                           subtitle: 'Hệ thống • 09:15 17/09',
+                          onOpen: onGoReport,
                         ),
-                        Divider(height: 1),
+                        const Divider(height: 1),
                         _NotiTile(
-                          color: Color(0xFFFEE2E2),
+                          color: const Color(0xFFFEE2E2),
                           title: 'Nhật ký tuần 4 quá hạn nộp',
                           subtitle: 'Hệ thống • 08:00 16/09',
                           warn: true,
+                          onOpen: onGoDiary,
                         ),
                       ],
                     ),
@@ -380,11 +392,20 @@ class HomeTab extends StatelessWidget {
                   SectionHeader(
                     title: 'Tin tức',
                     trailing: TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AllNewsPage()),
-                      ),
+                      onPressed: () {},
                       child: const Text('Xem tất cả'),
+                    ),
+                  ),
+                  const _NewsListCard(),
+
+                  SizedBox(height: gap * 1.5),
+
+                  // HỘI ĐỒNG (nút đi tới danh sách)
+                  SectionHeader(
+                    title: 'Hội đồng',
+                    trailing: TextButton(
+                      onPressed: onGoCouncil, // <-- NHẤN -> CHUYỂN TAB HỘI ĐỒNG
+                      child: const Text('Xem danh sách'),
                     ),
                   ),
                   Card(
@@ -393,23 +414,17 @@ class HomeTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Column(
-                      children: [
-                        _NewsTile(
-                          title: 'Công bố lịch bảo vệ đợt 10/2025',
-                          subtitle: 'Khoa công nghệ thông tin • 10:30 18/09',
-                        ),
-                        Divider(height: 1),
-                        _NewsTile(
-                          title: 'Mở đăng ký đề tài cho sinh viên K64',
-                          subtitle: 'Hệ thống • 09:15 17/09',
-                        ),
-                        Divider(height: 1),
-                        _NewsTile(
-                          title: 'Kế hoạch DATN Kỳ 1 năm học 2025–2026',
-                          subtitle: 'Hệ thống • 08:00 16/09',
-                        ),
-                      ],
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
+                        child: const Icon(Icons.apartment_rounded, size: 18),
+                      ),
+                      title: const Text('Danh sách hội đồng bảo vệ'),
+                      subtitle: const Text('Lịch bảo vệ sắp diễn ra • bấm để mở'),
+                      trailing:
+                      TextButton(onPressed: onGoCouncil, child: const Text('Mở')),
+                      onTap: onGoCouncil,
                     ),
                   ),
 
@@ -457,6 +472,8 @@ class _TaskTile extends StatelessWidget {
     required this.actionText,
     this.statusColor,
     this.overdue = false,
+    this.onAction,
+    this.onTap,
   });
 
   final String title;
@@ -464,6 +481,8 @@ class _TaskTile extends StatelessWidget {
   final String actionText;
   final Color? statusColor;
   final bool overdue;
+  final VoidCallback? onAction;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -500,8 +519,8 @@ class _TaskTile extends StatelessWidget {
             ],
           ],
         ),
-        trailing: TextButton(onPressed: () {}, child: Text(actionText)),
-        onTap: () {},
+        trailing: TextButton(onPressed: onAction, child: Text(actionText)),
+        onTap: onTap,
       ),
     );
   }
@@ -513,11 +532,13 @@ class _NotiTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.warn = false,
+    this.onOpen,
   });
   final Color color;
   final String title;
   final String subtitle;
   final bool warn;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -534,21 +555,41 @@ class _NotiTile extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(subtitle),
-      trailing: TextButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ReportListPage()),
-          );
-        },
-        child: const Text('Xem'),
+      trailing: TextButton(onPressed: onOpen, child: const Text('Xem')),
+      onTap: onOpen,
+    );
+  }
+}
+
+class _NewsListCard extends StatelessWidget {
+  const _NewsListCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ReportListPage()),
-        );
-      },
+      child: const Column(
+        children: [
+          _NewsTile(
+            title: 'Công bố lịch bảo vệ đợt 10/2025',
+            subtitle: 'Khoa công nghệ thông tin • 10:30 18/09',
+          ),
+          Divider(height: 1),
+          _NewsTile(
+            title: 'Mở đăng ký đề tài cho sinh viên K64',
+            subtitle: 'Hệ thống • 09:15 17/09',
+          ),
+          Divider(height: 1),
+          _NewsTile(
+            title: 'Kế hoạch DATN Kỳ 1 năm học 2025–2026',
+            subtitle: 'Hệ thống • 08:00 16/09',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -595,7 +636,6 @@ class _TopicLibraryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ô tìm kiếm
             TextField(
               decoration: InputDecoration(
                 hintText: 'Tìm kiếm đề tài...',
@@ -612,7 +652,6 @@ class _TopicLibraryCard extends StatelessWidget {
               onSubmitted: (q) {},
             ),
             SizedBox(height: gap),
-            // Bộ lọc (chips)
             const Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -629,10 +668,7 @@ class _TopicLibraryCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AllTopicsPage()),
-                ),
+                onPressed: () {},
                 icon: const Icon(Icons.list_alt),
                 label: const Text('Xem tất cả đề tài'),
               ),
@@ -660,164 +696,7 @@ class _StaticChip extends StatelessWidget {
   }
 }
 
-/// ===== Các trang danh sách mẫu =====
-class AllTasksPage extends StatelessWidget {
-  const AllTasksPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final items = const [
-      ('Ghi nhật ký tuần 5', 'Hạn: 20/09, 23:59 • SV'),
-      ('Chỉnh sửa đề cương theo góp ý', 'Hạn: 22/09, 23:59 • SV'),
-      ('Nộp bản cập nhật tuần 4', 'Hạn: 15/09, 23:59 • SV'),
-    ];
-    return _SimpleListScaffold(
-      title: 'Tất cả việc tuần',
-      items: items,
-      icon: Icons.checklist,
-    );
-  }
-}
-
-class AllNotiPage extends StatelessWidget {
-  const AllNotiPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final items = const [
-      ('Đề cương #P-2025-031 đang chờ duyệt', 'GVHD: TS. Trần Văn B • 10:30 18/09'),
-      ('Đề tài của bạn đã được duyệt', 'Hệ thống • 09:15 17/09'),
-      ('Nhật ký tuần 4 quá hạn nộp', 'Hệ thống • 08:00 16/09'),
-    ];
-    return _SimpleListScaffold(
-      title: 'Tất cả thông báo',
-      items: items,
-      icon: Icons.notifications,
-    );
-  }
-}
-
-class AllNewsPage extends StatelessWidget {
-  const AllNewsPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final items = const [
-      ('Công bố lịch bảo vệ đợt 10/2025', 'Khoa CNTT • 10:30 18/09'),
-      ('Mở đăng ký đề tài cho sinh viên K64', 'Hệ thống • 09:15 17/09'),
-      ('Kế hoạch DATN Kỳ 1 năm học 2025–2026', 'Hệ thống • 08:00 16/09'),
-    ];
-    return _SimpleListScaffold(
-      title: 'Tất cả tin tức',
-      items: items,
-      icon: Icons.campaign,
-    );
-  }
-}
-
-class AllTopicsPage extends StatelessWidget {
-  const AllTopicsPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final items = List.generate(30, (i) => ('Đề tài số ${i + 1}', 'Học kỳ 2 - 9/2025'));
-    final border = OutlineInputBorder(
-      borderSide: BorderSide(color: Theme.of(context).dividerColor),
-      borderRadius: BorderRadius.circular(10),
-    );
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tất cả đề tài')),
-      body: SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length + 1,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm đề tài...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: border,
-                    enabledBorder: border,
-                    focusedBorder: border.copyWith(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    isDense: true,
-                  ),
-                  onSubmitted: (q) {},
-                ),
-              );
-            }
-            final (title, subtitle) = items[index - 1];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: const Icon(Icons.folder, size: 18),
-              ),
-              title: Text(title),
-              subtitle: Text(subtitle),
-              trailing: TextButton(onPressed: () {}, child: const Text('Xem')),
-              onTap: () {},
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// ===== Phụ trợ =====
-class _SimpleListScaffold extends StatelessWidget {
-  const _SimpleListScaffold({
-    required this.title,
-    required this.items,
-    required this.icon,
-  });
-  final String title;
-  final List<(String, String)> items;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, i) {
-          final (t, s) = items[i];
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: Icon(icon, size: 18),
-            ),
-            title: Text(t),
-            subtitle: Text(s),
-            trailing: TextButton(onPressed: () {}, child: const Text('Xem')),
-            onTap: () {},
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// ===== Trang placeholder cho 4 tab còn lại =====
-class DiaryPage extends StatelessWidget {
-  const DiaryPage({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Nhật ký'));
-}
-
-class CouncilPage extends StatelessWidget {
-  const CouncilPage({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Hội đồng'));
-}
-
+/// ===== Placeholder còn lại =====
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
   @override
