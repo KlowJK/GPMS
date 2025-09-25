@@ -62,6 +62,7 @@ class ReportScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF2F7CD3),
         foregroundColor: Colors.white,
         title: const Text('Báo cáo'),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: CustomScrollView(

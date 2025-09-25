@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_bar.dart';
-import 'doan.dart';
+import '../widgets/app_bar.dart'; // nếu không dùng có thể bỏ import này
+import 'doan.dart';              // chứa ProjectApp
 
 class HomeSinhvien extends StatelessWidget {
   const HomeSinhvien({super.key});
@@ -16,13 +16,12 @@ class HomeSinhvien extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: seed),
         scaffoldBackgroundColor: const Color(0xFFDCDEE4),
       ),
-
       home: const AfterLoginShell(),
     );
   }
 }
 
-/// Shell sau khi đăng nhập: NavigationBar 5 tab
+/// Shell sau khi đăng nhập
 class AfterLoginShell extends StatefulWidget {
   const AfterLoginShell({super.key});
   @override
@@ -31,59 +30,96 @@ class AfterLoginShell extends StatefulWidget {
 
 class _AfterLoginShellState extends State<AfterLoginShell> {
   int _index = 0;
+
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      const HomeTab(), // Trang chủ
-      const ProjectApp(), // TODO: thay bằng màn hình thật
-      const PlaceholderCenter(title: 'Nhật ký'),
-      const PlaceholderCenter(title: 'Hội đồng'),
-      const PlaceholderCenter(title: 'Hồ sơ'),
+      const HomeTab(),        // 0 Trang chủ
+      const ProjectApp(),     // 1 Đồ án
+      const ReportPage(),     // 2 Báo cáo
+      const DiaryPage(),      // 3 Nhật ký
+      const CouncilPage(),    // 4 Hội đồng
+      const ProfilePage(),    // 5 Hồ sơ
     ];
 
     return Scaffold(
-      appBar: _HeaderBar(),
-      body: pages[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Đồ án',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.edit_note_outlined),
-            selectedIcon: Icon(Icons.edit_note),
-            label: 'Nhật ký',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Hội đồng',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Hồ sơ',
-          ),
-        ],
+      appBar: _HeaderBar(
+        onBellTap: () => setState(() => _index = 2), // mở tab Báo cáo khi bấm chuông
+      ),
+      body: IndexedStack(index: _index, children: pages),
+      bottomNavigationBar: AppBottomNavBar(
+        currentIndex: _index,
+        onChanged: (i) => setState(() => _index = i),
       ),
     );
   }
 }
 
+/// BottomNavigationBar hiển thị đúng như ảnh (6 mục)
+class AppBottomNavBar extends StatelessWidget {
+  const AppBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onChanged,
+  });
+
+  final int currentIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      onTap: onChanged,
+      selectedItemColor: cs.primary,
+      unselectedItemColor: Colors.black,
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Trang chủ',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.article_outlined),
+          activeIcon: Icon(Icons.article),
+          label: 'Đồ án',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.fact_check_outlined), // biểu tượng "Báo cáo"
+          activeIcon: Icon(Icons.fact_check),
+          label: 'Báo cáo',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.event_note_outlined),
+          activeIcon: Icon(Icons.event_note),
+          label: 'Nhật ký',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.apartment_outlined),
+          activeIcon: Icon(Icons.apartment),
+          label: 'Hội đồng',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Hồ sơ',
+        ),
+      ],
+    );
+  }
+}
+
 class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
-  _HeaderBar({super.key});
+  const _HeaderBar({super.key, this.onBellTap});
+  final VoidCallback? onBellTap;
+
   final double _height = 60;
   @override
-  Size get preferredSize => Size.fromHeight(_height);
+  Size get preferredSize => const Size.fromHeight(60);
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +130,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 12,
       title: Row(
         children: [
-          Container(
+          SizedBox(
             width: 55,
             height: 55,
             child: Image.asset("assets/images/logo.png"),
@@ -125,8 +161,8 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         IconButton(
-          onPressed: () {},
-          tooltip: 'Thông báo',
+          onPressed: onBellTap,
+          tooltip: 'Thông báo/Báo cáo',
           icon: const Icon(Icons.notifications_outlined),
           color: Colors.white,
         ),
@@ -144,7 +180,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// TAB TRANG CHỦ (sau đăng nhập)
+/// ================== TAB TRANG CHỦ ==================
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
@@ -154,13 +190,8 @@ class HomeTab extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final w = constraints.maxWidth;
-          final double maxContentWidth = w >= 1200
-              ? 1100
-              : w >= 900
-              ? 900
-              : w >= 600
-              ? 600
-              : w;
+          final double maxContentWidth =
+          w >= 1200 ? 1100 : w >= 900 ? 900 : w >= 600 ? 600 : w;
           final double pad = w >= 900 ? 24 : 16;
           final double gap = w >= 900 ? 16 : 12;
 
@@ -186,7 +217,9 @@ class HomeTab extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   'Tiến độ đồ án tốt nghiệp',
-                                  style: Theme.of(context).textTheme.titleMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                               ),
@@ -195,9 +228,9 @@ class HomeTab extends StatelessWidget {
                                   horizontal: 10,
                                   vertical: 4,
                                 ),
-                                decoration: ShapeDecoration(
-                                  color: const Color(0xFFDCFCE7),
-                                  shape: const StadiumBorder(),
+                                decoration: const ShapeDecoration(
+                                  color: Color(0xFFDCFCE7),
+                                  shape: StadiumBorder(),
                                 ),
                                 child: const Text(
                                   'Đề cương',
@@ -212,9 +245,9 @@ class HomeTab extends StatelessWidget {
                           SizedBox(height: gap),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(9999),
-                            child: LinearProgressIndicator(
+                            child: const LinearProgressIndicator(
                               minHeight: 8,
-                              value: 0.30, // ~115/384 từ bản Figma → 30%
+                              value: 0.30,
                             ),
                           ),
                           SizedBox(height: gap),
@@ -223,17 +256,20 @@ class HomeTab extends StatelessWidget {
                               children: [
                                 TextSpan(
                                   text: 'Tuần 2: Đang chờ duyệt đề cương\n',
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                                  style:
+                                  Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 TextSpan(
                                   text:
-                                      'Cần ghi nhật ký tuần 5 trước 23:59 20/09',
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  'Cần ghi nhật ký tuần 5 trước 23:59 20/09',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -262,8 +298,8 @@ class HomeTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
-                      children: const [
+                    child: const Column(
+                      children: [
                         _TaskTile(
                           title: 'Ghi nhật ký tuần 5',
                           subtitle: 'Hạn: 23:59-20/09',
@@ -282,7 +318,7 @@ class HomeTab extends StatelessWidget {
                           title: 'Nộp bản cập nhật tuần 4',
                           subtitle: 'Hạn: 23:59-15/09 ',
                           actionText: 'Thực hiện',
-                          statusColor: Color(0xFFFCA5A5), // quá hạn
+                          statusColor: Color(0xFFFCA5A5),
                           overdue: true,
                         ),
                       ],
@@ -308,8 +344,8 @@ class HomeTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
-                      children: const [
+                    child: const Column(
+                      children: [
                         _NotiTile(
                           color: Color(0xFFDBEAFE),
                           title: 'Đề cương #P-2025-031 đang chờ duyệt',
@@ -351,8 +387,8 @@ class HomeTab extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
-                      children: const [
+                    child: const Column(
+                      children: [
                         _NewsTile(
                           title: 'Công bố lịch bảo vệ đợt 10/2025',
                           subtitle: 'Khoa công nghệ thông tin • 10:30 18/09',
@@ -393,9 +429,10 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(
-      context,
-    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
+    final style = Theme.of(context)
+        .textTheme
+        .titleMedium
+        ?.copyWith(fontWeight: FontWeight.w600);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -446,14 +483,16 @@ class _TaskTile extends StatelessWidget {
             if (overdue) ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEE2E2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
                   'Quá hạn',
-                  style: TextStyle(color: Color(0xFF991B1B), fontSize: 12),
+                  style:
+                  TextStyle(color: Color(0xFF991B1B), fontSize: 12),
                 ),
               ),
             ],
@@ -490,9 +529,10 @@ class _NotiTile extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(context)
+            .textTheme
+            .bodyLarge
+            ?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(subtitle),
       trailing: TextButton(onPressed: () {}, child: const Text('Xem')),
@@ -510,14 +550,16 @@ class _NewsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor:
+        Theme.of(context).colorScheme.primaryContainer,
         child: const Icon(Icons.campaign, size: 18),
       ),
       title: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(context)
+            .textTheme
+            .bodyLarge
+            ?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(subtitle),
       trailing: TextButton(onPressed: () {}, child: const Text('Xem')),
@@ -539,7 +581,8 @@ class _TopicLibraryCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: EdgeInsets.all(gap),
         child: Column(
@@ -563,10 +606,10 @@ class _TopicLibraryCard extends StatelessWidget {
             ),
             SizedBox(height: gap),
             // Bộ lọc (chips)
-            Wrap(
+            const Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: const [
+              children: [
                 _StaticChip(label: 'Đợt 2', selected: true),
                 _StaticChip(label: '2023'),
                 _StaticChip(label: 'AI'),
@@ -633,10 +676,8 @@ class AllNotiPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = const [
-      (
-        'Đề cương #P-2025-031 đang chờ duyệt',
-        'GVHD: TS. Trần Văn B • 10:30 18/09',
-      ),
+      ('Đề cương #P-2025-031 đang chờ duyệt',
+      'GVHD: TS. Trần Văn B • 10:30 18/09'),
       ('Đề tài của bạn đã được duyệt', 'Hệ thống • 09:15 17/09'),
       ('Nhật ký tuần 4 quá hạn nộp', 'Hệ thống • 08:00 16/09'),
     ];
@@ -669,10 +710,8 @@ class AllTopicsPage extends StatelessWidget {
   const AllTopicsPage({super.key});
   @override
   Widget build(BuildContext context) {
-    final items = List.generate(
-      30,
-      (i) => ('Đề tài số ${i + 1}', 'Học kỳ 2 - 9/2025'),
-    );
+    final items =
+    List.generate(30, (i) => ('Đề tài số ${i + 1}', 'Học kỳ 2 - 9/2025'));
     final border = OutlineInputBorder(
       borderSide: BorderSide(color: Theme.of(context).dividerColor),
       borderRadius: BorderRadius.circular(10),
@@ -709,12 +748,14 @@ class AllTopicsPage extends StatelessWidget {
             final (title, subtitle) = items[index - 1];
             return ListTile(
               leading: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                backgroundColor:
+                Theme.of(context).colorScheme.primaryContainer,
                 child: const Icon(Icons.folder, size: 18),
               ),
               title: Text(title),
               subtitle: Text(subtitle),
-              trailing: TextButton(onPressed: () {}, child: const Text('Xem')),
+              trailing:
+              TextButton(onPressed: () {}, child: const Text('Xem')),
               onTap: () {},
             );
           },
@@ -747,7 +788,8 @@ class _SimpleListScaffold extends StatelessWidget {
           final (t, s) = items[i];
           return ListTile(
             leading: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              backgroundColor:
+              Theme.of(context).colorScheme.primaryContainer,
               child: Icon(icon, size: 18),
             ),
             title: Text(t),
@@ -761,13 +803,31 @@ class _SimpleListScaffold extends StatelessWidget {
   }
 }
 
-class PlaceholderCenter extends StatelessWidget {
-  const PlaceholderCenter({super.key, required this.title});
-  final String title;
+/// ===== Trang placeholder cho 4 tab còn lại =====
+class ReportPage extends StatelessWidget {
+  const ReportPage({super.key});
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Center(child: Text('Báo cáo'));
+}
+
+class DiaryPage extends StatelessWidget {
+  const DiaryPage({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const Center(child: Text('Nhật ký'));
+}
+
+class CouncilPage extends StatelessWidget {
+  const CouncilPage({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const Center(child: Text('Hội đồng'));
+}
+
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const Center(child: Text('Hồ sơ'));
 }
