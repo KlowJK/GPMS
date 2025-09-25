@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/app_bar.dart'; // nếu không dùng có thể bỏ import này
 import 'doan.dart';              // chứa ProjectApp
 
-void main() => runApp(const GPMSApp());
-
-class GPMSApp extends StatelessWidget {
-  const GPMSApp({super.key});
+class HomeSinhvien extends StatelessWidget {
+  const HomeSinhvien({super.key});
 
   @override
   Widget build(BuildContext context) {

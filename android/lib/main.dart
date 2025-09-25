@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'features/auth/views/screens/login.dart';
+import 'package:provider/provider.dart';
+import 'features/auth/viewmodels/auth_viewmodel.dart';
 
-import 'features/auth/views/screens/login.dart' show GPMSLoginApp;
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AuthViewModel()..loadUserFromStorage(),
+      child: const GPMSApp(),
+    ),
+  );
+}
 
-void main() => runApp(const GPMSApp());
 
 class GPMSApp extends StatelessWidget {
   const GPMSApp({super.key});
@@ -19,6 +28,7 @@ class GPMSApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFDCDEE4),
       ),
       home: const HomeGuestResponsive(),
+      routes: {'/login': (_) => const LoginScreen()},
     );
   }
 }
@@ -208,11 +218,11 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: FilledButton.tonal(
+            // Trong _HeaderBar actions:
             onPressed: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const GPMSLoginApp()));
+              Navigator.of(context).pushNamed('/login');
             },
+
             style: FilledButton.styleFrom(
               shape: const StadiumBorder(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
