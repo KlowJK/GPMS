@@ -29,10 +29,8 @@ class ProjectHome extends StatefulWidget {
 class _ProjectHomeState extends State<ProjectHome> {
   int _bottomIndex = 1;
 
-  /// Danh sách sinh viên đã được duyệt (ban đầu để trống cho thấy flow nối 2 tab)
   final List<StudentItem> _students = [];
 
-  /// Yêu cầu duyệt đề tài (demo 3 trạng thái)
   final List<TopicApprovalItem> _approvals = [
     TopicApprovalItem(
       studentName: 'Hà Văn Thắng',
@@ -82,24 +80,19 @@ class _ProjectHomeState extends State<ProjectHome> {
         body: SafeArea(
           child: TabBarView(
             children: [
-              // TAB SINH VIÊN
               StudentsTab(
                 students: _students,
                 onEdit: _openEditStudent,
                 onGoApprove: () =>
                     DefaultTabController.of(context).animateTo(1),
               ),
-
-              // TAB DUYỆT ĐỀ TÀI
               TopicsApprovalTab(
                 items: _approvals,
                 onApprove: (item) {
-                  // Cập nhật trạng thái & thêm sang danh sách sinh viên
                   setState(() {
                     final idx = _approvals.indexOf(item);
-                    _approvals[idx] = _approvals[idx]
-                        .copyWith(status: TopicStatus.approved);
-
+                    _approvals[idx] =
+                        _approvals[idx].copyWith(status: TopicStatus.approved);
                     _students.add(StudentItem(
                       name: item.studentName,
                       studentId: item.studentId,
@@ -107,8 +100,6 @@ class _ProjectHomeState extends State<ProjectHome> {
                       status: 'Đang thực hiện',
                     ));
                   });
-
-                  // Thông báo & chuyển về tab Sinh viên
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Đã duyệt: ${item.studentName}')),
                   );
@@ -195,10 +186,7 @@ class StudentsTab extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 18, color: grey, fontWeight: FontWeight.w600)),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onGoApprove,
-              child: const Text('Duyệt đăng ký'),
-            ),
+            FilledButton(onPressed: onGoApprove, child: const Text('Duyệt đăng ký')),
           ],
         ),
       );
@@ -244,8 +232,7 @@ class _StudentCard extends StatelessWidget {
                   Chip(
                     label: Text(item.status),
                     side: BorderSide(
-                      color:
-                      Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                     ),
                   ),
                 ],
@@ -280,9 +267,7 @@ class TopicsApprovalTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Center(
-        child: Text('Không có yêu cầu duyệt'),
-      );
+      return const Center(child: Text('Không có yêu cầu duyệt'));
     }
 
     return ListView.separated(
@@ -296,8 +281,7 @@ class TopicsApprovalTab extends StatelessWidget {
           if (note != null) onApprove(items[i]);
         },
         onReject: () async {
-          final reason =
-          await _showRejectDialog(context, items[i].studentName);
+          final reason = await _showRejectDialog(context, items[i].studentName);
           if (reason != null && reason.trim().isNotEmpty) {
             onReject(items[i], reason.trim());
           }
@@ -321,11 +305,11 @@ class _TopicCard extends StatelessWidget {
   Color _statusColor(TopicStatus s) {
     switch (s) {
       case TopicStatus.pending:
-        return const Color(0xFFC9B325); // vàng
+        return const Color(0xFFC9B325);
       case TopicStatus.rejected:
-        return const Color(0xFFDC2626); // đỏ
+        return const Color(0xFFDC2626);
       case TopicStatus.approved:
-        return const Color(0xFF16A34A); // xanh
+        return const Color(0xFF16A34A);
     }
   }
 
@@ -353,7 +337,6 @@ class _TopicCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
                 CircleAvatar(
@@ -380,7 +363,6 @@ class _TopicCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Đề tài
             Text(
               'Đề tài: ${item.title}',
               style: Theme.of(context)
@@ -392,7 +374,6 @@ class _TopicCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
 
-            // File tổng quan (link xanh + gạch chân)
             Row(
               children: [
                 Text('Tổng quan đề tài: ',
@@ -412,7 +393,6 @@ class _TopicCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
 
-            // Trạng thái
             Row(
               children: [
                 Text('Trạng thái: ',
@@ -435,35 +415,23 @@ class _TopicCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // Nút hành động: chỉ hiển thị khi đang chờ duyệt
+            // HÀNG NÚT – kích thước giống ảnh (pill, cao ~40)
             if (item.status == TopicStatus.pending)
               Row(
                 children: [
                   Expanded(
-                    child: FilledButton.icon(
+                    child: _ActionPillButton(
+                      label: 'Từ chối',
+                      background: const Color(0xFFE53935), // đỏ
                       onPressed: onReject,
-                      icon: const Icon(Icons.close),
-                      label: const Text('Từ chối'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton.icon(
+                    child: _ActionPillButton(
+                      label: 'Duyệt',
+                      background: const Color(0xFF2E7D32), // xanh
                       onPressed: onApprove,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Duyệt'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
                     ),
                   ),
                 ],
@@ -475,6 +443,40 @@ class _TopicCard extends StatelessWidget {
   }
 }
 
+/* ---------- NÚT PILL DÙNG CHUNG (giống ảnh) ---------- */
+class _ActionPillButton extends StatelessWidget {
+  const _ActionPillButton({
+    required this.label,
+    required this.background,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color background;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 40), // ~đúng chiều cao ảnh
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: background,
+          foregroundColor: Colors.white,
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          minimumSize: const Size(0, 40), // đảm bảo cao 40
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+}
 
 /* ======================= MODELS & DIALOGS ======================= */
 
@@ -578,16 +580,15 @@ Future<String?> _showRejectDialog(BuildContext context, String name) async {
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Từ chối đề tài'),
+      title: const Text('Nhận xét'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Nhập lý do từ chối đề tài của $name:'),
           const SizedBox(height: 12),
           TextField(
             controller: reason,
             decoration: const InputDecoration(
-              labelText: 'Lý do',
+              labelText: 'Đưa ra nhận xét...',
               border: OutlineInputBorder(),
             ),
             maxLines: 3,
@@ -602,7 +603,7 @@ Future<String?> _showRejectDialog(BuildContext context, String name) async {
   );
 }
 
-/* ============ BottomSheet sửa sinh viên (dùng trong tab sinh viên) ============ */
+/* --------- BottomSheet sửa sinh viên --------- */
 void _showEditStudentModal(
     BuildContext context,
     StudentItem item, {
@@ -622,10 +623,7 @@ void _showEditStudentModal(
     builder: (context) {
       return Padding(
         padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.of(context).viewInsets.bottom,
+          16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -643,19 +641,13 @@ void _showEditStudentModal(
             const SizedBox(height: 12),
             TextField(
               controller: name,
-              decoration: const InputDecoration(
-                labelText: 'Họ tên',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Họ tên', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: topic,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Đề tài',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Đề tài', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
             ValueListenableBuilder<String>(
@@ -669,10 +661,7 @@ void _showEditStudentModal(
                     DropdownMenuItem(value: 'Hoàn thành', child: Text('Hoàn thành')),
                   ],
                   onChanged: (nv) => status.value = nv ?? v,
-                  decoration: const InputDecoration(
-                    labelText: 'Trạng thái',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Trạng thái', border: OutlineInputBorder()),
                 );
               },
             ),
