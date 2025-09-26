@@ -32,18 +32,18 @@ public class AuthService {
 
         User user = new User();
         user.setEmail(req.getEmail());
-        user.setPassword(encoder.encode(req.getPassword()));
-        user.setPhoneNumber(req.getPhoneNumber());
-        user.setRole(req.getRole());
+        user.setMatKhau(encoder.encode(req.getMatKhau()));
+        user.setSoDienThoai(req.getSoDienThoai());
+        user.setVaiTro(req.getVaiTro());
         user = usersRepo.save(user);
 
-        return new UserResponse(user.getId(), user.getEmail(),user.getPhoneNumber(),
-                user.getRole(),user.getEnabled());
+        return new UserResponse(user.getId(), user.getEmail(),user.getSoDienThoai(),
+                user.getVaiTro(),user.getTrangThaiKichHoat());
     }
 
     public AuthResponse login(LoginRequest req) {
         Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
+                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getMatKhau()));
         var principal = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
 
         String token = jwt.generate(principal.getUsername(), Map.of("roles", principal.getAuthorities()
@@ -53,6 +53,6 @@ public class AuthService {
 
     public UserResponse me(String email) {
         var user = usersRepo.findByEmail(email).orElseThrow();
-        return new UserResponse(user.getId(), user.getEmail(), user.getPhoneNumber(), user.getRole(), user.getEnabled());
+        return new UserResponse(user.getId(), user.getEmail(), user.getSoDienThoai(), user.getVaiTro(), user.getTrangThaiKichHoat());
     }
 }
