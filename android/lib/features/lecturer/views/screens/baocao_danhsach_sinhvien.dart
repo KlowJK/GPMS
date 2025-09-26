@@ -102,18 +102,6 @@ class ReportScreen extends StatelessWidget {
           ],
         ),
       ),
-
-      // Thanh điều hướng dưới (placeholder)
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 3, // Báo cáo
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.timeline), label: 'Tiến độ'),
-          NavigationDestination(icon: Icon(Icons.summarize), label: 'Báo cáo'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-        ],
-      ),
     );
   }
 }
@@ -145,8 +133,8 @@ class _HeaderBlock extends StatelessWidget {
             Expanded(
               child: Text(
                 'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
-                    'Ngày kết thúc : ${_fmtDateTime(to)}\n'
-                    '$title :',
+                'Ngày kết thúc : ${_fmtDateTime(to)}\n'
+                '$title :',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -230,24 +218,29 @@ class _StudentReportCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(info.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        info.name,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(info.studentId,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: const Color(0xFF6B7280))),
+                      Text(
+                        info.studentId,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(info.className, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      info.className,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                     const SizedBox(height: 2),
                     RichText(
                       text: TextSpan(
@@ -269,7 +262,10 @@ class _StudentReportCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Đề tài: ${info.topic}', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              'Đề tài: ${info.topic}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
         ),
       ),

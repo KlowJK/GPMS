@@ -1,4 +1,30 @@
 import 'package:flutter/material.dart';
+import 'baocao_sinhvien.dart';
+import 'baocao_tiendo.dart';
+import 'baocao_danhsach_sinhvien.dart';
+
+void main() {
+  runApp(const Giangvien());
+}
+
+class Giangvien extends StatelessWidget {
+  const Giangvien({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    const seed = Color(0xFF2F7CD3);
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Đăng ký đề tài',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: seed),
+        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
+      ),
+      home: const HomeGiangvien(),
+    );
+  }
+}
 
 class HomeGiangvien extends StatelessWidget {
   const HomeGiangvien({super.key});
@@ -31,7 +57,57 @@ class HomeResponsiveScreen extends StatefulWidget {
 }
 
 class _HomeResponsiveScreenState extends State<HomeResponsiveScreen> {
-  int _navIndex = 0;
+  int _Index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = <Widget>[
+      const HomeTab(), // Trang chủ
+      const ProjectHome(), // TODO: thay bằng màn hình thật
+      const ProgressScreen(),
+      const ReportScreen(),
+      const PlaceholderCenter(title: 'Hồ sơ'),
+    ];
+
+    return Scaffold(
+      body: pages[_Index],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _Index,
+        onDestinationSelected: (i) => setState(() => _Index = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Trang chủ',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.group_outlined),
+            selectedIcon: Icon(Icons.group),
+            label: 'Sinh viên',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
+            label: 'Đồ án',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Báo cáo',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Hồ sơ',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HomeTab extends StatelessWidget {
+  const HomeTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -257,41 +333,9 @@ class _HomeResponsiveScreenState extends State<HomeResponsiveScreen> {
       ),
 
       // ===== Navigation bar (5 mục là hợp lý trên mobile) =====
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _navIndex,
-        onDestinationSelected: (i) => setState(() => _navIndex = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Sinh viên',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'Đồ án',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Báo cáo',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Hồ sơ',
-          ),
-        ],
-      ),
     );
   }
 }
-
 /* -------------------------- Widgets tái sử dụng -------------------------- */
 
 class _SectionHeader extends StatelessWidget {
@@ -446,6 +490,17 @@ class _ChipPill extends StatelessWidget {
       showCheckmark: false,
       selectedColor: cs.primaryContainer,
       shape: const StadiumBorder(),
+    );
+  }
+}
+
+class PlaceholderCenter extends StatelessWidget {
+  const PlaceholderCenter({super.key, required this.title});
+  final String title;
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
     );
   }
 }

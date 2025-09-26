@@ -31,8 +31,6 @@ class ProjectHome extends StatefulWidget {
 }
 
 class _ProjectHomeState extends State<ProjectHome> {
-  int _bottomIndex = 1; // 0: Trang chủ, 1: Đồ án, 2: Tiến độ, 3: Báo cáo, 4: Hồ sơ
-
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.of(context).padding;
@@ -61,43 +59,7 @@ class _ProjectHomeState extends State<ProjectHome> {
             bottom: 16 + padding.bottom / 2,
             top: 8,
           ),
-          child: const TabBarView(
-            children: [
-              _StudentsTab(),
-              _ApprovalTab(),
-            ],
-          ),
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _bottomIndex,
-          onDestinationSelected: (i) => setState(() => _bottomIndex = i),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Trang chủ',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.assignment_outlined),
-              selectedIcon: Icon(Icons.assignment),
-              label: 'Đồ án',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.timeline_outlined),
-              selectedIcon: Icon(Icons.timeline),
-              label: 'Tiến độ',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.summarize_outlined),
-              selectedIcon: Icon(Icons.summarize),
-              label: 'Báo cáo',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Hồ sơ',
-            ),
-          ],
+          child: const TabBarView(children: [_StudentsTab(), _ApprovalTab()]),
         ),
       ),
     );
@@ -115,17 +77,17 @@ class _StudentsTab extends StatelessWidget {
     {
       'name': 'Nguyễn Văn A',
       'topic': 'Hệ thống quản lý đề tài',
-      'status': 'Đang chờ duyệt'
+      'status': 'Đang chờ duyệt',
     },
     {
       'name': 'Trần Thị B',
       'topic': 'App theo dõi tiến độ',
-      'status': 'Đang thực hiện'
+      'status': 'Đang thực hiện',
     },
     {
       'name': 'Lê Văn C',
       'topic': 'Web quản lý báo cáo',
-      'status': 'Hoàn thành'
+      'status': 'Hoàn thành',
     },
   ];
 
@@ -137,7 +99,7 @@ class _StudentsTab extends StatelessWidget {
         icon: Icons.info_outline,
         title: 'Chưa có sinh viên hướng dẫn',
         message:
-        'Bạn chưa hướng dẫn sinh viên nào.\nVui lòng duyệt đăng ký đề tài để bắt đầu.',
+            'Bạn chưa hướng dẫn sinh viên nào.\nVui lòng duyệt đăng ký đề tài để bắt đầu.',
         actionLabel: 'Duyệt đăng ký',
         onAction: () {
           DefaultTabController.of(context).animateTo(1);
@@ -149,7 +111,8 @@ class _StudentsTab extends StatelessWidget {
       builder: (context, constraints) {
         // Chọn số cột dựa theo độ rộng
         final isWide = constraints.maxWidth >= 900;
-        final isMedium = constraints.maxWidth >= 600 && constraints.maxWidth < 900;
+        final isMedium =
+            constraints.maxWidth >= 600 && constraints.maxWidth < 900;
         final crossAxisCount = isWide
             ? 3
             : (isMedium ? 2 : 1); // mobile 1 cột, tablet 2, desktop 3
@@ -203,10 +166,7 @@ class _StudentCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const CircleAvatar(
-                radius: 26,
-                child: Icon(Icons.person),
-              ),
+              const CircleAvatar(radius: 26, child: Icon(Icons.person)),
               const SizedBox(width: 16),
               Expanded(
                 child: Wrap(
@@ -225,7 +185,9 @@ class _StudentCard extends StatelessWidget {
                     Chip(
                       label: Text(item['status'] ?? ''),
                       side: BorderSide(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.3),
                       ),
                     ),
                   ],
@@ -280,7 +242,9 @@ class _ApprovalTab extends StatelessWidget {
         final item = data[index];
         return Card(
           elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -307,10 +271,9 @@ class _ApprovalTab extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     'Ghi chú: ${item['note']}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Theme.of(context).hintColor),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).hintColor,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -368,7 +331,11 @@ class _EmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 56, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                icon,
+                size: 56,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(height: 12),
               Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
@@ -422,7 +389,10 @@ void _showEditStudentModal(BuildContext context, Map<String, String> item) {
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
-            Text('Sửa thông tin', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Sửa thông tin',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: nameController,
@@ -451,9 +421,18 @@ void _showEditStudentModal(BuildContext context, Map<String, String> item) {
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'Đang chờ duyệt', child: Text('Đang chờ duyệt')),
-                    DropdownMenuItem(value: 'Đang thực hiện', child: Text('Đang thực hiện')),
-                    DropdownMenuItem(value: 'Hoàn thành', child: Text('Hoàn thành')),
+                    DropdownMenuItem(
+                      value: 'Đang chờ duyệt',
+                      child: Text('Đang chờ duyệt'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Đang thực hiện',
+                      child: Text('Đang thực hiện'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Hoàn thành',
+                      child: Text('Hoàn thành'),
+                    ),
                   ],
                   onChanged: (v) => status.value = v ?? value,
                 );
@@ -514,14 +493,17 @@ void _showApproveModal(BuildContext context, Map<String, String> item) {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
         FilledButton(
           onPressed: () {
             // TODO: Gọi API duyệt
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã duyệt đề tài')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Đã duyệt đề tài')));
           },
           child: const Text('Duyệt'),
         ),
@@ -553,14 +535,17 @@ void _showRejectModal(BuildContext context, Map<String, String> item) {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
         FilledButton(
           onPressed: () {
             // TODO: Gọi API từ chối
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã từ chối đề tài')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Đã từ chối đề tài')));
           },
           child: const Text('Gửi'),
         ),

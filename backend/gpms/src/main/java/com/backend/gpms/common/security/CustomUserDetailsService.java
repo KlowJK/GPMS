@@ -16,13 +16,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         var user = userRepo.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản"));
 
-        var authorities = Set.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        var authorities = Set.of(new SimpleGrantedAuthority("ROLE_" + user.getVaiTro().name()));
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
-                .password(user.getPassword())
+                .password(user.getMatKhau())
                 .authorities(authorities)
-                .accountLocked(!user.getEnabled())
+                .accountLocked(!user.getTrangThaiKichHoat())
                 .build();
     }
 }

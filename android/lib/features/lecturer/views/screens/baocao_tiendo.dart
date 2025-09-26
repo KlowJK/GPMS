@@ -118,18 +118,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ],
         ),
       ),
-
-      // Thanh điều hướng dưới (placeholder)
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 2,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.timeline), label: 'Tiến độ'),
-          NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-        ],
-      ),
     );
   }
 }
@@ -164,10 +152,12 @@ class _WeekDropdown extends StatelessWidget {
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
           onChanged: onChanged,
           items: items
-              .map((w) => DropdownMenuItem(
-            value: w,
-            child: Text(w, style: Theme.of(context).textTheme.bodyMedium),
-          ))
+              .map(
+                (w) => DropdownMenuItem(
+                  value: w,
+                  child: Text(w, style: Theme.of(context).textTheme.bodyMedium),
+                ),
+              )
               .toList(),
         ),
       ),
@@ -177,11 +167,7 @@ class _WeekDropdown extends StatelessWidget {
 
 /// -------------------- HEADER THỜI GIAN --------------------
 class _WeekHeader extends StatelessWidget {
-  const _WeekHeader({
-    required this.from,
-    required this.to,
-    required this.note,
-  });
+  const _WeekHeader({required this.from, required this.to, required this.note});
 
   final DateTime from;
   final DateTime to;
@@ -202,8 +188,8 @@ class _WeekHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
-                    'Ngày kết thúc : ${_fmtDateTime(to)}\n'
-                    '$note',
+                'Ngày kết thúc : ${_fmtDateTime(to)}\n'
+                '$note',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -288,18 +274,16 @@ class _StudentCard extends StatelessWidget {
                     children: [
                       Text(
                         info.name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         info.studentId,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: const Color(0xFF6B7280)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF6B7280),
+                        ),
                       ),
                     ],
                   ),
@@ -307,8 +291,10 @@ class _StudentCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(info.className,
-                        style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      info.className,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                     const SizedBox(height: 2),
                     RichText(
                       text: TextSpan(
@@ -318,8 +304,9 @@ class _StudentCard extends StatelessWidget {
                           TextSpan(
                             text: statusText(info.status),
                             style: TextStyle(
-                                color: statusColor(info.status),
-                                fontWeight: FontWeight.w500),
+                              color: statusColor(info.status),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
@@ -331,8 +318,10 @@ class _StudentCard extends StatelessWidget {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Đề tài: ${info.topic}',
-                  style: Theme.of(context).textTheme.bodyMedium),
+              child: Text(
+                'Đề tài: ${info.topic}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
           ],
         ),
