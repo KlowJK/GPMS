@@ -12,8 +12,8 @@ public class RegisterRequest {
     @Email @NotBlank
     private String email;
     @NotBlank
-    private String password;
-    private String phoneNumber;
-    private Role role = Role.SINH_VIEN;
+    private String matKhau;
+    private String soDienThoai;
+    private Role vaiTro = Role.SINH_VIEN;
 
 }

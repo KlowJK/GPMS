@@ -10,7 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity @Table(name = "giang_vien", uniqueConstraints = @UniqueConstraint(name = "uk_gv_ma", columnNames = "ma_giang_vien"))
-public class Lecturer {
+public class GiangVien {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
