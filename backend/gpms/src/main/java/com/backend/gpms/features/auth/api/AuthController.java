@@ -1,7 +1,10 @@
 package com.backend.gpms.features.auth.api;
 
 import com.backend.gpms.features.auth.application.AuthService;
-import com.backend.gpms.features.auth.dto.*;
+import com.backend.gpms.features.auth.dto.request.LoginRequest;
+import com.backend.gpms.features.auth.dto.request.RegisterRequest;
+import com.backend.gpms.features.auth.dto.response.AuthResponse;
+import com.backend.gpms.features.auth.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

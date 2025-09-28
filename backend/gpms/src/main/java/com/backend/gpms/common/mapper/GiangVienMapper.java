@@ -2,6 +2,11 @@ package com.backend.gpms.common.mapper;
 import com.backend.gpms.features.auth.domain.Role;
 import com.backend.gpms.features.department.domain.BoMon;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.lecturer.dto.response.GiangVienResponse;
+import com.backend.gpms.features.lecturer.dto.response.GiangVienLiteResponse;
+import com.backend.gpms.features.lecturer.dto.response.GiangVienInfoResponse;
+import com.backend.gpms.features.lecturer.dto.request.GiangVienCreationRequest;
+import com.backend.gpms.features.lecturer.dto.response.GiangVienCreationResponse;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -18,9 +23,9 @@ public interface GiangVienMapper {
     @Mapping(target = "bo_mon", source = "id_bo_mon")
     GiangVien toGiangVien(GiangVienCreationRequest request);
 
-    @Mapping(source = "taiKhoan.email", target = "email")
-    @Mapping(source = "taiKhoan.vaiTro", target = "vaiTro")
-    @Mapping(source = "boMon", target = "boMonId")
+    @Mapping(source = "tai_khoan.email", target = "email")
+    @Mapping(source = "tai_khoan.vaiTro", target = "vaiTro")
+    @Mapping(source = "bo_mon", target = "id_bo_mon")
     GiangVienCreationResponse toGiangVienCreationResponse(GiangVien entity);
 
     GiangVienInfoResponse toGiangVienInfoResponse(GiangVien entity);
