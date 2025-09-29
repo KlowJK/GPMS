@@ -12,8 +12,7 @@ public class SinhVienResponse {
     private String hoTen;
     private String maSinhVien;
     private String soDienThoai;
-    private String duongDanAnhDaiDien; // có thể là URL công khai/tạm thời
-    private String duongDanCV;         // cân nhắc ẩn hoặc thay bằng link tạm thời
+    private String duongDanCV;
     private LocalDate ngaySinh;
     private String diaChi;
 

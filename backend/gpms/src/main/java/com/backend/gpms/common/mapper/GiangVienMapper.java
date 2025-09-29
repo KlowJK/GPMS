@@ -32,8 +32,8 @@ public interface GiangVienMapper {
 
     GiangVienLiteResponse toLite(GiangVien entity);
 
-    @Mapping(source = "taiKhoan.email", target = "email")
-    @Mapping(source = "boMon.id",       target = "boMonId")
+    @Mapping(source = "tai_khoan.email", target = "email")
+    @Mapping(source = "bo_mon.id",       target = "boMonId")
     GiangVienResponse toGiangVienResponse(GiangVien entity);
 
     default BoMon map(Long boMonId) {

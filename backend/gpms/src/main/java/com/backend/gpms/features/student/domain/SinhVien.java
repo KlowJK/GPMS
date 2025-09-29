@@ -1,5 +1,6 @@
 package com.backend.gpms.features.student.domain;
 
+import com.backend.gpms.features.auth.domain.User;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import java.time.LocalDate;
@@ -17,8 +18,15 @@ public class SinhVien {
     @Column(name="duong_dan_cv") private String duongDanCv;
     @Column(name="ngay_sinh") private LocalDate ngaySinh;
     @Column(name="dia_chi") private String diaChi;
+
     @Column(name="id_nganh", nullable=false) private Long idNganh;
-    @Column(name="id_lop") private Long idLop;
-    @Column(name="id_tai_khoan", unique=true) private Long idTaiKhoan;
+
+    @Column(name="id_lop")
+    private Long idLop;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_tai_khoan", referencedColumnName = "id", nullable = false, unique = true)
+    private User user;
+
     @Column(name="du_dieu_kien", nullable=false) private Boolean duDieuKien = false;
 }

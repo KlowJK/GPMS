@@ -1,6 +1,8 @@
 package com.backend.gpms.features.auth.domain;
 
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -13,6 +15,8 @@ import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity @Table(name="tai_khoan")
 public class User {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,8 +28,8 @@ public class User {
     @Column(name = "mat_khau", nullable = false)
     private String matKhau;
 
-    @Column(name = "so_dien_thoai")
-    private String soDienThoai;
+    @Column(name = "duong_dan_avt")
+    private String duongDanAvt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "vai_tro", nullable = false, columnDefinition = "vai_tro_tk")

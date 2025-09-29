@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.Map;
@@ -44,4 +45,12 @@ public class JwtUtils {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+    // JwtUtils.java (chỉ phần cần thêm)
+    public long getExpiryEpochMillis(String token) {
+        var claims = parse(token);
+        var exp = claims.getExpiration();
+        return exp != null ? exp.getTime() : 0L;
+    }
+
 }

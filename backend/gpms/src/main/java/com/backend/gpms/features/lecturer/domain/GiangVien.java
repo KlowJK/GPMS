@@ -34,8 +34,8 @@ public class GiangVien {
     @Column(name="id_bo_mon", nullable=false)
     private Long idBoMon;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="id_tai_khoan", unique = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_tai_khoan", referencedColumnName = "id", nullable = false, unique = true)
     private User user;
 
     @Column(name="quota_huong_dan", nullable=false)
