@@ -50,22 +50,28 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> loadUserFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
+    final typeToken = prefs.getString('typeToken');
+    final expiresAt = prefs.getString('expiresAt');
+    final id = prefs.getInt('id'); // 👈 dùng 'id'
+    final fullName = prefs.getString('fullName');
     final email = prefs.getString('email');
     final role = prefs.getString('role');
-    final id = prefs.getInt('id'); // 👈 dùng 'id'
+    final duongDanAvt = prefs.getString('duongDanAvt');
     final teacherId = prefs.getInt('teacherId'); // 👈 camelCase
     final studentId = prefs.getInt('studentId');
-    final fullName = prefs.getString('fullName');
 
     if (token != null && email != null && role != null && id != null) {
       _user = UserEntity(
-        email: email,
         token: token,
-        role: role,
+        typeToken: typeToken ?? '',
+        expiresAt: expiresAt ?? '',
         id: id,
+        fullName: fullName,
+        email: email,
+        role: role,
+        duongDanAvt: duongDanAvt,
         teacherId: teacherId,
         studentId: studentId,
-        fullName: fullName,
       );
     } else {
       _user = null;

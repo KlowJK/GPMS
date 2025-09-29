@@ -181,12 +181,15 @@ class AuthService {
       }
 
       final token = prefs.getString('token');
+      final typeToken = prefs.getString('typeToken');
+      final expiresAt = prefs.getString('expiresAt');
+      final id = prefs.getInt('id');
+      final fullName = prefs.getString('fullName');
       final email = prefs.getString('email');
       final role = prefs.getString('role');
-      final id = prefs.getInt('id');
+      final duongDanAvt = prefs.getString('duongDanAvt');
       final teacherId = prefs.getInt('teacherId');
       final studentId = prefs.getInt('studentId');
-      final fullName = prefs.getString('fullName');
 
       if (token == null || email == null || role == null || id == null) {
         if (kDebugMode) {
@@ -196,13 +199,16 @@ class AuthService {
       }
 
       final user = UserEntity(
-        email: email,
         token: token,
-        role: role,
+        typeToken: typeToken ?? '',
+        expiresAt: expiresAt ?? '',
         id: id,
+        fullName: fullName,
+        email: email,
+        role: role,
+        duongDanAvt: duongDanAvt,
         teacherId: teacherId,
         studentId: studentId,
-        fullName: fullName,
       );
 
       if (kDebugMode) {
