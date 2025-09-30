@@ -1,49 +1,61 @@
 package com.backend.gpms.common.security;
 
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.*;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
 @Component
+@RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwt;
     private final CustomUserDetailsService uds;
 
-    public JwtAuthFilter(JwtUtils jwt, CustomUserDetailsService uds) {
-        this.jwt = jwt; this.uds = uds;
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) return true; // preflight
+        return path.startsWith("/api/auth/")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui");
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                    FilterChain chain) throws ServletException, IOException {
+
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            String header = request.getHeader("Authorization");
-            if (header != null && header.startsWith("Bearer ")) {
-                String token = header.substring(7);
+            String auth = req.getHeader("Authorization");
+            if (auth != null && auth.startsWith("Bearer ")) {
+                String token = auth.substring(7);
                 try {
-                    Claims claims = jwt.parse(token);
-                    String username = claims.getSubject();
-                    if (username != null) {
-                        UserDetails user = uds.loadUserByUsername(username);
-                        var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    if (!jwt.isExpired(token)) {
+                        String username = jwt.getSubject(token);
+                        if (username != null && !username.isBlank()) {
+                            UserDetails user = uds.loadUserByUsername(username);
+                            var authToken = new UsernamePasswordAuthenticationToken(
+                                    user, null, user.getAuthorities());
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                        }
                     }
-                } catch (Exception ignored) {}
+                } catch (UsernameNotFoundException | JwtException ignored) {
+                    // Token sai/expired hoặc user không tồn tại -> bỏ qua, để EntryPoint xử lý khi cần
+                }
             }
         }
-        filterChain.doFilter(request, response);
+        chain.doFilter(req, res);
     }
 }

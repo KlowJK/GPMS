@@ -28,9 +28,6 @@ public class User {
     @Column(name = "mat_khau", nullable = false)
     private String matKhau;
 
-    @Column(name = "duong_dan_avt")
-    private String duongDanAvt;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "vai_tro", nullable = false, columnDefinition = "vai_tro_tk")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)   // <— quan trọng cho PostgreSQL enum
