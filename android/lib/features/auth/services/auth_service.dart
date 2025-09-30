@@ -10,16 +10,17 @@ class AuthService {
   static String get baseUrl =>
       kIsWeb ? 'http://localhost:8080' : 'http://10.0.2.2:8080';
 
-  /// Danh sách các key auth cần xoá khi login/logout
-  /// 👉 Thêm helper để tránh lặp code nhiều lần
   static const _authKeys = [
     'token',
+    'typeToken',
+    'expiresAt',
+    'id',
+    'fullName',
     'email',
     'role',
-    'id',
+    'duongDanAvt',
     'teacherId',
     'studentId',
-    'fullName',
   ];
 
   /// Helper xoá toàn bộ key auth
@@ -47,7 +48,7 @@ class AuthService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: jsonEncode({'email': email, 'password': password}),
+            body: jsonEncode({'email': email, 'matKhau': password}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -70,15 +71,19 @@ class AuthService {
 
         // Lưu dữ liệu mới
         await prefs.setString('token', user.token);
-        await prefs.setString('email', user.email);
-        await prefs.setString('role', user.role);
+        await prefs.setString('typeToken', user.typeToken);
+        await prefs.setString('expiresAt', user.expiresAt);
         await prefs.setInt('id', user.id);
-
-        if (user.teacherId != null) {
-          await prefs.setInt('teacherId', user.teacherId!);
-        }
         if (user.studentId != null) {
           await prefs.setInt('studentId', user.studentId!);
+        }
+        await prefs.setString('email', user.email);
+        await prefs.setString('role', user.role);
+        if (user.duongDanAvt != null) {
+          await prefs.setString('duongDanAvt', user.duongDanAvt!);
+        }
+        if (user.teacherId != null) {
+          await prefs.setInt('teacherId', user.teacherId!);
         }
         if (user.fullName != null) {
           await prefs.setString('fullName', user.fullName!);
