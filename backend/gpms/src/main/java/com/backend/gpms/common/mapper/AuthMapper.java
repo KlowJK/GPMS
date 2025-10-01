@@ -6,4 +6,5 @@ import org.mapstruct.Mapper;
            unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE
 )
 public interface AuthMapper {
+
 }

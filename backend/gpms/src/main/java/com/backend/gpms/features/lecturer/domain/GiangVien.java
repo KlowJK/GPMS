@@ -5,6 +5,8 @@ import com.backend.gpms.features.department.domain.BoMon;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,4 +47,7 @@ public class GiangVien {
 
     @Column(name = "duong_dan_avt")
     private String duongDanAvt;
+
+    @Column(name = "ngay_sinh" )
+    private LocalDate ngaySinh;
 }

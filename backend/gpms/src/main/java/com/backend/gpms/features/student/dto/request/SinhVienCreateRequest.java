@@ -10,39 +10,30 @@ import java.time.LocalDate;
 @Builder
 public class SinhVienCreateRequest {
 
-    @NotBlank(message = "Họ tên không được để trống")
-    private String hoTen;
-
-    @NotBlank(message = "Mã sinh viên không được để trống")
-    @Size(max = 32, message = "Mã sinh viên tối đa 32 ký tự")
+    @Pattern(regexp = "^[0-9]{10}$", message = "MA_INVALID")
     private String maSinhVien;
 
-    @Pattern(regexp = "^(\\+?\\d{7,15})?$", message = "Số điện thoại không hợp lệ")
+    @NotEmpty(message = "HO_TEN_EMPTY")
+    private String hoTen;
+
+    @Email(regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", message = "EMAIL_INVALID")
+    private String email;
+
+    @Size(min = 6, message = "MAT_KHAU_INVALID")
+    private String matKhau;
+
+    @Pattern(
+            regexp = "^(0?)(3[2-9]|5[25689]|7[0|6-9]|8[1-9]|9[0-9])[0-9]{7}$",
+            message = "SO_DIEN_THOAI_INVALID"
+    )
     private String soDienThoai;
 
-    // Nếu là URL công khai:
-    @Size(max = 512)
-    private String duongDanAnhDaiDien;
-
-    @Size(max = 512)
-    private String duongDanCV;
-
-    @Past(message = "Ngày sinh phải trong quá khứ")
+    @Past(message = "NGAY_SINH_INVALID")
     private LocalDate ngaySinh;
 
-    @Size(max = 255)
+    @Size(max = 255, message = "DIA_CHI_INVALID")
     private String diaChi;
 
-    @NotNull(message = "nganhId là bắt buộc")
-    private Long nganhId;
-
-    @NotNull(message = "lopId là bắt buộc")
-    private Long lopId;
-
-    // Liên kết tới tài khoản đăng nhập
-    @NotNull(message = "userId là bắt buộc")
-    private Long userId;
-
-    // Trạng thái kích hoạt hồ sơ SV (khác với kích hoạt tài khoản hệ thống)
-    private Boolean kichHoat;
+    @NotNull(message = "LOP_EMPTY")
+    private Long idLop;
 }

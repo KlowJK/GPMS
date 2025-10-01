@@ -2,10 +2,12 @@ package com.backend.gpms.features.account.api;
 
 import com.backend.gpms.features.account.application.GiangVienAccountService;
 import com.backend.gpms.features.account.application.SinhVienAccountService;
-import com.backend.gpms.features.account.dto.request.GiangVienAccountRequest;
-import com.backend.gpms.features.account.dto.request.SinhVienAccountRequest;
+
+
 import com.backend.gpms.features.account.dto.response.CreatedAccountResponse;
 
+import com.backend.gpms.features.lecturer.dto.request.GiangVienCreationRequest;
+import com.backend.gpms.features.student.dto.request.SinhVienCreateRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,16 +25,16 @@ public class AccountController {
     private final SinhVienAccountService  sinhVienService;
 
     @PreAuthorize("hasAnyRole('QUAN_TRI_VIEN','TRO_LY_KHOA')")
-    @PostMapping("/giang-vien")
+    @PostMapping("/giang_vien")
     public ResponseEntity<CreatedAccountResponse> createLecturer(
-            @RequestBody @Valid GiangVienAccountRequest req) {
+            @RequestBody @Valid GiangVienCreationRequest req) {
         return ResponseEntity.ok(giangVienService.register(req));
     }
 
     @PreAuthorize("hasAnyRole('QUAN_TRI_VIEN','TRO_LY_KHOA')")
-    @PostMapping("/sinh-vien")
+    @PostMapping("/sinh_vien")
     public ResponseEntity<CreatedAccountResponse> createStudent(
-            @RequestBody @Valid SinhVienAccountRequest req) {
+            @RequestBody @Valid SinhVienCreateRequest req) {
         return ResponseEntity.ok(sinhVienService.register(req));
     }
 }
