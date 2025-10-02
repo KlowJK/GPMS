@@ -44,7 +44,7 @@ public class GiangVienAccountService {
 
         GiangVien gv = mapper.toGiangVien(req); // nếu bạn dùng 1 DTO khác, map trực tiếp từ req cũng được
 
-        gv.setIdBoMon(boMon);
+        gv.setBoMon(boMon);
         gv.setUser(user);
         gv.setQuotaInstruct(req.getQuotaInstruct() == null ? 0 : req.getQuotaInstruct());
         gv = gvRepo.save(gv);

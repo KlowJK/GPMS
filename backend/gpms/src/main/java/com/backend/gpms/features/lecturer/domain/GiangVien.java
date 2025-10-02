@@ -36,7 +36,7 @@ public class GiangVien {
     // Tối giản: dùng id khoá ngoại như schema (có thể đổi sang @ManyToOne BoMon nếu đã có entity)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="id_bo_mon", nullable=false)
-    private BoMon idBoMon;
+    private BoMon boMon;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tai_khoan", referencedColumnName = "id", nullable = false, unique = true)
