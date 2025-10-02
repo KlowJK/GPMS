@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'baocao_sinhvien.dart';
-import 'baocao_tiendo.dart';
-import 'baocao_danhsach_sinhvien.dart';
+import 'doan_sinhvien.dart';
+import 'baocao.dart';
+import 'tiendo.dart';
+import 'hoidong.dart';
+import 'hoso_giangvien.dart';
+import 'doan_nopdanhsach.dart';
 
 void main() {
   runApp(const Giangvien());
@@ -63,10 +66,11 @@ class _HomeResponsiveScreenState extends State<HomeResponsiveScreen> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       const HomeTab(), // Trang chủ
-      const ProjectHome(), // TODO: thay bằng màn hình thật
-      const ProgressScreen(),
+      const StudentTabsScreen(),
+      const StudentListScreen(),
       const ReportScreen(),
-      const PlaceholderCenter(title: 'Hồ sơ'),
+      const CouncilScreen(),
+      const ThongTinGiangVienPage(),
     ];
 
     return Scaffold(
@@ -81,19 +85,24 @@ class _HomeResponsiveScreenState extends State<HomeResponsiveScreen> {
             label: 'Trang chủ',
           ),
           NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Sinh viên',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             selectedIcon: Icon(Icons.assignment),
             label: 'Đồ án',
           ),
           NavigationDestination(
+            icon: Icon(Icons.timeline),
+            selectedIcon: Icon(Icons.timeline_outlined),
+            label: 'Tiến độ',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'Báo cáo',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.apartment_outlined),
+            selectedIcon: Icon(Icons.apartment),
+            label: 'Hội đồng',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
