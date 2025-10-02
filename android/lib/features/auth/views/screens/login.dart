@@ -14,14 +14,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _accountCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
 
   @override
   void dispose() {
-    _accountCtrl.dispose();
+    _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
     try {
       await context.read<AuthViewModel>().login(
-        _accountCtrl.text.trim(),
+        _emailCtrl.text.trim(),
         _passwordCtrl.text,
       );
 
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
-                                  controller: _accountCtrl,
+                                  controller: _emailCtrl,
                                   textInputAction: TextInputAction.next,
                                   keyboardType: TextInputType.emailAddress,
                                   decoration: InputDecoration(

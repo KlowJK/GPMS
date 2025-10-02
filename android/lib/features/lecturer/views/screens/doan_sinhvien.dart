@@ -1,23 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const App());
-
-class App extends StatelessWidget {
-  const App({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Đồ án',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CD3)),
-      ),
-      home: const ProjectHome(),
-    );
-  }
-}
 
 class ProjectHome extends StatefulWidget {
   const ProjectHome({super.key});
@@ -91,14 +73,19 @@ class _ProjectHomeState extends State<ProjectHome> {
                 onApprove: (item) {
                   setState(() {
                     final idx = _approvals.indexOf(item);
-                    _approvals[idx] =
-                        _approvals[idx].copyWith(status: TopicStatus.approved);
-                    _students.add(StudentItem(
-                      name: item.studentName,
-                      studentId: item.studentId,
-                      topic: item.title,
-                      status: 'Đang thực hiện',
-                    ));
+
+                    _approvals[idx] = _approvals[idx].copyWith(
+                      status: TopicStatus.approved,
+                    );
+                    _students.add(
+                      StudentItem(
+                        name: item.studentName,
+                        studentId: item.studentId,
+                        topic: item.title,
+                        status: 'Đang thực hiện',
+                      ),
+                    );
+
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Đã duyệt: ${item.studentName}')),
@@ -121,36 +108,27 @@ class _ProjectHomeState extends State<ProjectHome> {
             ],
           ),
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _bottomIndex,
-          onDestinationSelected: (i) => setState(() => _bottomIndex = i),
-          destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-            NavigationDestination(
-                icon: Icon(Icons.assignment_outlined), label: 'Đồ án'),
-            NavigationDestination(
-                icon: Icon(Icons.timeline_outlined), label: 'Tiến độ'),
-            NavigationDestination(
-                icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-            NavigationDestination(
-                icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-          ],
-        ),
+
       ),
     );
   }
 
   void _openEditStudent(StudentItem s) {
-    _showEditStudentModal(context, s, onSaved: (edited) {
-      setState(() {
-        final i = _students.indexOf(s);
-        _students[i] = edited;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã cập nhật sinh viên')),
-      );
-    });
+
+    _showEditStudentModal(
+      context,
+      s,
+      onSaved: (edited) {
+        setState(() {
+          final i = _students.indexOf(s);
+          _students[i] = edited;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Đã cập nhật sinh viên')));
+      },
+    );
+
   }
 }
 
@@ -178,15 +156,30 @@ class StudentsTab extends StatelessWidget {
           children: [
             Icon(Icons.warning_amber_rounded, size: 44, color: grey),
             const SizedBox(height: 12),
-            Text('Bạn chưa hướng dẫn sinh viên nào,',
-                style: TextStyle(
-                    fontSize: 18, color: grey, fontWeight: FontWeight.w600)),
+
+            Text(
+              'Bạn chưa hướng dẫn sinh viên nào,',
+              style: TextStyle(
+                fontSize: 18,
+                color: grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('vui lòng duyệt đăng ký đề tài!',
-                style: TextStyle(
-                    fontSize: 18, color: grey, fontWeight: FontWeight.w600)),
+            Text(
+              'vui lòng duyệt đăng ký đề tài!',
+              style: TextStyle(
+                fontSize: 18,
+                color: grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onGoApprove, child: const Text('Duyệt đăng ký')),
+            FilledButton(
+              onPressed: onGoApprove,
+              child: const Text('Duyệt đăng ký'),
+            ),
+
           ],
         ),
       );
@@ -196,10 +189,9 @@ class StudentsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: students.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) => _StudentCard(
-        item: students[i],
-        onEdit: onEdit,
-      ),
+
+      itemBuilder: (_, i) => _StudentCard(item: students[i], onEdit: onEdit),
+
     );
   }
 }
@@ -224,15 +216,27 @@ class _StudentCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.name, style: Theme.of(context).textTheme.titleMedium),
+
+                  Text(
+                    item.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 4),
-                  Text('Đề tài: ${item.topic}',
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    'Đề tài: ${item.topic}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
                   const SizedBox(height: 8),
                   Chip(
                     label: Text(item.status),
                     side: BorderSide(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.3),
+
                     ),
                   ),
                 ],
@@ -349,13 +353,18 @@ class _TopicCard extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 4,
                     children: [
-                      Text(item.studentName,
-                          style: Theme.of(context).textTheme.titleMedium),
-                      Text(item.studentId,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey[600])),
+
+                      Text(
+                        item.studentName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        item.studentId,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+
                     ],
                   ),
                 ),
@@ -365,10 +374,11 @@ class _TopicCard extends StatelessWidget {
 
             Text(
               'Đề tài: ${item.title}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -376,8 +386,12 @@ class _TopicCard extends StatelessWidget {
 
             Row(
               children: [
-                Text('Tổng quan đề tài: ',
-                    style: Theme.of(context).textTheme.bodyMedium),
+
+                Text(
+                  'Tổng quan đề tài: ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
                 Flexible(
                   child: Text(
                     item.overviewFileName,
@@ -395,8 +409,12 @@ class _TopicCard extends StatelessWidget {
 
             Row(
               children: [
-                Text('Trạng thái: ',
-                    style: Theme.of(context).textTheme.bodyMedium),
+
+                Text(
+                  'Trạng thái: ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
                 Text(
                   _statusText(item.status),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -409,8 +427,12 @@ class _TopicCard extends StatelessWidget {
 
             if (item.comment.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text('Nhận xét: ${item.comment}',
-                  style: Theme.of(context).textTheme.bodyMedium),
+
+              Text(
+                'Nhận xét: ${item.comment}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+
             ],
 
             const SizedBox(height: 12),
@@ -469,10 +491,9 @@ class _ActionPillButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
           minimumSize: const Size(0, 40), // đảm bảo cao 40
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+
       ),
     );
   }
@@ -568,8 +589,16 @@ Future<String?> _showApproveDialog(BuildContext context, String name) async {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('Hủy')),
-        FilledButton(onPressed: () => Navigator.pop(context, note.text.trim()), child: const Text('Duyệt')),
+
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, note.text.trim()),
+          child: const Text('Duyệt'),
+        ),
+
       ],
     ),
   );
@@ -596,8 +625,16 @@ Future<String?> _showRejectDialog(BuildContext context, String name) async {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('Hủy')),
-        FilledButton(onPressed: () => Navigator.pop(context, reason.text.trim()), child: const Text('Gửi')),
+
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, reason.text.trim()),
+          child: const Text('Gửi'),
+        ),
+
       ],
     ),
   );
@@ -605,10 +642,12 @@ Future<String?> _showRejectDialog(BuildContext context, String name) async {
 
 /* --------- BottomSheet sửa sinh viên --------- */
 void _showEditStudentModal(
-    BuildContext context,
-    StudentItem item, {
-      required void Function(StudentItem edited) onSaved,
-    }) {
+
+  BuildContext context,
+  StudentItem item, {
+  required void Function(StudentItem edited) onSaved,
+}) {
+
   final name = TextEditingController(text: item.name);
   final topic = TextEditingController(text: item.topic);
   final status = ValueNotifier(item.status);
@@ -623,7 +662,12 @@ void _showEditStudentModal(
     builder: (context) {
       return Padding(
         padding: EdgeInsets.fromLTRB(
-          16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom,
+
+          16,
+          16,
+          16,
+          16 + MediaQuery.of(context).viewInsets.bottom,
+
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -637,17 +681,30 @@ void _showEditStudentModal(
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
-            Text('Sửa thông tin', style: Theme.of(context).textTheme.titleLarge),
+
+            Text(
+              'Sửa thông tin',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: name,
-              decoration: const InputDecoration(labelText: 'Họ tên', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Họ tên',
+                border: OutlineInputBorder(),
+              ),
+
             ),
             const SizedBox(height: 12),
             TextField(
               controller: topic,
               maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Đề tài', border: OutlineInputBorder()),
+
+              decoration: const InputDecoration(
+                labelText: 'Đề tài',
+                border: OutlineInputBorder(),
+              ),
+
             ),
             const SizedBox(height: 12),
             ValueListenableBuilder<String>(
@@ -656,28 +713,53 @@ void _showEditStudentModal(
                 return DropdownButtonFormField<String>(
                   value: v,
                   items: const [
-                    DropdownMenuItem(value: 'Đang chờ duyệt', child: Text('Đang chờ duyệt')),
-                    DropdownMenuItem(value: 'Đang thực hiện', child: Text('Đang thực hiện')),
-                    DropdownMenuItem(value: 'Hoàn thành', child: Text('Hoàn thành')),
+
+                    DropdownMenuItem(
+                      value: 'Đang chờ duyệt',
+                      child: Text('Đang chờ duyệt'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Đang thực hiện',
+                      child: Text('Đang thực hiện'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Hoàn thành',
+                      child: Text('Hoàn thành'),
+                    ),
                   ],
                   onChanged: (nv) => status.value = nv ?? v,
-                  decoration: const InputDecoration(labelText: 'Trạng thái', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Trạng thái',
+                    border: OutlineInputBorder(),
+                  ),
+
                 );
               },
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy'))),
+
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Hủy'),
+                  ),
+                ),
+
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
                     onPressed: () {
-                      onSaved(item.copyWith(
-                        name: name.text.trim(),
-                        topic: topic.text.trim(),
-                        status: status.value,
-                      ));
+
+                      onSaved(
+                        item.copyWith(
+                          name: name.text.trim(),
+                          topic: topic.text.trim(),
+                          status: status.value,
+                        ),
+                      );
+
                       Navigator.pop(context);
                     },
                     child: const Text('Lưu'),

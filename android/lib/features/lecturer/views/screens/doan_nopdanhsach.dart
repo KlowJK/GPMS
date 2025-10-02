@@ -35,7 +35,9 @@ class _StudentTabsScreenState extends State<StudentTabsScreen> {
   // Demo danh sách sinh viên
   final List<StudentItem> _items = List.generate(
     8,
-        (i) => StudentItem(
+
+    (i) => StudentItem(
+
       name: 'Hà Văn Thắng',
       className: '64KTPM4',
       studentId: '22511724${90 + i}',
@@ -113,7 +115,9 @@ class _StudentTabsScreenState extends State<StudentTabsScreen> {
                           padding: const EdgeInsets.all(16),
                           itemCount: _items.length,
                           separatorBuilder: (_, __) =>
-                          const SizedBox(height: 12),
+
+                              const SizedBox(height: 12),
+
                           itemBuilder: (_, i) => _StudentCard(
                             item: _items[i],
                             onTap: () {
@@ -140,8 +144,9 @@ class _StudentTabsScreenState extends State<StudentTabsScreen> {
 
                       return GridView.builder(
                         padding: const EdgeInsets.all(16),
-                        gridDelegate:
-                        SliverGridDelegateWithFixedCrossAxisCount(
+
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+
                           crossAxisCount: cross,
                           mainAxisExtent: 110,
                           crossAxisSpacing: 12,
@@ -181,22 +186,6 @@ class _StudentTabsScreenState extends State<StudentTabsScreen> {
           ],
         ),
 
-        bottomNavigationBar: NavigationBar(
-          destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-            NavigationDestination(
-                icon: Icon(Icons.assignment), label: 'Đồ án'),
-            NavigationDestination(
-                icon: Icon(Icons.timeline_outlined), label: 'Tiến độ'),
-            NavigationDestination(
-                icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-            NavigationDestination(
-                icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-          ],
-          selectedIndex: bottomIndex,
-          onDestinationSelected: (i) => setState(() => bottomIndex = i),
-        ),
       ),
     );
   }
@@ -263,34 +252,43 @@ class _StudentCard extends StatelessWidget {
                   runSpacing: 2,
                   spacing: 8,
                   children: [
-                    Text(item.name,
-                        style: Theme.of(context).textTheme.titleMedium),
+
+                    Text(
+                      item.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     Text(
                       item.studentId,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.grey[600]),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(width: 8),
-                    Text(item.className,
-                        style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      item.className,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+
                     const SizedBox(width: 8),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('CV: ',
-                            style: Theme.of(context).textTheme.bodyMedium),
+                        Text(
+                          'CV: ',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+
                         InkWell(
                           onTap: () {},
                           child: Text(
                             item.cvFile,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                color: cs.primary,
-                                fontWeight: FontWeight.w600),
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+
                           ),
                         ),
                       ],
@@ -299,10 +297,11 @@ class _StudentCard extends StatelessWidget {
                       'Đề tài: ${item.topic}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+
                     ),
                   ],
                 ),
@@ -420,20 +419,32 @@ class _TopicsApprovalTabState extends State<TopicsApprovalTab> {
           onApprove: () async {
             final note = await showCommentSheet(context);
             if (note == null) return;
-            setState(() => items[i] =
-                it.copyWith(status: TopicStatus.approved, comment: note));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã duyệt đề tài')),
+
+            setState(
+              () => items[i] = it.copyWith(
+                status: TopicStatus.approved,
+                comment: note,
+              ),
             );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Đã duyệt đề tài')));
+
           },
           onReject: () async {
             final note = await showCommentSheet(context);
             if (note == null || note.trim().isEmpty) return;
-            setState(() => items[i] =
-                it.copyWith(status: TopicStatus.rejected, comment: note.trim()));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã từ chối đề tài')),
+
+            setState(
+              () => items[i] = it.copyWith(
+                status: TopicStatus.rejected,
+                comment: note.trim(),
+              ),
             );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Đã từ chối đề tài')));
+
           },
         );
       },
@@ -494,13 +505,18 @@ class _TopicCard extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 4,
                     children: [
-                      Text(item.studentName,
-                          style: Theme.of(context).textTheme.titleMedium),
-                      Text(item.studentId,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey[600])),
+
+                      Text(
+                        item.studentName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        item.studentId,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+
                     ],
                   ),
                 ),
@@ -509,27 +525,30 @@ class _TopicCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Đề tài: ${item.title}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 6),
             Row(
               children: [
-                Text('Tổng quan đề tài: ',
-                    style: Theme.of(context).textTheme.bodyMedium),
+
+                Text(
+                  'Tổng quan đề tài: ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 Flexible(
                   child: Text(
                     item.overviewFileName,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -538,8 +557,12 @@ class _TopicCard extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                Text('Trạng thái: ',
-                    style: Theme.of(context).textTheme.bodyMedium),
+
+                Text(
+                  'Trạng thái: ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
                 Text(
                   statusText(item.status),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -551,8 +574,12 @@ class _TopicCard extends StatelessWidget {
             ),
             if ((item.comment ?? '').isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text('Nhận xét: ${item.comment}',
-                  style: Theme.of(context).textTheme.bodyMedium),
+
+              Text(
+                'Nhận xét: ${item.comment}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+
             ],
             const SizedBox(height: 12),
             if (item.status == TopicStatus.pending)
@@ -696,8 +723,9 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
               ),
             ),
             SliverPadding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
               sliver: SliverToBoxAdapter(
                 child: _StudentSection(
                   student: widget.student,
@@ -708,8 +736,12 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               sliver: SliverToBoxAdapter(
-                child: Text('Đề cương:',
-                    style: Theme.of(context).textTheme.titleMedium),
+
+                child: Text(
+                  'Đề cương:',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+
               ),
             ),
             SliverPadding(
@@ -754,11 +786,24 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: 1,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
+
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            label: 'Trang chủ',
+          ),
           NavigationDestination(icon: Icon(Icons.assignment), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.timeline_outlined), label: 'Tiến độ'),
-          NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
+          NavigationDestination(
+            icon: Icon(Icons.timeline_outlined),
+            label: 'Tiến độ',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.summarize_outlined),
+            label: 'Báo cáo',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Hồ sơ',
+          ),
         ],
       ),
     );
@@ -847,27 +892,31 @@ class _StudentSection extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: twoColumns
             ? GridView.builder(
-          itemCount: tiles.length,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisExtent: 44,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 8,
-          ),
-          itemBuilder: (_, i) => item(tiles[i]),
-        )
+
+                itemCount: tiles.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisExtent: 44,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 8,
+                ),
+                itemBuilder: (_, i) => item(tiles[i]),
+              )
             : Column(
-          children: [
-            for (int i = 0; i < tiles.length; i++) ...[
-              item(tiles[i]),
-              if (i != tiles.length - 1)
-                Divider(height: 16, color: Theme.of(context).dividerColor),
-            ],
-          ],
-        ),
+                children: [
+                  for (int i = 0; i < tiles.length; i++) ...[
+                    item(tiles[i]),
+                    if (i != tiles.length - 1)
+                      Divider(
+                        height: 16,
+                        color: Theme.of(context).dividerColor,
+                      ),
+                  ],
+                ],
+              ),
+
       ),
     );
   }
@@ -929,8 +978,11 @@ class _SubmissionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Số lần nộp: ${info.attempt}',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Số lần nộp: ${info.attempt}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+
                 const Spacer(),
                 Text('Ngày nộp: ${_fmtDate(info.date)}'),
               ],
@@ -957,8 +1009,12 @@ class _SubmissionCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Trạng thái: ',
-                    style: Theme.of(context).textTheme.bodyMedium),
+
+                Text(
+                  'Trạng thái: ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
                 Text(
                   statusText(info.status),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -972,10 +1028,11 @@ class _SubmissionCard extends StatelessWidget {
                     child: Text(
                       'Ghi chú: ${info.note!}',
                       textAlign: TextAlign.end,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Theme.of(context).hintColor),
+
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).hintColor,
+                      ),
+
                     ),
                   ),
               ],
@@ -1046,7 +1103,12 @@ Future<String?> showCommentSheet(BuildContext context) async {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Nhận xét', style: Theme.of(context).textTheme.headlineSmall),
+
+                Text(
+                  'Nhận xét',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
@@ -1067,7 +1129,11 @@ Future<String?> showCommentSheet(BuildContext context) async {
                       backgroundColor: const Color(0xFF2F7CD3),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 10),
+
+                        horizontal: 24,
+                        vertical: 10,
+                      ),
+
                     ),
                     onPressed: () {
                       final t = controller.text.trim();

@@ -1,4 +1,5 @@
 package com.backend.gpms.features.outline.domain;
+import com.backend.gpms.features.lecturer.domain.GiangVien;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +11,9 @@ import lombok.Setter;
 public class NhanXetDeCuong {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
-    @Column(name="id_de_cuong", nullable=false) private Long idDeCuong;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name="id_de_cuong", nullable=false) private DeCuong idDeCuong;
     @Column(name="nhan_xet", nullable=false, columnDefinition="text") private String nhanXet;
-    @Column(name="id_giang_vien", nullable=false) private Long idGiangVien;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name="id_giang_vien", nullable=false) private GiangVien idGiangVien;
 }

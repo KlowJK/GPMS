@@ -1,4 +1,4 @@
-package com.backend.gpms.features.auth.dto;
+package com.backend.gpms.features.auth.dto.response;
 
 import lombok.*;
 
