@@ -8,5 +8,6 @@ public class Nganh {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name="ten_nganh", nullable=false) private String tenNganh;
     @Column(name="ma_nganh", nullable=false) private String maNganh;
-    @Column(name="id_khoa", nullable=false) private Long idKhoa;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_khoa", nullable=false) private Khoa idKhoa;
 }

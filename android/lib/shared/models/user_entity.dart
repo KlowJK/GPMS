@@ -1,20 +1,26 @@
 class UserEntity {
-  final String email;
   final String token;
-  final String role;
+  final String typeToken;
+  final String expiresAt;
   final int id;
+  final String? fullName;
+  final String email;
+  final String role;
+  final String? duongDanAvt;
   final int? teacherId;
   final int? studentId;
-  final String? fullName;
 
   UserEntity({
-    required this.email,
     required this.token,
-    required this.role,
+    required this.typeToken,
+    required this.expiresAt,
     required this.id,
+    this.fullName,
+    required this.email,
+    required this.role,
+    this.duongDanAvt,
     this.teacherId,
     this.studentId,
-    this.fullName,
   });
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
@@ -34,15 +40,23 @@ class UserEntity {
     final email = (user['email'] ?? json['email'] ?? '').toString();
     final role = (user['role'] ?? json['role'] ?? '').toString();
     final id = _toInt(user['id'] ?? json['id']) ?? 0;
+    final typeToken = (json['typeToken'] ?? json['tokenType'] ?? '').toString();
+    final expiresAt = (json['expiresAt'] ?? json['expires_in'] ?? '')
+        .toString();
+    final duongDanAvt = (user['duongDanAvt'] ?? json['duongDanAvt'])
+        ?.toString();
 
     return UserEntity(
-      email: email,
       token: token,
-      role: role,
+      typeToken: typeToken,
+      expiresAt: expiresAt,
       id: id,
+      fullName: (user['fullName'] ?? json['fullName'])?.toString(),
+      email: email,
+      role: role,
+      duongDanAvt: duongDanAvt,
       teacherId: _toInt(user['teacherId'] ?? json['teacherId']),
       studentId: _toInt(user['studentId'] ?? json['studentId']),
-      fullName: (user['fullName'] ?? json['fullName'])?.toString(),
     );
   }
 }

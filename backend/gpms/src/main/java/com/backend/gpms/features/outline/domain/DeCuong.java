@@ -1,5 +1,6 @@
 package com.backend.gpms.features.outline.domain;
 
+import com.backend.gpms.features.lecturer.domain.GiangVien;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -14,9 +15,13 @@ public class DeCuong {
     @Column(name="phien_ban", nullable=false) private String phienBan;
     @Column(name="duong_dan_file", nullable=false) private String duongDanFile;
     @Column(name="ngay_nop", nullable=false) private LocalDate ngayNop;
-    @Column(name="id_giang_vien_huong_dan") private Long idGiangVienHuongDan;
-    @Column(name="id_giang_vien_phan_bien") private Long idGiangVienPhanBien;
-    @Column(name="id_truong_bo_mon") private Long idTruongBoMon;
+    @OneToOne(fetch =  FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien idGiangVienHuongDan;
+
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name="id_giang_vien_phan_bien") private GiangVien idGiangVienPhanBien;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn (name="id_truong_bo_mon") private GiangVien idTruongBoMon;
 
     @Enumerated(EnumType.STRING)
     @Column(name="trang_thai_de_cuong", nullable=false, columnDefinition="tt_de_cuong")

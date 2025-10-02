@@ -1,8 +1,11 @@
 package com.backend.gpms.features.lecturer.domain;
 
 import com.backend.gpms.features.auth.domain.User;
+import com.backend.gpms.features.department.domain.BoMon;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -31,14 +34,20 @@ public class GiangVien {
     private String hocVi;
 
     // Tối giản: dùng id khoá ngoại như schema (có thể đổi sang @ManyToOne BoMon nếu đã có entity)
-    @Column(name="id_bo_mon", nullable=false)
-    private Long idBoMon;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_bo_mon", nullable=false)
+    private BoMon idBoMon;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="id_tai_khoan", unique = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_tai_khoan", referencedColumnName = "id", nullable = false, unique = true)
     private User user;
 
     @Column(name="quota_huong_dan", nullable=false)
     private Integer quotaInstruct = 0;
 
+    @Column(name = "duong_dan_avt")
+    private String duongDanAvt;
+
+    @Column(name = "ngay_sinh" )
+    private LocalDate ngaySinh;
 }

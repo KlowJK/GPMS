@@ -1,23 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MyApp());
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Hội đồng',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CD3)),
-        useMaterial3: true,
-      ),
-      home: const CouncilScreen(),
-    );
-  }
-}
 
 class CouncilScreen extends StatelessWidget {
   const CouncilScreen({super.key});
@@ -41,8 +23,11 @@ class CouncilScreen extends StatelessWidget {
       ),
     ];
 
-    final maxBodyWidth =
-    MediaQuery.of(context).size.width >= 820 ? 720.0 : double.infinity;
+
+    final maxBodyWidth = MediaQuery.of(context).size.width >= 820
+        ? 720.0
+        : double.infinity;
+
 
     return Scaffold(
       // AppBar giống ảnh (nền xanh, chữ trắng, căn giữa)
@@ -84,18 +69,6 @@ class CouncilScreen extends StatelessWidget {
         ),
       ),
 
-      // NavigationBar giống các code trước (icon + label)
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 4, // tab "Hội đồng" (0..4)
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.timeline), label: 'Tiến độ'),
-          NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-          NavigationDestination(icon: Icon(Icons.apartment_outlined), label: 'Hội đồng'),
-          // Nếu bạn muốn có "Hồ sơ" thay vì 5 tab, đổi lại danh sách cho đúng app của bạn
-        ],
-      ),
     );
   }
 }
@@ -137,8 +110,12 @@ class _CouncilCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _labelValue('Tên hội đồng:', council.name),
-                const SizedBox(height: 6),
-                _labelValue('Ngày bảo vệ:', '${_fmt(council.from)} - ${_fmt(council.to)}'),
+
+                _labelValue(
+                  'Ngày bảo vệ:',
+                  '${_fmt(council.from)} - ${_fmt(council.to)}',
+                ),
+
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -171,8 +148,16 @@ class _CouncilCard extends StatelessWidget {
       text: TextSpan(
         style: const TextStyle(color: Colors.black87, fontSize: 14),
         children: [
-          TextSpan(text: '$label ', style: const TextStyle(fontWeight: FontWeight.w700)),
-          TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.w500)),
+
+          TextSpan(
+            text: '$label ',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+
         ],
       ),
     );

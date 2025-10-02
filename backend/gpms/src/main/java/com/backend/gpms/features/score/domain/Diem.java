@@ -1,6 +1,5 @@
 package com.backend.gpms.features.score.domain;
 
-
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -11,7 +10,7 @@ import org.hibernate.type.SqlTypes;
 public class Diem {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name="id_de_tai", nullable=false) private Long idDeTai;
-    @Column(name="diem_de_cuong") private Double diemDeCuong;
+    @Column(name="diem_bao_cao") private Double diemDeCuong;
     @Column(name="diem_phan_bien") private Double diemPhanBien;
     @Column(name="diem_bao_ve") private Double diemBaoVe;
     @Column(name="diem_tong") private Double diemTong;

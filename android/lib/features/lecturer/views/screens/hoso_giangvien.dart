@@ -1,28 +1,6 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
-}
 
-/// App tối giản + chủ đề nhẹ
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Thông tin Giảng viên',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CD3)),
-        useMaterial3: true,
-      ),
-      home: const ThongTinGiangVienPage(),
-    );
-  }
-}
-
-/// Màn hình “Thông tin giảng viên” với header + avatar + thông tin
 class ThongTinGiangVienPage extends StatelessWidget {
   const ThongTinGiangVienPage({super.key});
 
@@ -55,15 +33,19 @@ class ThongTinGiangVienPage extends StatelessWidget {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            const _InfoCard(rows: [
-              _InfoRow(label: 'Email', value: 'leducanh@e.tlu.vn'),
-              _InfoRow(label: 'Ngày sinh', value: '24/09/1988'),
-              _InfoRow(label: 'Số điện thoại', value: '0345178542'),
-              _InfoRow(label: 'Giới tính', value: 'Nam'),
-              _InfoRow(label: 'Mã giảng viên', value: 'GV002'),
-              _InfoRow(label: 'Bộ môn', value: 'Lập trình nâng cao'),
-              _InfoRow(label: 'Trạng thái', value: 'Đang công tác'),
-            ]),
+
+            const _InfoCard(
+              rows: [
+                _InfoRow(label: 'Email', value: 'leducanh@e.tlu.vn'),
+                _InfoRow(label: 'Ngày sinh', value: '24/09/1988'),
+                _InfoRow(label: 'Số điện thoại', value: '0345178542'),
+                _InfoRow(label: 'Giới tính', value: 'Nam'),
+                _InfoRow(label: 'Mã giảng viên', value: 'GV002'),
+                _InfoRow(label: 'Bộ môn', value: 'Lập trình nâng cao'),
+                _InfoRow(label: 'Trạng thái', value: 'Đang công tác'),
+              ],
+            ),
+
             const SizedBox(height: 24),
 
             // Cài đặt
@@ -128,18 +110,7 @@ class ThongTinGiangVienPage extends StatelessWidget {
       ),
 
       // Thanh điều hướng dưới (demo)
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 2,
-        onDestinationSelected: (i) {
-          // TODO: điều hướng tab
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), label: 'Đồ án'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Hồ sơ'),
-          NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Báo cáo'),
-        ],
-      ),
+
     );
   }
 }
@@ -171,7 +142,10 @@ class _TeacherHeader extends StatelessWidget {
               CircleAvatar(
                 radius: 40,
                 backgroundColor: Colors.white24,
-                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+                backgroundImage: avatarUrl != null
+                    ? NetworkImage(avatarUrl!)
+                    : null,
+
                 child: avatarUrl == null
                     ? const Icon(Icons.person, size: 40, color: Colors.white)
                     : null,
@@ -189,10 +163,9 @@ class _TeacherHeader extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 department,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
+
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+
                 textAlign: TextAlign.center,
               ),
             ],
@@ -241,7 +214,9 @@ class _InfoCard extends StatelessWidget {
               child: rows[i],
             ),
             if (i != rows.length - 1) const Divider(height: 1),
-          ]
+
+          ],
+
         ],
       ),
     );
@@ -257,8 +232,11 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle =
-    Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black87);
+
+    final labelStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: Colors.black87);
+
     final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
       fontWeight: FontWeight.w700,
       color: const Color(0xFF393938),

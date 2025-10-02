@@ -114,7 +114,7 @@ class ReportScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const _BottomNav(selectedIndex: 3),
+
     );
   }
 }
@@ -145,8 +145,10 @@ class _HeaderBlock extends StatelessWidget {
             Expanded(
               child: Text(
                 'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
-                    'Ngày kết thúc : ${_fmtDateTime(to)}\n'
-                    '$title :',
+
+                'Ngày kết thúc : ${_fmtDateTime(to)}\n'
+                '$title :',
+
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -193,79 +195,88 @@ class _StudentReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor(ReportStatus s) =>
-        s == ReportStatus.submitted ? const Color(0xFF00C409) : const Color(0xFFFFDD00);
 
-    String statusText(ReportStatus s) => s == ReportStatus.submitted ? 'Đã nộp' : 'Chưa nộp';
+    Color statusColor(ReportStatus s) => s == ReportStatus.submitted
+        ? const Color(0xFF00C409)
+        : const Color(0xFFFFDD00);
+
+    String statusText(ReportStatus s) =>
+        s == ReportStatus.submitted ? 'Đã nộp' : 'Chưa nộp';
 
     return InkWell(
-    borderRadius: BorderRadius.circular(12),
-    onTap: onTap,
-    child: Card(
-    elevation: 1,
-    color: const Color(0xFFE4F6FF),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-    padding: const EdgeInsets.all(12),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Row(
-    children: [
-    CircleAvatar(
-    radius: 20,
-    backgroundColor: const Color(0xFFDBEAFE),
-    child: const Icon(Icons.person, color: Colors.black54),
-    ),
-    const SizedBox(width: 12),
-    Expanded(
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Text(info.name,
-    style: Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(fontWeight: FontWeight.w600)),
-    const SizedBox(height: 2),
-    Text(info.studentId,
-    style: Theme.of(context)
-        .textTheme
-        .bodySmall
-        ?.copyWith(color: const Color(0xFF6B7280))),
-    ],
-    ),
-    ),
-    Column(
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-    Text(info.className, style: Theme.of(context).textTheme.bodyMedium),
-    const SizedBox(height: 2),
-    RichText(
-    text: TextSpan(
-    style: Theme.of(context).textTheme.bodyMedium,
-    children: [
-    const TextSpan(text: 'Trạng thái: '),
-    TextSpan(
-    text: statusText(info.status),
-    style: TextStyle(
-    color: statusColor(info.status),
-    fontWeight: FontWeight.w500,
-    ),
-    ),
-    ],
-    ),
-    ),
-    ],
-    ),
-    ],
-    ),
-    const SizedBox(height: 8),
-    Text('Đề tài: ${info.topic}', style: Theme.of(context).textTheme.bodyMedium),
-    ],
-    ),
-    ),
-    ),
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Card(
+        elevation: 1,
+        color: const Color(0xFFE4F6FF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFFDBEAFE),
+                    child: const Icon(Icons.person, color: Colors.black54),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          info.name,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          info.studentId,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: const Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        info.className,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      RichText(
+                        text: TextSpan(
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          children: [
+                            const TextSpan(text: 'Trạng thái: '),
+                            TextSpan(
+                              text: statusText(info.status),
+                              style: TextStyle(
+                                color: statusColor(info.status),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Đề tài: ${info.topic}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -292,7 +303,7 @@ class ReportDetailScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: const Text('Thông tin chi tiết báo cáo'),
       ),
-      bottomNavigationBar: const _BottomNav(selectedIndex: 3),
+
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -310,12 +321,18 @@ class ReportDetailScreen extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE5E7EB)),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text('Thông tin sinh viên thực hiện:',
-                style: Theme.of(context).textTheme.bodyMedium),
+
+            child: Text(
+              'Thông tin sinh viên thực hiện:',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
           Card(
             margin: const EdgeInsets.only(top: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+
             child: Column(
               children: [
                 _InfoRow(label: 'Họ tên', value: student.name),
@@ -335,16 +352,20 @@ class ReportDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Các phiên bản báo cáo:', style: Theme.of(context).textTheme.titleMedium),
+
+          Text(
+            'Các phiên bản báo cáo:',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           ...versions
-              .map((v) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: ReportVersionCard(
-              version: v,
-              student: student,
-            ),
-          ))
+              .map(
+                (v) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ReportVersionCard(version: v, student: student),
+                ),
+              )
+
               .toList(),
         ],
       ),
@@ -362,7 +383,12 @@ class _InfoRow extends StatelessWidget {
     return ListTile(
       dense: true,
       title: Text(label),
-      trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+
+      trailing: Text(
+        value,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+
     );
   }
 }
@@ -388,7 +414,12 @@ class ReportVersion {
 }
 
 class ReportVersionCard extends StatefulWidget {
-  const ReportVersionCard({super.key, required this.version, required this.student});
+  const ReportVersionCard({
+    super.key,
+    required this.version,
+    required this.student,
+  });
+
   final ReportVersion version;
   final StudentReport student;
 
@@ -427,8 +458,12 @@ class _ReportVersionCardState extends State<ReportVersionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Phiên bản ${widget.version.version}:',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+
+            Text(
+              'Phiên bản ${widget.version.version}:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+
             const SizedBox(height: 4),
             Text('Ngày nộp: ${widget.version.date}'),
             const SizedBox(height: 4),
@@ -466,8 +501,12 @@ class _ReportVersionCardState extends State<ReportVersionCard> {
                   ),
                   const Spacer(),
                   if (_score != null)
-                    Text('Điểm: ${_score!.toStringAsFixed(1)}',
-                        style: Theme.of(context).textTheme.bodyMedium),
+
+                    Text(
+                      'Điểm: ${_score!.toStringAsFixed(1)}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+
                 ],
               ],
             ),
@@ -589,7 +628,12 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
       titlePadding: const EdgeInsets.only(top: 12),
       contentPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       title: const Center(
-        child: Text('Phiếu điểm', style: TextStyle(fontWeight: FontWeight.w600)),
+
+        child: Text(
+          'Phiếu điểm',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+
       ),
       content: SingleChildScrollView(
         child: Container(
@@ -627,8 +671,15 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
                     width: 70,
                     child: TextField(
                       readOnly: true,
-                      controller: TextEditingController(text: _total.toStringAsFixed(1)),
-                      decoration: _boxDec().copyWith(fillColor: Colors.black12, filled: true),
+
+                      controller: TextEditingController(
+                        text: _total.toStringAsFixed(1),
+                      ),
+                      decoration: _boxDec().copyWith(
+                        fillColor: Colors.black12,
+                        filled: true,
+                      ),
+
                     ),
                   ),
                 ],
@@ -703,21 +754,3 @@ class StudentReport {
 
 /* ------------------------ Bottom Navigation (dummy) ------------------------ */
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.selectedIndex});
-  final int selectedIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: selectedIndex,
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
-        NavigationDestination(icon: Icon(Icons.assignment_outlined), label: 'Đồ án'),
-        NavigationDestination(icon: Icon(Icons.timeline), label: 'Tiến độ'),
-        NavigationDestination(icon: Icon(Icons.summarize), label: 'Báo cáo'),
-        NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-      ],
-    );
-  }
-}
