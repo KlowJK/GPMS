@@ -1,0 +1,20 @@
+package com.backend.gpms.features.progress.domain;
+import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.topic.domain.DeTai;
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDate;
+
+@Getter @Setter
+@Entity @Table(name="bao_cao", indexes=@Index(name="idx_bc_dt", columnList="id_de_tai"))
+public class BaoCao {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name="id_de_tai", nullable=false) private DeTai idDeTai;
+    @Column(name="phien_ban", nullable=false) private String phienBan;
+    @Column(name="duong_dan", nullable=false) private String duongDan;
+    @Column(name="ngay_nop", nullable=false) private LocalDate ngayNop;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien idGiangVienHuongDan;
+    @Column(name="diem_huong_dan") private Double diemHuongDan;
+}

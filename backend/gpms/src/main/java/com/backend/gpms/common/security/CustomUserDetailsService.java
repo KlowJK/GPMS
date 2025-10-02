@@ -1,28 +1,35 @@
 package com.backend.gpms.common.security;
 
 import com.backend.gpms.features.auth.infra.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
+
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
+
     private final UserRepository userRepo;
-    public CustomUserDetailsService(UserRepository userRepo) { this.userRepo = userRepo; }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var user = userRepo.findByEmail(username)
+        var u = userRepo.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản"));
 
-        var authorities = Set.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        var authorities = Set.of(new SimpleGrantedAuthority("ROLE_" + u.getVaiTro().name()));
 
+        // dùng disabled() thay vì accountLocked() cho đúng semantics trạng thái kích hoạt
         return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
+                .withUsername(u.getEmail())
+                .password(u.getMatKhau())
                 .authorities(authorities)
-                .accountLocked(!user.getEnabled())
+                .disabled(!Boolean.TRUE.equals(u.getTrangThaiKichHoat()))
+                .accountExpired(false)
+                .accountLocked(false)
+                .credentialsExpired(false)
                 .build();
     }
 }

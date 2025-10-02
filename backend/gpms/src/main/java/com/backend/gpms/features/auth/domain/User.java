@@ -1,6 +1,8 @@
 package com.backend.gpms.features.auth.domain;
 
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -13,6 +15,8 @@ import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity @Table(name="tai_khoan")
 public class User {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,15 +26,12 @@ public class User {
     private String email;
 
     @Column(name = "mat_khau", nullable = false)
-    private String password;
-
-    @Column(name = "so_dien_thoai")
-    private String phoneNumber;
+    private String matKhau;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "vai_tro", nullable = false, columnDefinition = "vai_tro_tk")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)   // <— quan trọng cho PostgreSQL enum
-    private Role role;
+    private Role vaiTro;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
@@ -39,5 +40,5 @@ public class User {
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
     @Column(name = "kich_hoat", nullable = false)
-    private Boolean enabled = true;
+    private Boolean trangThaiKichHoat = true;
 }
