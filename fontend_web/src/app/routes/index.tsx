@@ -1,65 +1,68 @@
-import { createBrowserRouter } from 'react-router-dom'
-import App from '../../App'
-import ProtectedRoute from './ProtectedRoute'
-import RoleGuard from './RoleGuard'
+// src/app/routes/index.tsx
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import App from '../../App';
+import ProtectedRoute from './ProtectedRoute';
+import RoleGuard from './RoleGuard';
 
 export const router = createBrowserRouter([
     {
         path: '/',
         element: <App />,
         children: [
-            {
-                index: true,
-                lazy: () =>
-                    import('@features/topics/pages/TopicsPage')
-                        .then(m => ({ Component: m.default })),
-            },
+            // → Vào app là chuyển thẳng sang /login
+            { index: true, element: <Navigate to="/login" replace /> },
+
+            // Public
             {
                 path: 'login',
                 lazy: () =>
-                    import('@features/auth/pages/LoginPage')
-                        .then(m => ({ Component: m.default })),
+                    import('@features/auth/pages/LoginPage').then(m => ({ Component: m.default })),
             },
+
+            // Authenticated area
             {
                 element: <ProtectedRoute />,
                 children: [
+                    // Trang chủ sau đăng nhập
+                    {
+                        path: 'topics',
+                        lazy: () =>
+                            import('@features/topics/pages/TopicsPage').then(m => ({ Component: m.default })),
+                    },
                     {
                         path: 'profile',
                         lazy: () =>
-                            import('@features/auth/pages/ProfilePage')
-                                .then(m => ({ Component: m.default })),
+                            import('@features/auth/pages/ProfilePage').then(m => ({ Component: m.default })),
                     },
                     // Common authenticated
                     {
                         path: 'outlines',
                         lazy: () =>
-                            import('@features/outlines/pages/OutlinesPage')
-                                .then(m => ({ Component: m.default })),
+                            import('@features/outlines/pages/OutlinesPage').then(m => ({ Component: m.default })),
                     },
                     {
                         path: 'reports',
                         lazy: () =>
-                            import('@features/reports/pages/ReportsPage')
-                                .then(m => ({ Component: m.default })),
+                            import('@features/reports/pages/ReportsPage').then(m => ({ Component: m.default })),
                     },
-                    // Admin/Assistant screens
+
+                    // Admin/Assistant
                     {
                         element: <RoleGuard allow={['QUAN_TRI_VIEN', 'TRO_LY_KHOA']} />,
                         children: [
                             {
                                 path: 'accounts',
                                 lazy: () =>
-                                    import('@features/accounts/pages/AccountsListPage')
-                                        .then(m => ({ Component: m.default })),
+                                    import('@features/accounts/pages/AccountsListPage').then(m => ({ Component: m.default })),
                             },
                             {
                                 path: 'departments',
                                 lazy: () =>
-                                    import('@features/departments/pages/DepartmentsListPage')
-                                        .then(m => ({ Component: m.default })),
+                                    import('@features/departments/pages/DepartmentsListPage').then(m => ({ Component: m.default })),
                             },
                         ],
                     },
+
                     // Student
                     {
                         element: <RoleGuard allow={['SINH_VIEN']} />,
@@ -67,11 +70,11 @@ export const router = createBrowserRouter([
                             {
                                 path: 'students',
                                 lazy: () =>
-                                    import('@features/students/pages/StudentsListPage')
-                                        .then(m => ({ Component: m.default })),
+                                    import('@features/students/pages/StudentsListPage').then(m => ({ Component: m.default })),
                             },
                         ],
                     },
+
                     // Lecturer
                     {
                         element: <RoleGuard allow={['GIANG_VIEN', 'TRUONG_BO_MON']} />,
@@ -79,15 +82,15 @@ export const router = createBrowserRouter([
                             {
                                 path: 'lecturers',
                                 lazy: () =>
-                                    import('@features/lecturers/pages/LecturersListPage')
-                                        .then(m => ({ Component: m.default })),
+                                    import('@features/lecturers/pages/LecturersListPage').then(m => ({ Component: m.default })),
                             },
                         ],
                     },
                 ],
             },
+
             { path: '403', element: <div className="p-6">Forbidden</div> },
             { path: '*', element: <div className="p-6">Not Found</div> },
         ],
     },
-])
+]);
