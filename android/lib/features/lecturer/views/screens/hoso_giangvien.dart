@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 class ThongTinGiangVienPage extends StatelessWidget {
   const ThongTinGiangVienPage({super.key});
 
@@ -32,6 +33,7 @@ class ThongTinGiangVienPage extends StatelessWidget {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
+
             const _InfoCard(
               rows: [
                 _InfoRow(label: 'Email', value: 'leducanh@e.tlu.vn'),
@@ -43,6 +45,7 @@ class ThongTinGiangVienPage extends StatelessWidget {
                 _InfoRow(label: 'Trạng thái', value: 'Đang công tác'),
               ],
             ),
+
             const SizedBox(height: 24),
 
             // Cài đặt
@@ -107,6 +110,7 @@ class ThongTinGiangVienPage extends StatelessWidget {
       ),
 
       // Thanh điều hướng dưới (demo)
+
     );
   }
 }
@@ -141,6 +145,7 @@ class _TeacherHeader extends StatelessWidget {
                 backgroundImage: avatarUrl != null
                     ? NetworkImage(avatarUrl!)
                     : null,
+
                 child: avatarUrl == null
                     ? const Icon(Icons.person, size: 40, color: Colors.white)
                     : null,
@@ -158,7 +163,9 @@ class _TeacherHeader extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 department,
+
                 style: const TextStyle(color: Colors.white, fontSize: 14),
+
                 textAlign: TextAlign.center,
               ),
             ],
@@ -207,7 +214,9 @@ class _InfoCard extends StatelessWidget {
               child: rows[i],
             ),
             if (i != rows.length - 1) const Divider(height: 1),
+
           ],
+
         ],
       ),
     );
@@ -223,9 +232,11 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     final labelStyle = Theme.of(
       context,
     ).textTheme.bodyMedium?.copyWith(color: Colors.black87);
+
     final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
       fontWeight: FontWeight.w700,
       color: const Color(0xFF393938),

@@ -114,6 +114,7 @@ class ReportScreen extends StatelessWidget {
           ],
         ),
       ),
+
     );
   }
 }
@@ -144,8 +145,10 @@ class _HeaderBlock extends StatelessWidget {
             Expanded(
               child: Text(
                 'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
+
                 'Ngày kết thúc : ${_fmtDateTime(to)}\n'
                 '$title :',
+
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -192,6 +195,7 @@ class _StudentReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     Color statusColor(ReportStatus s) => s == ReportStatus.submitted
         ? const Color(0xFF00C409)
         : const Color(0xFFFFDD00);
@@ -299,6 +303,7 @@ class ReportDetailScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: const Text('Thông tin chi tiết báo cáo'),
       ),
+
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -316,6 +321,7 @@ class ReportDetailScreen extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE5E7EB)),
               borderRadius: BorderRadius.circular(8),
             ),
+
             child: Text(
               'Thông tin sinh viên thực hiện:',
               style: Theme.of(context).textTheme.bodyMedium,
@@ -326,6 +332,7 @@ class ReportDetailScreen extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
+
             child: Column(
               children: [
                 _InfoRow(label: 'Họ tên', value: student.name),
@@ -345,6 +352,7 @@ class ReportDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+
           Text(
             'Các phiên bản báo cáo:',
             style: Theme.of(context).textTheme.titleMedium,
@@ -357,6 +365,7 @@ class ReportDetailScreen extends StatelessWidget {
                   child: ReportVersionCard(version: v, student: student),
                 ),
               )
+
               .toList(),
         ],
       ),
@@ -374,10 +383,12 @@ class _InfoRow extends StatelessWidget {
     return ListTile(
       dense: true,
       title: Text(label),
+
       trailing: Text(
         value,
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
+
     );
   }
 }
@@ -408,6 +419,7 @@ class ReportVersionCard extends StatefulWidget {
     required this.version,
     required this.student,
   });
+
   final ReportVersion version;
   final StudentReport student;
 
@@ -446,10 +458,12 @@ class _ReportVersionCardState extends State<ReportVersionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
             Text(
               'Phiên bản ${widget.version.version}:',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 4),
             Text('Ngày nộp: ${widget.version.date}'),
             const SizedBox(height: 4),
@@ -487,10 +501,12 @@ class _ReportVersionCardState extends State<ReportVersionCard> {
                   ),
                   const Spacer(),
                   if (_score != null)
+
                     Text(
                       'Điểm: ${_score!.toStringAsFixed(1)}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
+
                 ],
               ],
             ),
@@ -612,10 +628,12 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
       titlePadding: const EdgeInsets.only(top: 12),
       contentPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       title: const Center(
+
         child: Text(
           'Phiếu điểm',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
+
       ),
       content: SingleChildScrollView(
         child: Container(
@@ -653,6 +671,7 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
                     width: 70,
                     child: TextField(
                       readOnly: true,
+
                       controller: TextEditingController(
                         text: _total.toStringAsFixed(1),
                       ),
@@ -660,6 +679,7 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
                         fillColor: Colors.black12,
                         filled: true,
                       ),
+
                     ),
                   ),
                 ],
@@ -733,3 +753,4 @@ class StudentReport {
 }
 
 /* ------------------------ Bottom Navigation (dummy) ------------------------ */
+

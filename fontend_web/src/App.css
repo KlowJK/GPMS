@@ -40,3 +40,14 @@
 .read-the-docs {
   color: #888;
 }
+
+
+/* src/index.css */
+@tailwind utilities;
+@tailwind utilities;
+
+/* Base reset nhẹ cho layout full-height và nền sáng */
+@layer base {
+    html, body, #root { height: 100%; }
+    body { @apply bg-gray-100 text-gray-900; }
+}

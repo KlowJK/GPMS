@@ -1,30 +1,13 @@
-
 import 'package:flutter/material.dart';
-
-import 'doan.dart';
 import 'home_tab.dart';
+import 'trangbaocao.dart'; // ReportListPage
+import 'doan.dart';       // ProjectApp
+import 'traghatky.dart';  // DiaryListPage
+import 'tranghoidong.dart';    // CouncilListPage
+import 'tranghoso.dart';  // chứa class StudentProfilePage
 
 void main() {
-  runApp(const DangKyDeTaiApp());
-}
-
-class DangKyDeTaiApp extends StatelessWidget {
-  const DangKyDeTaiApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2F7CD3);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Đăng ký đề tài',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
-      ),
-      home: const HomeSinhvien(),
-    );
-  }
+  runApp(const HomeSinhvien());
 }
 
 class HomeSinhvien extends StatelessWidget {
@@ -59,12 +42,14 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
 
   @override
   Widget build(BuildContext context) {
+    // THỨ TỰ TRANG PHẢI TRÙNG THỨ TỰ DESTINATIONS Ở DƯỚI
     final pages = <Widget>[
-      const HomeTab(), // Trang chủ
-      const ProjectApp(), // TODO: thay bằng màn hình thật
-      const PlaceholderCenter(title: 'Nhật ký'),
-      const PlaceholderCenter(title: 'Hội đồng'),
-      const PlaceholderCenter(title: 'Hồ sơ'),
+      const HomeTab(),           // 0 Trang chủ
+      const ProjectApp(),        // 1 Đồ án
+      const ReportListPage(),    // 2 Báo cáo
+      const DiaryListPage(),     // 3 Nhật ký
+      const CouncilListPage(),   // 4 Hội đồng
+      const StudentProfilePage() // 5 Hồ sơ  <<-- ĐÃ THAY THẾ
     ];
 
     return Scaffold(
@@ -85,6 +70,11 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
             label: 'Đồ án',
           ),
           NavigationDestination(
+            icon: Icon(Icons.fact_check_outlined),
+            selectedIcon: Icon(Icons.fact_check),
+            label: 'Báo cáo',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.edit_note_outlined),
             selectedIcon: Icon(Icons.edit_note),
             label: 'Nhật ký',
@@ -102,17 +92,6 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class PlaceholderCenter extends StatelessWidget {
-  const PlaceholderCenter({super.key, required this.title});
-  final String title;
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
     );
   }
 }
