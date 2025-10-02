@@ -1,5 +1,8 @@
 package com.backend.gpms.features.topic.domain;
 
+import com.backend.gpms.features.defense.domain.DotBaoVe;
+import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.student.domain.SinhVien;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -15,9 +18,15 @@ public class DeTai {
     @Column(name="ten_de_tai", nullable=false) private String tenDeTai;
     @Column(name="mo_ta") private String moTa;
     @Column(name="noi_dung_de_tai") private String noiDungDeTai;
-    @Column(name="id_giang_vien_huong_dan", nullable=false) private Long idGiangVienHuongDan;
-    @Column(name="id_sinh_vien", nullable=false) private Long idSinhVien;
-    @Column(name="id_dot_bao_ve", nullable=false) private Long idDotBaoVe;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_giang_vien_huong_dan", nullable=false)
+    private GiangVien idGiangVienHuongDan;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_sinh_vien", nullable=false) private SinhVien idSinhVien;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_dot_bao_ve", nullable=false) private DotBaoVe idDotBaoVe;
 
     @Enumerated(EnumType.STRING)
     @Column(name="trang_thai", nullable=false, columnDefinition="tt_de_tai")

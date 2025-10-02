@@ -1,5 +1,6 @@
 package com.backend.gpms.features.defense.domain;
 
+import com.backend.gpms.features.department.domain.Khoa;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import java.time.LocalDate;
@@ -13,6 +14,5 @@ public class DotBaoVe {
     @Column(name="hoc_ki", nullable=false) private String hocKi;
     @Column(name="ngay_bat_dau", nullable=false) private LocalDate ngayBatDau;
     @Column(name="ngay_ket_thuc", nullable=false) private LocalDate ngayKetThuc;
-    @Column(name="id_khoa", nullable=false) private Long idKhoa;
     @Column(name="khoa_dot", nullable=false) private Boolean khoaDot = false;
 }
