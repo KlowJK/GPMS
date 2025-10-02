@@ -9,5 +9,4 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
     Optional<GiangVien> findByUserId(Long userId) ;
 
 
-
 }
