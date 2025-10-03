@@ -14,6 +14,6 @@ public class GiangVienResponse {
     String hocVi;
     String hocHam;
 
-    String email;   // map từ giangVien.taiKhoan.email
-    Long   boMonId; // map từ giangVien.boMon.id
+    String email;
+    Long   boMonId;
 }

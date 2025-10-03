@@ -1,6 +1,7 @@
 package com.backend.gpms.features.lecturer.infra;
 
 import com.backend.gpms.features.lecturer.domain.GiangVien;
+import org.apache.poi.sl.draw.geom.GuideIf;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -14,4 +15,6 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
     @Override
     List<GiangVien> findAll();
     boolean existsByMaGiangVien(String maGiangVien);
+    Optional<GiangVien> findByUser_Email(String taiKhoanEmail);
+    Optional<GiangVien> findByMaGiangVien(String maGiangVien);
 }

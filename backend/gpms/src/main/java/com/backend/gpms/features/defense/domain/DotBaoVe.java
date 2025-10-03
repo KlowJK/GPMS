@@ -15,4 +15,6 @@ public class DotBaoVe {
     @Column(name="ngay_bat_dau", nullable=false) private LocalDate ngayBatDau;
     @Column(name="ngay_ket_thuc", nullable=false) private LocalDate ngayKetThuc;
     @Column(name="khoa_dot", nullable=false) private Boolean khoaDot = false;
+
+
 }

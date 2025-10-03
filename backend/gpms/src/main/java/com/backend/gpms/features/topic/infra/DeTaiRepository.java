@@ -1,7 +1,11 @@
 package  com.backend.gpms.features.topic.infra;
 
 import com.backend.gpms.features.lecturer.infra.GiangVienLoad;
+import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.topic.domain.DeTai;
+import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -13,11 +17,15 @@ public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
     Optional<DeTai> findById(Long id);
 
     @Query("""
-           select d.idGiangVienHuongDan as giangVienId, count(d) as soDeTai
+           select d.giangVienHuongDan as giangVienId, count(d) as soDeTai
            from DeTai d
-           where d.idGiangVienHuongDan in :gvIds
-             and d.trangThai in ('DA_DUYET','DANG_THUC_HIEN')
-           group by d.idGiangVienHuongDan
+           where d.giangVienHuongDan in :gvIds
+             and d.trangThai in ('DA_DUYET')
+           group by d.giangVienHuongDan
            """)
     List<GiangVienLoad> countActiveByGiangVienIds(Collection<Long> gvIds);
+
+    Optional<DeTai> findDeTaiBySinhVien_Id(Long sinhVien);
+    Page<DeTai> findByGiangVienHuongDan_IdAndTrangThai(Long giangVienId, TrangThaiDeTai trangThai, Pageable pageable);
+
 }

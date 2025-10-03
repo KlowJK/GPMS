@@ -3,6 +3,7 @@ package com.backend.gpms.features.student.domain;
 import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.department.domain.Lop;
 import com.backend.gpms.features.department.domain.Nganh;
+import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import java.time.LocalDate;
@@ -33,4 +34,7 @@ public class SinhVien {
 
     @Column(name = "duong_dan_avt")
     private String duongDanAvt;
+
+    @OneToOne(mappedBy = "sinhVien")
+    private DeTai deTai;
 }

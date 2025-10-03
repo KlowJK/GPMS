@@ -21,6 +21,16 @@ public class CloudinaryStorageService implements StorageService {
     private String defaultFolder;
 
     @Override
+    public String upload(MultipartFile file) {
+        try {
+            Map result = cloudinary.uploader().upload(file.getBytes(), Map.of());
+            return result.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public UploadResult upload(MultipartFile file, String folder, String publicIdHint) {
         try {
             String ext = FilenameUtils.getExtension(file.getOriginalFilename());
