@@ -1,11 +1,12 @@
 package com.backend.gpms.features.topic.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.defense.domain.DotBaoVe;
+import com.backend.gpms.features.department.domain.BoMon;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.student.domain.SinhVien;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter; import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -13,9 +14,12 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @Entity @Table(name="de_tai", indexes = {
         @Index(name="idx_dt_gv", columnList="id_giang_vien_huong_dan"),
-        @Index(name="idx_dt_dot", columnList="id_dot_bao_ve")
+        @Index(name="idx_dt_dot", columnList="id_dot_bao_ve"),
+        @Index(name = "idx_dt_bo_mon", columnList = "id_bo_mon")
 }, uniqueConstraints = @UniqueConstraint(name="uq_dt_sv_dot", columnNames={"id_sinh_vien","id_dot_bao_ve"}))
-public class DeTai {
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeTai extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name="ten_de_tai", nullable=false) private String tenDeTai;
     @Column(name="mo_ta") private String moTa;
@@ -37,5 +41,8 @@ public class DeTai {
 
     @Column(name="nhan_xet") private String nhanXet;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="id_bo_mon", nullable=false)
+    private BoMon boMon;
 
 }

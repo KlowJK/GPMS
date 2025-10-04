@@ -1,13 +1,15 @@
 package com.backend.gpms.features.score.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
+
 import org.hibernate.type.SqlTypes;
 
 @Getter @Setter
 @Entity @Table(name="diem", indexes=@Index(name="idx_diem_dt", columnList="id_de_tai"))
-public class Diem {
+public class Diem extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name="id_de_tai", nullable=false) private Long idDeTai;
     @Column(name="diem_bao_cao") private Double diemDeCuong;

@@ -10,14 +10,14 @@ import java.util.Optional;
 
 public interface DotBaoVeRepository extends JpaRepository<DotBaoVe, Long> {
 
-    boolean existsByTenDotBaoVe(String tenDotBaoVe);
+    boolean existsByTenDot(String tenDotBaoVe);
 
-    boolean existsByTenDotBaoVeAndIdNot(String tenDotBaoVe, Long id);
+    boolean existsByTenDotAndIdNot(String tenDotBaoVe, Long id);
 
-    Optional<DotBaoVe> findByHocKiAndNamBatDauAndNamKetThuc(int hocKi, int namBatDau, int namKetThuc);
+    Optional<DotBaoVe> findByHocKiAndNamHoc(String hocKi, String namHoc);
 
     Optional<DotBaoVe>
-    findTopByThoiGianBatDauLessThanEqualAndThoiGianKetThucGreaterThanEqualOrderByThoiGianBatDauDesc(
+    findTopByNgayBatDauLessThanEqualAndNgayKetThucGreaterThanEqualOrderByNgayBatDauDesc(
             LocalDate today1, LocalDate today2
     );
 }

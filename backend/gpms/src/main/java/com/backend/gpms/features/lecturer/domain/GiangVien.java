@@ -1,5 +1,6 @@
 package com.backend.gpms.features.lecturer.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.department.domain.BoMon;
 import jakarta.persistence.*;
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Entity @Table(name = "giang_vien", uniqueConstraints = @UniqueConstraint(name = "uk_gv_ma", columnNames = "ma_giang_vien"))
-public class GiangVien {
+public class GiangVien extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -50,4 +51,7 @@ public class GiangVien {
 
     @Column(name = "ngay_sinh" )
     private LocalDate ngaySinh;
+
+    @OneToOne(mappedBy = "truongBoMon")
+    BoMon boMonQuanLy;
 }

@@ -1,4 +1,3 @@
-
 package com.backend.gpms.features.storage.application;
 
 import com.cloudinary.Cloudinary;
@@ -9,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 @Service
@@ -23,12 +23,16 @@ public class CloudinaryStorageService implements StorageService {
     @Override
     public String upload(MultipartFile file) {
         try {
-            Map result = cloudinary.uploader().upload(file.getBytes(), Map.of());
+            String ext = org.apache.commons.io.FilenameUtils.getExtension(file.getOriginalFilename());
+            java.util.Set<String> rawTypes = java.util.Set.of("docx", "doc", "pdf", "zip", "rar", "xlsx", "xls", "pptx", "ppt");
+            String resourceType = rawTypes.contains(ext.toLowerCase()) ? "raw" : "auto";
+            Map result = cloudinary.uploader().upload(file.getBytes(), Map.of("resource_type", resourceType));
             return result.get("secure_url").toString();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
 
     @Override
     public UploadResult upload(MultipartFile file, String folder, String publicIdHint) {
@@ -67,6 +71,25 @@ public class CloudinaryStorageService implements StorageService {
             cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "auto"));
         } catch (IOException e) {
             throw new RuntimeException("Xoá Cloudinary thất bại", e);
+        }
+    }
+
+    @Override
+    public String upload(File file) {
+        try {
+            Map result = cloudinary.uploader().upload(file, Map.of("resource_type", "raw"));
+            return result.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Upload File thất bại", e);
+        }
+    }
+    @Override
+    public String uploadRawFile(MultipartFile file) {
+        try {
+            Map result = cloudinary.uploader().upload(file.getBytes(), Map.of("resource_type", "raw"));
+            return result.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

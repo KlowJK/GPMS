@@ -95,8 +95,8 @@ public enum ErrorCode {
     INVALID_TIME_RANGE(1034, "Invalid time range", HttpStatus.BAD_REQUEST),
     CONG_VIEC_EXISTED(1035, "Cong viec already exists in this dot bao ve", HttpStatus.BAD_REQUEST),
     THOI_GIAN_THUC_HIEN_NOT_FOUND(1036, "Thoi gian thuc hien not found", HttpStatus.NOT_FOUND),
-    NAM_BAT_DAU_EMPTY(1037, "Nam bat dau cannot be empty", HttpStatus.BAD_REQUEST),
-    NAM_KET_THUC_EMPTY(1038, "Nam ket thuc cannot be empty", HttpStatus.BAD_REQUEST),
+    NAM_HOC_EMPTY(1037, "Nam hoc cannot be empty", HttpStatus.BAD_REQUEST),
+
     HOC_KI_EMPTY(1039, "Hoc ki cannot be empty", HttpStatus.BAD_REQUEST),
     INVALID_FILE_TYPE(1040, "Invalid file type", HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(1041, "File size exceeds the limit", HttpStatus.BAD_REQUEST),

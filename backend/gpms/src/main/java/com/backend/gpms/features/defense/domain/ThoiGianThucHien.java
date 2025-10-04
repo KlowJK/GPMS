@@ -1,5 +1,6 @@
 package com.backend.gpms.features.defense.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 @Setter
 @Entity
 @Table(name="thoi_gian_thuc_hien", indexes = @Index(name="idx_tgth_dbv", columnList="id_dot_bao_ve"))
-public class ThoiGianThucHien {
+public class ThoiGianThucHien extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
 

@@ -1,4 +1,4 @@
-package com.backend.gpms.features.util;
+package com.backend.gpms.common.util;
 
 import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
@@ -52,7 +52,7 @@ public class TimeGatekeeper {
     public DotBaoVe getCurrentDotBaoVe(){
         LocalDate today = LocalDate.now(ZONE_BKK);
         return dotBaoVeRepository.
-                findTopByThoiGianBatDauLessThanEqualAndThoiGianKetThucGreaterThanEqualOrderByThoiGianBatDauDesc(today, today)
+                findTopByNgayBatDauLessThanEqualAndNgayKetThucGreaterThanEqualOrderByNgayBatDauDesc(today, today)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_IN_DOT_BAO_VE));
     }
 }

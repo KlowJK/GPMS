@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface NganhRepository extends JpaRepository<Nganh,Long> {
     Optional<Nganh> findById(Long id);
     boolean existsByTenNganh(String tenNganh);
+    boolean existsByTenNganhIgnoreCase(String tenNganh);
 }

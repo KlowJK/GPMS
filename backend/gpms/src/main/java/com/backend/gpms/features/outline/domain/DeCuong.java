@@ -1,6 +1,8 @@
 package com.backend.gpms.features.outline.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -9,19 +11,27 @@ import java.time.LocalDate;
 
 @Getter @Setter
 @Entity @Table(name="de_cuong", indexes = @Index(name="idx_dc_dt", columnList="id_de_tai"))
-public class DeCuong {
+public class DeCuong extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
-    @Column(name="id_de_tai", nullable=false) private Long idDeTai;
-    @Column(name="phien_ban", nullable=false) private String phienBan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="id_de_tai", nullable=false) private DeTai deTai;
+
+    @Column(name="phien_ban", nullable=false) private int phienBan;
+
     @Column(name="duong_dan_file", nullable=false) private String duongDanFile;
+
     @Column(name="ngay_nop", nullable=false) private LocalDate ngayNop;
+
     @OneToOne(fetch =  FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien idGiangVienHuongDan;
+    @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien giangVienHuongDan;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name="id_giang_vien_phan_bien") private GiangVien idGiangVienPhanBien;
+    @JoinColumn(name="id_giang_vien_phan_bien") private GiangVien giangVienPhanBien;
+
+
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn (name="id_truong_bo_mon") private GiangVien idTruongBoMon;
+    @JoinColumn (name="id_truong_bo_mon") private GiangVien truongBoMon;
 
     @Enumerated(EnumType.STRING)
     @Column(name="trang_thai_de_cuong", nullable=false, columnDefinition="tt_de_cuong")

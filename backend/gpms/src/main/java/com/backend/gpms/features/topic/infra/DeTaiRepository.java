@@ -27,5 +27,8 @@ public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
 
     Optional<DeTai> findDeTaiBySinhVien_Id(Long sinhVien);
     Page<DeTai> findByGiangVienHuongDan_IdAndTrangThai(Long giangVienId, TrangThaiDeTai trangThai, Pageable pageable);
+    Optional<DeTai> findBySinhVien_User_EmailIgnoreCase(String email);
+
+    Optional<DeTai> findByTenDeTaiIgnoreCaseAndSinhVien_MaSinhVienIgnoreCase(String tenDeTai, String sinhVienThucHienMaSV);
 
 }

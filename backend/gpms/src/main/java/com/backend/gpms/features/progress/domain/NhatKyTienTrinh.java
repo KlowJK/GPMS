@@ -1,4 +1,5 @@
 package com.backend.gpms.features.progress.domain;
+import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
@@ -7,7 +8,7 @@ import java.time.LocalDate;
 
 @Getter @Setter
 @Entity @Table(name="nhat_ky_tien_trinh", indexes=@Index(name="idx_nktt_dt", columnList="id_de_tai"))
-public class NhatKyTienTrinh {
+public class NhatKyTienTrinh extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)

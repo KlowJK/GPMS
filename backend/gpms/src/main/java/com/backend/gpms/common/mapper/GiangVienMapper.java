@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public interface GiangVienMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "idBoMon", ignore = true) // đúng tên field trong entity của bạn
+    @Mapping(target = "boMon", ignore = true) // đúng tên field trong entity của bạn
     @Mapping(target = "user",   ignore = true)
     @Mapping(target = "duongDanAvt", ignore = true)
     GiangVien toGiangVien(GiangVienCreationRequest request);

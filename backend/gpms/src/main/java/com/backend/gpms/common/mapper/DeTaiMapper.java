@@ -22,6 +22,7 @@ public interface DeTaiMapper {
     @Mapping(target = "nhanXet", ignore = true)
     @Mapping(target = "sinhVien", ignore = true)
     @Mapping(target = "noiDungDeTaiUrl", ignore = true)
+
     DeTai toDeTai(DeTaiRequest request);
 
     // Entity -> Response

@@ -17,4 +17,7 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
     boolean existsByMaGiangVien(String maGiangVien);
     Optional<GiangVien> findByUser_Email(String taiKhoanEmail);
     Optional<GiangVien> findByMaGiangVien(String maGiangVien);
+
+    Optional<GiangVien> findByUser_EmailIgnoreCase(String email);
+    List<GiangVien> findByBoMon_Id(Long boMonId);
 }

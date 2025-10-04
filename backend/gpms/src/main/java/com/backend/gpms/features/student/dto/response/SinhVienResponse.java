@@ -16,12 +16,12 @@ public class SinhVienResponse {
     private LocalDate ngaySinh;
     private String diaChi;
 
-    // Chỉ expose thông tin tối thiểu của quan hệ
+
     private Ref nganh;
     private Ref lop;
-    private Long userId;   // tránh nhúng toàn bộ User
+    private Long userId;
 
-    private Boolean kichHoat;   // hoặc enabled, nhưng thống nhất với domain
+    private Boolean kichHoat;
 
     @Getter @Setter
     @NoArgsConstructor @AllArgsConstructor @Builder

@@ -14,10 +14,10 @@ import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.dto.request.DeTaiApprovalRequest;
 import com.backend.gpms.features.topic.dto.request.DeTaiGiangVienHuongDanRequest;
 import com.backend.gpms.features.topic.dto.request.DeTaiRequest;
-import com.backend.gpms.features.topic.dto.response.DeTaiGiangVienHuongDanResponse;
 import com.backend.gpms.features.topic.dto.response.DeTaiResponse;
+import com.backend.gpms.features.topic.dto.response.DeTaiGiangVienHuongDanResponse;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
-import com.backend.gpms.features.util.TimeGatekeeper;
+import com.backend.gpms.common.util.TimeGatekeeper;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import org.springframework.security.core.Authentication;
 
@@ -29,6 +29,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -37,6 +40,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional
 public class DeTaiService {
+    private static final Logger log = LoggerFactory.getLogger(DeTaiService.class);
     DeTaiRepository deTaiRepository;
     SinhVienRepository sinhVienRepository;
     GiangVienRepository giangVienRepository;
@@ -62,7 +66,8 @@ public class DeTaiService {
         ThoiGianThucHien thoiGianDangKy = timeGatekeeper.validateThoiGianDangKy();
         DotBaoVe dotBaoVe = thoiGianDangKy.getDotBaoVe();
         DeTai deTai = sv.getDeTai();
-
+        GiangVien gv = giangVienRepository.findById(request.getGvhdId())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
         if (deTai == null) {
             deTai = deTaiMapper.toDeTai(request);
             deTai.setSinhVien(sv);
@@ -72,6 +77,8 @@ public class DeTaiService {
             }
             deTaiMapper.update(request, deTai);
         }
+
+        deTai.setBoMon(gv.getBoMon());
 
         deTai.setTrangThai(TrangThaiDeTai.CHO_DUYET);
 
@@ -96,7 +103,7 @@ public class DeTaiService {
         return deTaiMapper.toDeTaiResponse(deTai);
     };
 
-    public boolean addGiangVienHuongDan(DeTaiGiangVienHuongDanRequest request){
+    public DeTaiGiangVienHuongDanResponse addGiangVienHuongDan(DeTaiGiangVienHuongDanRequest request){
         SinhVien sv = sinhVienRepository.findByMaSinhVien(request.getMaSV())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
         GiangVien gv = giangVienRepository.findByMaGiangVien(request.getMaGV()).
@@ -110,7 +117,10 @@ public class DeTaiService {
                 .giangVienHuongDan(gv)
                 .build();
         deTaiRepository.save(newDeTai);
-        return true;
+        return DeTaiGiangVienHuongDanResponse.builder()
+                .success(true)
+                .message("Gán đề tài và giảng viên hướng dẫn thành công.")
+                .build();
     };
 
     public Page<DeTaiResponse> getDeTaiByLecturerAndStatus(TrangThaiDeTai trangThai, Pageable pageable){
@@ -162,9 +172,12 @@ public class DeTaiService {
         catch (Exception e) { throw new ApplicationException(ErrorCode.UNAUTHENTICATED); }
     }
 
-    private String upload(org.springframework.web.multipart.MultipartFile file) {
+    private String upload(MultipartFile file) {
         try { return cloudinaryService.upload(file); }
-        catch (Exception e) { throw new ApplicationException(ErrorCode.UPLOAD_FILE_FAILED); }
+        catch (Exception e) {
+            log.error("Upload file failed: {}", e.getMessage(), e);
+            throw new ApplicationException(ErrorCode.UPLOAD_FILE_FAILED);
+        }
     }
 
 }

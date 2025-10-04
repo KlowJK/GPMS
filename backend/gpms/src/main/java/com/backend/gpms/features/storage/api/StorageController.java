@@ -31,4 +31,10 @@ public class StorageController {
         storage.delete(publicId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/upload-single-test")
+    public ResponseEntity<String> uploadSingleFile(@ModelAttribute("file") MultipartFile file) {
+        String url = storage.upload(file);
+        return ResponseEntity.ok(url);
+    }
 }

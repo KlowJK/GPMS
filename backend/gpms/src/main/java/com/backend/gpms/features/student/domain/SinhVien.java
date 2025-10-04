@@ -1,8 +1,8 @@
 package com.backend.gpms.features.student.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.department.domain.Lop;
-import com.backend.gpms.features.department.domain.Nganh;
 import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
@@ -13,7 +13,7 @@ import java.time.LocalDate;
         @Index(name="idx_sv_nganh", columnList="id_nganh"),
         @Index(name="idx_sv_lop", columnList="id_lop")
 })
-public class SinhVien {
+public class SinhVien extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name="ho_ten", nullable=false) private String hoTen;
     @Column(name="ma_sinh_vien", nullable=false, unique=true) private String maSinhVien;
@@ -24,7 +24,7 @@ public class SinhVien {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="id_lop")
-    private Lop idLop;
+    private Lop lop;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tai_khoan", referencedColumnName = "id", nullable = false, unique = true)
