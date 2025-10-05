@@ -1,28 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const DangKyDeTaiApp());
-}
-
-class DangKyDeTaiApp extends StatelessWidget {
-  const DangKyDeTaiApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2F7CD3);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Đăng ký đề tài',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
-      ),
-      home: const RegisterProjectPage(),
-    );
-  }
-}
-
 /// Kết quả trả về sau khi đăng ký (để bạn có thể dùng Navigator.pop)
 class RegisterResult {
   final String title;
@@ -36,14 +13,14 @@ class RegisterResult {
   });
 }
 
-class RegisterProjectPage extends StatefulWidget {
-  const RegisterProjectPage({super.key});
+class DangKyDeTai extends StatefulWidget {
+  const DangKyDeTai({super.key});
 
   @override
-  State<RegisterProjectPage> createState() => _RegisterProjectPageState();
+  State<DangKyDeTai> createState() => DangKyDeTaiState();
 }
 
-class _RegisterProjectPageState extends State<RegisterProjectPage> {
+class DangKyDeTaiState extends State<DangKyDeTai> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -86,7 +63,10 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
           onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
             child: const Text('Lưu'),
@@ -109,28 +89,32 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
       return;
     }
 
-    final ok = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        icon: CircleAvatar(
-          radius: 22,
-          backgroundColor: const Color(0xFF2F7CD3),
-          child: const Icon(Icons.help_outline, color: Colors.white),
-        ),
-        title: const Text('Bạn có chắc chắn muốn gửi đăng ký đề tài không?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Quay lại'),
+    final ok =
+        await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            icon: CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFF2F7CD3),
+              child: const Icon(Icons.help_outline, color: Colors.white),
+            ),
+            title: const Text(
+              'Bạn có chắc chắn muốn gửi đăng ký đề tài không?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Quay lại'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Xác nhận'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (!ok) return;
 
@@ -158,7 +142,9 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
       RegisterResult(
         title: _titleCtrl.text.trim(),
         advisor: _advisor!,
-        overviewFile: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+        overviewFile: _fileCtrl.text.trim().isEmpty
+            ? null
+            : _fileCtrl.text.trim(),
       ),
     );
   }
@@ -186,7 +172,10 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Đăng ký thực hiện đề tài', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Đăng ký thực hiện đề tài',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -199,7 +188,9 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                 // ====== THÔNG TIN ĐĂNG KÝ ======
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Form(
@@ -213,24 +204,25 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               Expanded(
                                 child: Text(
                                   'Thông tin đăng ký',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
+                                  style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
                                 decoration: const ShapeDecoration(
                                   color: Color(0xFFDBEAFE),
                                   shape: StadiumBorder(),
                                 ),
                                 child: Text(
                                   'Đợt 10/2025',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium
-                                      ?.copyWith(color: const Color(0xFF1E3A8A)),
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: const Color(0xFF1E3A8A),
+                                      ),
                                 ),
                               ),
                             ],
@@ -241,7 +233,12 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                           DropdownButtonFormField<String>(
                             value: _advisor,
                             items: _advisors
-                                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
+                                  ),
+                                )
                                 .toList(),
                             decoration: InputDecoration(
                               labelText: 'Giảng viên hướng dẫn',
@@ -255,8 +252,9 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               ),
                               isDense: true,
                             ),
-                            validator: (v) =>
-                            v == null ? 'Hãy chọn giảng viên hướng dẫn' : null,
+                            validator: (v) => v == null
+                                ? 'Hãy chọn giảng viên hướng dẫn'
+                                : null,
                             onChanged: (v) => setState(() => _advisor = v),
                           ),
                           SizedBox(height: gap),
@@ -269,7 +267,8 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                             onEditingComplete: () => _focusDesc.requestFocus(),
                             decoration: InputDecoration(
                               labelText: 'Tên đề tài',
-                              hintText: 'Ví dụ: Hệ thống quản lý đồ án tốt nghiệp',
+                              hintText:
+                                  'Ví dụ: Hệ thống quản lý đồ án tốt nghiệp',
                               border: border,
                               enabledBorder: border,
                               focusedBorder: border.copyWith(
@@ -279,8 +278,9 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               ),
                               isDense: true,
                             ),
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Hãy nhập tên đề tài' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Hãy nhập tên đề tài'
+                                : null,
                           ),
                           SizedBox(height: gap),
 
@@ -291,7 +291,8 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                             maxLines: 3,
                             decoration: InputDecoration(
                               labelText: 'Mô tả ngắn (tùy chọn)',
-                              hintText: 'Tóm tắt mục tiêu, phạm vi, công nghệ dự kiến…',
+                              hintText:
+                                  'Tóm tắt mục tiêu, phạm vi, công nghệ dự kiến…',
                               border: border,
                               enabledBorder: border,
                               focusedBorder: border.copyWith(
@@ -305,7 +306,9 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
 
                           // Đính kèm tổng quan
                           _AttachFileTile(
-                            fileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+                            fileName: _fileCtrl.text.trim().isEmpty
+                                ? null
+                                : _fileCtrl.text.trim(),
                             onPick: _pickFileName,
                             onClear: _fileCtrl.text.trim().isEmpty
                                 ? null
@@ -325,10 +328,12 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               onPressed: _sending ? null : _confirmAndSubmit,
                               icon: _sending
                                   ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Icon(Icons.send),
                               label: const Text('Gửi đăng ký'),
                             ),
@@ -344,7 +349,9 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                 // ====== GHI CHÚ ======
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Row(
@@ -358,14 +365,12 @@ class _RegisterProjectPageState extends State<RegisterProjectPage> {
                               children: [
                                 TextSpan(
                                   text: 'Lưu ý: ',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 const TextSpan(
                                   text:
-                                  'Bạn có thể chỉnh sửa hồ sơ khi trạng thái còn “Chờ duyệt”. '
+                                      'Bạn có thể chỉnh sửa hồ sơ khi trạng thái còn “Chờ duyệt”. '
                                       'Sau khi được duyệt, hệ thống mở chức năng nộp đề cương.',
                                 ),
                               ],
@@ -419,8 +424,15 @@ class _AttachFileTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (hasFile && onClear != null)
-            IconButton(tooltip: 'Xóa tệp', onPressed: onClear, icon: const Icon(Icons.close)),
-          FilledButton.tonal(onPressed: onPick, child: Text(hasFile ? 'Sửa' : 'Đính kèm')),
+            IconButton(
+              tooltip: 'Xóa tệp',
+              onPressed: onClear,
+              icon: const Icon(Icons.close),
+            ),
+          FilledButton.tonal(
+            onPressed: onPick,
+            child: Text(hasFile ? 'Sửa' : 'Đính kèm'),
+          ),
         ],
       ),
     );
@@ -465,7 +477,7 @@ class _PreviewTile extends StatelessWidget {
             flex: 4,
             child: Text(
               'Xem nhanh nội dung/tổng quan tệp đính kèm (nếu có). '
-                  'Khi tích hợp thật, phần này có thể hiển thị thumbnail PDF hoặc thông tin file.',
+              'Khi tích hợp thật, phần này có thể hiển thị thumbnail PDF hoặc thông tin file.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),

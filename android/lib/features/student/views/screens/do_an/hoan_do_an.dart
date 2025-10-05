@@ -1,33 +1,12 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const DeNghiHoanApp());
-
-class DeNghiHoanApp extends StatelessWidget {
-  const DeNghiHoanApp({super.key});
-
+class HoanDoAn extends StatefulWidget {
+  const HoanDoAn({super.key});
   @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2F7CD3);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Đề nghị hoãn đồ án',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
-      ),
-      home: const DeNghiHoanPage(),
-    );
-  }
+  State<HoanDoAn> createState() => HoanDoAnState();
 }
 
-class DeNghiHoanPage extends StatefulWidget {
-  const DeNghiHoanPage({super.key});
-  @override
-  State<DeNghiHoanPage> createState() => _DeNghiHoanPageState();
-}
-
-class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
+class HoanDoAnState extends State<HoanDoAn> {
   final _formKey = GlobalKey<FormState>();
   final _lyDoCtrl = TextEditingController();
   final _fileCtrl = TextEditingController();
@@ -57,7 +36,10 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
           onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
             child: const Text('Lưu'),
@@ -76,28 +58,32 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
       return;
     }
 
-    final ok = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        icon: CircleAvatar(
-          radius: 22,
-          backgroundColor: const Color(0xFF2F7CD3),
-          child: const Icon(Icons.help_outline, color: Colors.white),
-        ),
-        title: const Text('Bạn có chắc chắn muốn gửi đề nghị hoãn đồ án không?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Quay lại'),
+    final ok =
+        await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            icon: CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFF2F7CD3),
+              child: const Icon(Icons.help_outline, color: Colors.white),
+            ),
+            title: const Text(
+              'Bạn có chắc chắn muốn gửi đề nghị hoãn đồ án không?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Quay lại'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Xác nhận'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (!ok) return;
 
@@ -116,7 +102,9 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
-        const SnackBar(content: Text('Đã gửi đề nghị hoãn. Vui lòng chờ duyệt!')),
+        const SnackBar(
+          content: Text('Đã gửi đề nghị hoãn. Vui lòng chờ duyệt!'),
+        ),
       );
 
     // Nếu trang này được mở bằng Navigator.push, có thể pop và trả kết quả:
@@ -146,7 +134,10 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Đề nghị hoãn đồ án', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Đề nghị hoãn đồ án',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -159,7 +150,9 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
                 // ===== FORM =====
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Form(
@@ -170,9 +163,7 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
                         children: [
                           Text(
                             'Thông tin đề nghị',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           SizedBox(height: gap),
@@ -193,14 +184,17 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
                                 ),
                               ),
                             ),
-                            validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Hãy nhập lý do hoãn' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Hãy nhập lý do hoãn'
+                                : null,
                           ),
                           SizedBox(height: gap),
 
                           // File minh chứng (tùy chọn)
                           _AttachFileTile(
-                            fileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+                            fileName: _fileCtrl.text.trim().isEmpty
+                                ? null
+                                : _fileCtrl.text.trim(),
                             onPick: _chonFileMinhChung,
                             onClear: _fileCtrl.text.trim().isEmpty
                                 ? null
@@ -220,10 +214,12 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
                               onPressed: _sending ? null : _confirmAndSend,
                               icon: _sending
                                   ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Icon(Icons.send),
                               label: const Text('Gửi đề nghị'),
                             ),
@@ -239,7 +235,9 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
                 // ===== LƯU Ý =====
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Row(
@@ -250,7 +248,7 @@ class _DeNghiHoanPageState extends State<DeNghiHoanPage> {
                         Expanded(
                           child: Text(
                             'Hồ sơ sẽ ở trạng thái “Chờ duyệt”. Sau khi được phê duyệt, '
-                                'Khoa sẽ thông báo lịch/đợt kế tiếp phù hợp.',
+                            'Khoa sẽ thông báo lịch/đợt kế tiếp phù hợp.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
@@ -283,7 +281,9 @@ class _AttachFileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasFile = (fileName != null && fileName!.isNotEmpty);
-    final fileText = hasFile ? fileName! : 'Chưa có file minh chứng (PDF/DOCX)…';
+    final fileText = hasFile
+        ? fileName!
+        : 'Chưa có file minh chứng (PDF/DOCX)…';
 
     return Container(
       padding: const EdgeInsets.all(12),
