@@ -1,5 +1,5 @@
-import 'package:GPMS/features/lecturer/views/screens/home_giangvien.dart';
-import 'package:GPMS/features/student/views/screens/home_sinhvien.dart';
+import 'package:GPMS/features/lecturer/views/screens/trang_chu/trang_chu_giang_vien.dart';
+import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_sinh_vien.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -45,12 +45,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (role.contains('GIANG') || role.contains('TEACHER')) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeGiangvien()),
+          MaterialPageRoute(builder: (context) => const TrangChuGiangVien()),
         );
       } else if (role.contains('SINH') || role.contains('STUDENT')) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeSinhvien()),
+          MaterialPageRoute(builder: (context) => const TrangChuSinhVien()),
         );
       } else {
         Navigator.pushReplacementNamed(context, '/');

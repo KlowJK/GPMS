@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-
-class CouncilScreen extends StatelessWidget {
-  const CouncilScreen({super.key});
+class HoiDong extends StatelessWidget {
+  const HoiDong({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,11 +22,9 @@ class CouncilScreen extends StatelessWidget {
       ),
     ];
 
-
     final maxBodyWidth = MediaQuery.of(context).size.width >= 820
         ? 720.0
         : double.infinity;
-
 
     return Scaffold(
       // AppBar giống ảnh (nền xanh, chữ trắng, căn giữa)
@@ -63,12 +60,10 @@ class CouncilScreen extends StatelessWidget {
                     .map<Widget>((c) => _CouncilCard(council: c))
                     .withSeparator(const SizedBox(height: 10)),
               ],
-
             ),
           ),
         ),
       ),
-
     );
   }
 }
@@ -148,7 +143,6 @@ class _CouncilCard extends StatelessWidget {
       text: TextSpan(
         style: const TextStyle(color: Colors.black87, fontSize: 14),
         children: [
-
           TextSpan(
             text: '$label ',
             style: const TextStyle(fontWeight: FontWeight.w700),
@@ -157,7 +151,6 @@ class _CouncilCard extends StatelessWidget {
             text: value,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
-
         ],
       ),
     );

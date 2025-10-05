@@ -1,31 +1,7 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const GPMSApp());
-
-class GPMSApp extends StatelessWidget {
-  const GPMSApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Báo cáo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CD3)),
-        fontFamily: 'Roboto',
-      ),
-      home: const ReportScreen(),
-    );
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                              MÀN HÌNH BÁO CÁO                               */
-/* -------------------------------------------------------------------------- */
-
-class ReportScreen extends StatelessWidget {
-  const ReportScreen({super.key});
+class BaoCao extends StatelessWidget {
+  const BaoCao({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +90,6 @@ class ReportScreen extends StatelessWidget {
           ],
         ),
       ),
-
     );
   }
 }
@@ -145,7 +120,6 @@ class _HeaderBlock extends StatelessWidget {
             Expanded(
               child: Text(
                 'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
-
                 'Ngày kết thúc : ${_fmtDateTime(to)}\n'
                 '$title :',
 
@@ -195,7 +169,6 @@ class _StudentReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     Color statusColor(ReportStatus s) => s == ReportStatus.submitted
         ? const Color(0xFF00C409)
         : const Color(0xFFFFDD00);
@@ -365,7 +338,6 @@ class ReportDetailScreen extends StatelessWidget {
                   child: ReportVersionCard(version: v, student: student),
                 ),
               )
-
               .toList(),
         ],
       ),
@@ -388,7 +360,6 @@ class _InfoRow extends StatelessWidget {
         value,
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
-
     );
   }
 }
@@ -458,7 +429,6 @@ class _ReportVersionCardState extends State<ReportVersionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Text(
               'Phiên bản ${widget.version.version}:',
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -501,12 +471,10 @@ class _ReportVersionCardState extends State<ReportVersionCard> {
                   ),
                   const Spacer(),
                   if (_score != null)
-
                     Text(
                       'Điểm: ${_score!.toStringAsFixed(1)}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
-
                 ],
               ],
             ),
@@ -628,12 +596,10 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
       titlePadding: const EdgeInsets.only(top: 12),
       contentPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       title: const Center(
-
         child: Text(
           'Phiếu điểm',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-
       ),
       content: SingleChildScrollView(
         child: Container(
@@ -679,7 +645,6 @@ class _GradeSheetDialogState extends State<GradeSheetDialog> {
                         fillColor: Colors.black12,
                         filled: true,
                       ),
-
                     ),
                   ),
                 ],
@@ -753,4 +718,3 @@ class StudentReport {
 }
 
 /* ------------------------ Bottom Navigation (dummy) ------------------------ */
-

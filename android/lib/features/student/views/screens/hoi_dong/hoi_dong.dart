@@ -55,8 +55,8 @@ final List<CouncilItem> demoCouncils = [
 
 /* ================== COUNCIL LIST PAGE ================== */
 
-class CouncilListPage extends StatelessWidget {
-  const CouncilListPage({super.key});
+class HoiDong extends StatelessWidget {
+  const HoiDong({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +72,13 @@ class CouncilListPage extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
-            final double maxW =
-            w >= 1200 ? 1100 : w >= 900 ? 900 : w >= 600 ? 600 : w;
+            final double maxW = w >= 1200
+                ? 1100
+                : w >= 900
+                ? 900
+                : w >= 600
+                ? 600
+                : w;
             final double pad = w >= 900 ? 24 : 16;
             final double gap = w >= 900 ? 16 : 12;
 
@@ -85,10 +90,9 @@ class CouncilListPage extends StatelessWidget {
                   children: [
                     Text(
                       'Danh sách hội đồng bảo vệ',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     SizedBox(height: gap),
 
@@ -103,8 +107,7 @@ class CouncilListPage extends StatelessWidget {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: demoCouncils.length,
-                        separatorBuilder: (_, __) =>
-                        const SizedBox(height: 10),
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (_, i) =>
                             _CouncilCard(item: demoCouncils[i]),
                       ),
@@ -136,11 +139,23 @@ class _CouncilCard extends StatelessWidget {
   (Color bg, Color fg, String label) get _badge {
     switch (item.status) {
       case CouncilStatus.upcoming:
-        return (const Color(0xFFDBEAFE), const Color(0xFF1E3A8A), 'Sắp diễn ra');
+        return (
+          const Color(0xFFDBEAFE),
+          const Color(0xFF1E3A8A),
+          'Sắp diễn ra',
+        );
       case CouncilStatus.ongoing:
-        return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
+        return (
+          const Color(0xFFFDE68A),
+          const Color(0xFF92400E),
+          'Đang diễn ra',
+        );
       case CouncilStatus.finished:
-        return (const Color(0xFFD1FAE5), const Color(0xFF065F46), 'Đã kết thúc');
+        return (
+          const Color(0xFFD1FAE5),
+          const Color(0xFF065F46),
+          'Đã kết thúc',
+        );
     }
   }
 
@@ -177,9 +192,7 @@ class _CouncilCard extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: 'Tên hội đồng: ',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                               TextSpan(text: item.name),
@@ -197,14 +210,12 @@ class _CouncilCard extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: 'Thời gian: ',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         TextSpan(
                           text:
-                          '${_fmt(item.startDate)}  –  ${_fmt(item.endDate)}',
+                              '${_fmt(item.startDate)}  –  ${_fmt(item.endDate)}',
                         ),
                       ],
                     ),
@@ -252,10 +263,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
