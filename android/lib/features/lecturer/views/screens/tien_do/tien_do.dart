@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
-
-class StudentListScreen extends StatefulWidget {
-  const StudentListScreen({super.key});
+class TienDo extends StatefulWidget {
+  const TienDo({super.key});
 
   @override
-  State<StudentListScreen> createState() => _StudentListScreenState();
+  State<TienDo> createState() => TienDoState();
 }
 
-class _StudentListScreenState extends State<StudentListScreen> {
+class TienDoState extends State<TienDo> {
   final students = <StudentProgress>[
     StudentProgress(
       name: 'Hà Văn Thắng',
@@ -84,7 +83,6 @@ class _StudentListScreenState extends State<StudentListScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-
                         builder: (_) =>
                             ProgressDetailScreen(student: students[i]),
                       ),
@@ -96,7 +94,6 @@ class _StudentListScreenState extends State<StudentListScreen> {
           ],
         ),
       ),
-
     );
   }
 }
@@ -108,13 +105,11 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     Color statusColor(SubmitStatus s) => s == SubmitStatus.submitted
         ? const Color(0xFF00C409)
         : const Color(0xFFFFDD00);
     String statusText(SubmitStatus s) =>
         s == SubmitStatus.submitted ? 'Đã nộp' : 'Chưa nộp';
-
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -139,7 +134,6 @@ class _StudentCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         Text(
                           info.name,
                           style: Theme.of(context).textTheme.bodyMedium
@@ -151,14 +145,12 @@ class _StudentCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: const Color(0xFF6B7280)),
                         ),
-
                       ],
                     ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-
                       Text(
                         info.className,
                         style: Theme.of(context).textTheme.bodyMedium,
@@ -192,7 +184,6 @@ class _StudentCard extends StatelessWidget {
                   'Đề tài: ${info.topic}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-
               ),
             ],
           ),
@@ -252,7 +243,6 @@ class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
           'Tiến độ',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
@@ -268,7 +258,6 @@ class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
             ],
           ),
           const SizedBox(height: 14),
-
 
           Text(
             'Tiến độ từng tuần:',
@@ -290,7 +279,6 @@ class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
           ],
         ],
       ),
-
     );
   }
 }
@@ -315,7 +303,6 @@ class _StatCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
             Text(
               value,
               style: const TextStyle(
@@ -334,7 +321,6 @@ class _StatCard extends StatelessWidget {
                 fontWeight: FontWeight.w400,
               ),
             ),
-
           ],
         ),
       ),
@@ -360,7 +346,6 @@ class _WeekCard extends StatelessWidget {
         boxShadow: const [
           BoxShadow(color: Color.fromRGBO(2, 6, 23, .08), blurRadius: 10),
         ],
-
       ),
       child: Container(
         margin: const EdgeInsets.all(8),
@@ -420,7 +405,6 @@ class _WeekCard extends StatelessWidget {
             ),
           ],
         ),
-
       ),
     );
   }
@@ -476,7 +460,6 @@ class _ActionButton extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
-
           ),
         ),
       ),
@@ -513,7 +496,6 @@ class _WeekHeader extends StatelessWidget {
             ),
           ],
         ),
-
       ),
     );
   }
@@ -549,12 +531,10 @@ class _BulletList extends StatelessWidget {
 /* --------------------------------- DIALOG --------------------------------- */
 
 Future<void> _showReviewDialog(
-
   BuildContext context,
   StudentProgress student,
   WeeklyEntry week,
 ) async {
-
   final controller = TextEditingController();
 
   await showDialog<void>(
@@ -566,12 +546,10 @@ Future<void> _showReviewDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       title: const Center(
-
         child: Text(
           'Nhận xét',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
         ),
-
       ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
@@ -598,7 +576,6 @@ Future<void> _showReviewDialog(
                   horizontal: 12,
                   vertical: 10,
                 ),
-
               ),
             ),
             const SizedBox(height: 14),
@@ -616,7 +593,6 @@ Future<void> _showReviewDialog(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
-
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();

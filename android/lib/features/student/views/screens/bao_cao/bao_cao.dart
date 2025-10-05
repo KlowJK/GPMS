@@ -22,14 +22,14 @@ class ReportItem {
 
 /* ============== DANH SÁCH BÁO CÁO (Trang chính) ============== */
 
-class ReportListPage extends StatefulWidget {
-  const ReportListPage({super.key});
+class BaoCao extends StatefulWidget {
+  const BaoCao({super.key});
 
   @override
-  State<ReportListPage> createState() => _ReportListPageState();
+  State<BaoCao> createState() => BaoCaoState();
 }
 
-class _ReportListPageState extends State<ReportListPage> {
+class BaoCaoState extends State<BaoCao> {
   final List<ReportItem> _items = []; // dữ liệu demo
 
   int _nextVersion() {
@@ -85,15 +85,15 @@ class _ReportListPageState extends State<ReportListPage> {
               padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
               child: _items.isEmpty
                   ? const _EmptyState(
-                icon: Icons.description_outlined,
-                title: 'Bạn chưa có báo cáo trong hệ thống.',
-                subtitle: 'Nhấn nút “+” để nộp báo cáo.',
-              )
+                      icon: Icons.description_outlined,
+                      title: 'Bạn chưa có báo cáo trong hệ thống.',
+                      subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                    )
                   : ListView.separated(
-                itemCount: _items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => _ReportCard(item: _items[i]),
-              ),
+                      itemCount: _items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _ReportCard(item: _items[i]),
+                    ),
             ),
           ),
         ),
@@ -119,19 +119,17 @@ class _ReportCard extends StatelessWidget {
   };
 
   (Color bg, Color fg) get _statusColor => switch (item.status) {
-    ReportStatus.approved =>
-    (const Color(0xFFDCFCE7), const Color(0xFF166534)),
-    ReportStatus.rejected =>
-    (const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
+    ReportStatus.approved => (const Color(0xFFDCFCE7), const Color(0xFF166534)),
+    ReportStatus.rejected => (const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
     _ => (const Color(0xFFFFF7ED), const Color(0xFF9A3412)),
   };
 
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/'
-          '${d.month.toString().padLeft(2, '0')}/'
-          '${d.year} • '
-          '${d.hour.toString().padLeft(2, '0')}:'
-          '${d.minute.toString().padLeft(2, '0')}';
+      '${d.month.toString().padLeft(2, '0')}/'
+      '${d.year} • '
+      '${d.hour.toString().padLeft(2, '0')}:'
+      '${d.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +150,9 @@ class _ReportCard extends StatelessWidget {
                 Expanded(
                   child: InkWell(
                     onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Mở tệp: ${item.fileName} (demo)')),
+                      SnackBar(
+                        content: Text('Mở tệp: ${item.fileName} (demo)'),
+                      ),
                     ),
                     child: Text(
                       item.fileName,
@@ -247,7 +247,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
           onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
             child: const Text('Lưu'),
@@ -280,12 +283,22 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.help_outline, size: 40, color: Color(0xFF2563EB)),
+        icon: const Icon(
+          Icons.help_outline,
+          size: 40,
+          color: Color(0xFF2563EB),
+        ),
         title: const Text('Xác nhận nộp báo cáo'),
         content: Text('Gửi tệp “$name”?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Quay lại')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xác nhận')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Quay lại'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xác nhận'),
+          ),
         ],
       ),
     );
@@ -352,8 +365,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Phiên bản',
-                            style: Theme.of(context).textTheme.bodyLarge),
+                        Text(
+                          'Phiên bản',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
                         const SizedBox(height: 6),
                         TextField(
                           controller: _verCtrl,
@@ -374,8 +389,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                         Row(
                           children: [
                             Expanded(
-                              child: Text('Miễn bù?',
-                                  style: Theme.of(context).textTheme.bodyLarge),
+                              child: Text(
+                                'Miễn bù?',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
                             ),
                             Switch(
                               value: _mienBu,
@@ -402,10 +419,12 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                             onPressed: _sending ? null : _submit,
                             child: _sending
                                 ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
                                 : const Text('Nộp báo cáo'),
                           ),
                         ),
@@ -430,7 +449,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                         Expanded(
                           child: Text(
                             'Chấp nhận tệp PDF/DOCX. Sau khi nộp, trạng thái là “Chờ duyệt”. '
-                                'Bạn có thể phúc đáp khi giảng viên phản hồi.',
+                            'Bạn có thể phúc đáp khi giảng viên phản hồi.',
                           ),
                         ),
                       ],
@@ -480,8 +499,15 @@ class _AttachFileTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (has && onClear != null)
-            IconButton(onPressed: onClear, icon: const Icon(Icons.close), tooltip: 'Xóa'),
-          FilledButton.tonal(onPressed: onPick, child: Text(has ? 'Sửa' : 'Chọn tệp')),
+            IconButton(
+              onPressed: onClear,
+              icon: const Icon(Icons.close),
+              tooltip: 'Xóa',
+            ),
+          FilledButton.tonal(
+            onPressed: onPick,
+            child: Text(has ? 'Sửa' : 'Chọn tệp'),
+          ),
         ],
       ),
     );
@@ -520,10 +546,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -533,7 +558,6 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-
 
 class _Badge extends StatelessWidget {
   const _Badge({required this.text, required this.bg, required this.fg});

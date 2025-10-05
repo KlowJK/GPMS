@@ -1,37 +1,19 @@
 import 'package:flutter/material.dart';
-import 'DeNghiHoanPage.dart'; // chỉnh đường dẫn đúng với dự án của bạn
-import 'dangkydetai.dart';   // file chứa RegisterProjectPage & RegisterResult
+import 'hoan_do_an.dart';
+import 'de_tai/dang_ky_de_tai.dart';
+import 'de_cuong/de_cuong.dart';
 
-class ProjectApp extends StatelessWidget {
-  const ProjectApp({super.key});
+enum DoAnTab { detai, decuong }
 
-  @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2F7CD3);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Đồ án',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
-      ),
-      home: const ProjectScreen(),
-    );
-  }
-}
-
-enum ProjectTab { detai, decuong }
-
-class ProjectScreen extends StatefulWidget {
-  const ProjectScreen({super.key});
+class DoAn extends StatefulWidget {
+  const DoAn({super.key});
 
   @override
-  State<ProjectScreen> createState() => _ProjectScreenState();
+  State<DoAn> createState() => DoAnState();
 }
 
-class _ProjectScreenState extends State<ProjectScreen> {
-  ProjectTab _tab = ProjectTab.detai;
+class DoAnState extends State<DoAn> {
+  DoAnTab _tab = DoAnTab.detai;
 
   // Trạng thái sau đăng ký
   bool _hasProject = false;
@@ -42,7 +24,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
   Future<void> _goRegister() async {
     final result = await Navigator.push<RegisterResult>(
       context,
-      MaterialPageRoute(builder: (_) => const RegisterProjectPage()),
+      MaterialPageRoute(builder: (_) => const DangKyDeTai()),
     );
 
     if (!mounted) return;
@@ -64,7 +46,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
   void _goPostpone() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const DeNghiHoanPage()),
+      MaterialPageRoute(builder: (_) => const HoanDoAn()),
     );
   }
 
@@ -95,14 +77,11 @@ class _ProjectScreenState extends State<ProjectScreen> {
               padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
               children: [
                 // Segmented tabs: Đề tài / Đề cương
-                SegmentedButton<ProjectTab>(
+                SegmentedButton<DoAnTab>(
                   segments: const [
+                    ButtonSegment(value: DoAnTab.detai, label: Text('Đề tài')),
                     ButtonSegment(
-                      value: ProjectTab.detai,
-                      label: Text('Đề tài'),
-                    ),
-                    ButtonSegment(
-                      value: ProjectTab.decuong,
+                      value: DoAnTab.decuong,
                       label: Text('Đề cương'),
                     ),
                   ],
@@ -113,7 +92,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
                 SizedBox(height: gap),
 
                 // === HÀNG NÚT HÀNH ĐỘNG CHỈ Ở TAB "ĐỀ TÀI" ===
-                if (_tab == ProjectTab.detai)
+                if (_tab == DoAnTab.detai)
                   LayoutBuilder(
                     builder: (context, c) {
                       final isWide = c.maxWidth >= 520;
@@ -162,8 +141,9 @@ class _ProjectScreenState extends State<ProjectScreen> {
                               icon: const Icon(Icons.add_box_outlined),
                               label: const Text('Đăng ký đề tài'),
                               style: FilledButton.styleFrom(
-                                padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                             ),
                           ),
@@ -175,8 +155,9 @@ class _ProjectScreenState extends State<ProjectScreen> {
                               icon: const Icon(Icons.snooze_outlined),
                               label: const Text('Đề nghị hoãn đồ án'),
                               style: OutlinedButton.styleFrom(
-                                padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                             ),
                           ),
@@ -187,7 +168,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
 
                 SizedBox(height: gap * 1.5),
                 Text(
-                  _tab == ProjectTab.detai ? "Thông tin đề tài" : "Đề cương",
+                  _tab == DoAnTab.detai ? "Thông tin đề tài" : "Đề cương",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.black,
                     fontWeight: FontWeight.w500,
@@ -196,7 +177,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
                 SizedBox(height: gap * 1.2),
 
                 // === NỘI DUNG THEO TAB ===
-                if (_tab == ProjectTab.detai) ...[
+                if (_tab == DoAnTab.detai) ...[
                   if (_hasProject)
                     _ProjectInfoCard(
                       gap: gap,
@@ -213,21 +194,22 @@ class _ProjectScreenState extends State<ProjectScreen> {
                 ] else ...[
                   // TAB ĐỀ CƯƠNG: KHÔNG có hai nút, hiển thị khung trống + nút "+"
                   if (_hasProject)
-                    _DecuongEmptyCard(
+                    DeCuong(
                       gap: gap,
                       onCreate: () {
                         // TODO: điều hướng sang màn "Tạo đề cương"
                       },
                     )
                   else
-                    _DecuongEmptyCard(
+                    DeCuong(
                       gap: gap,
                       onCreate: () {
                         // Nếu chưa có đề tài, vẫn có thể chặn và nhắc:
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                                'Hãy đăng ký đề tài trước khi tạo đề cương.'),
+                              'Hãy đăng ký đề tài trước khi tạo đề cương.',
+                            ),
                           ),
                         );
                       },
@@ -299,10 +281,9 @@ class _ProjectInfoCard extends StatelessWidget {
           children: [
             Text(
               'Thông tin đề tài',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             SizedBox(height: gap),
             _InfoRow(label: 'Tên đề tài', value: title),
@@ -360,59 +341,6 @@ class _ProjectInfoCard extends StatelessWidget {
   }
 }
 
-class _DecuongEmptyCard extends StatelessWidget {
-  const _DecuongEmptyCard({required this.gap, required this.onCreate});
-  final double gap;
-  final VoidCallback onCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: EdgeInsets.all(gap),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 260),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.warning_amber_rounded,
-                      size: 66, color: Theme.of(context).hintColor),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Bạn chưa có đề cương trong hệ thống.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: FloatingActionButton.small(
-                  onPressed: onCreate,
-                  child: const Icon(Icons.add),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.label, this.value, this.valueWidget});
   final String label;
@@ -421,10 +349,9 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final styleLabel = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(color: Theme.of(context).hintColor);
+    final styleLabel = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor);
     final styleValue = Theme.of(context).textTheme.bodyMedium;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -451,14 +378,12 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: ShapeDecoration(
-        color: bg,                     // màu động
-        shape: const StadiumBorder(),  // có thể const riêng phần shape
+        color: bg, // màu động
+        shape: const StadiumBorder(), // có thể const riêng phần shape
       ),
       child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
     );
   }
-
-
 }
 
 class _TaskTile extends StatelessWidget {
@@ -507,10 +432,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),

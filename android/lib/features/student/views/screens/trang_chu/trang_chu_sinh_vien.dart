@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'home_tab.dart';
-import 'trangbaocao.dart'; // ReportListPage
-import 'doan.dart'; // ProjectApp
-import 'traghatky.dart'; // DiaryListPage
-import 'tranghoidong.dart'; // CouncilListPage
-import 'tranghoso.dart'; // chứa class StudentProfilePage
+import 'trang_chu_page.dart';
+import '../bao_cao/bao_cao.dart';
+import '../do_an/do_an.dart';
+import '../nhat_ky/nhat_ky.dart';
+import '../hoi_dong/hoi_dong.dart';
+import '../ho_so/ho_so.dart';
 
-void main() {
-  runApp(const HomeSinhvien());
-}
-
-class HomeSinhvien extends StatelessWidget {
-  const HomeSinhvien({super.key});
+class TrangChuSinhVien extends StatelessWidget {
+  const TrangChuSinhVien({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,29 +21,29 @@ class HomeSinhvien extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFDCDEE4),
       ),
 
-      home: const AfterLoginShell(),
+      home: const TrangChuWidget(),
     );
   }
 }
 
-class AfterLoginShell extends StatefulWidget {
-  const AfterLoginShell({super.key});
+class TrangChuWidget extends StatefulWidget {
+  const TrangChuWidget({super.key});
   @override
-  State<AfterLoginShell> createState() => _AfterLoginShellState();
+  State<TrangChuWidget> createState() => _AfterLoginShellState();
 }
 
-class _AfterLoginShellState extends State<AfterLoginShell> {
+class _AfterLoginShellState extends State<TrangChuWidget> {
   int _index = 0;
 
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      const HomeTab(),
-      const ProjectApp(),
-      const ReportListPage(),
-      const DiaryListPage(),
-      const CouncilListPage(),
-      const StudentProfilePage(),
+      const TrangChuPage(),
+      const DoAn(),
+      const BaoCao(),
+      const NhatKy(),
+      const HoiDong(),
+      const HoSo(),
     ];
 
     return Scaffold(
@@ -62,8 +58,8 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
             label: 'Trang chủ',
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
             label: 'Đồ án',
           ),
           NavigationDestination(

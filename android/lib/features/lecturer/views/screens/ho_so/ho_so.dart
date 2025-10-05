@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-
-class ThongTinGiangVienPage extends StatelessWidget {
-  const ThongTinGiangVienPage({super.key});
+class HoSo extends StatelessWidget {
+  const HoSo({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +109,6 @@ class ThongTinGiangVienPage extends StatelessWidget {
       ),
 
       // Thanh điều hướng dưới (demo)
-
     );
   }
 }
@@ -214,9 +212,7 @@ class _InfoCard extends StatelessWidget {
               child: rows[i],
             ),
             if (i != rows.length - 1) const Divider(height: 1),
-
           ],
-
         ],
       ),
     );
@@ -232,7 +228,6 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final labelStyle = Theme.of(
       context,
     ).textTheme.bodyMedium?.copyWith(color: Colors.black87);
