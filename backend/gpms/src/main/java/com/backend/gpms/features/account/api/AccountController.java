@@ -1,5 +1,6 @@
 package com.backend.gpms.features.account.api;
 
+import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.account.application.GiangVienAccountService;
 import com.backend.gpms.features.account.application.SinhVienAccountService;
 
@@ -25,16 +26,16 @@ public class AccountController {
     private final SinhVienAccountService  sinhVienService;
 
     @PreAuthorize("hasAnyRole('QUAN_TRI_VIEN','TRO_LY_KHOA')")
-    @PostMapping("/giang_vien")
-    public ResponseEntity<CreatedAccountResponse> createLecturer(
+    @PostMapping("/giang-vien")
+    public ApiResponse<CreatedAccountResponse> createLecturer(
             @RequestBody @Valid GiangVienCreationRequest req) {
-        return ResponseEntity.ok(giangVienService.register(req));
+        return giangVienService.register(req);
     }
 
     @PreAuthorize("hasAnyRole('QUAN_TRI_VIEN','TRO_LY_KHOA')")
-    @PostMapping("/sinh_vien")
-    public ResponseEntity<CreatedAccountResponse> createStudent(
+    @PostMapping("/sinh-vien")
+    public ApiResponse<CreatedAccountResponse> createStudent(
             @RequestBody @Valid SinhVienCreateRequest req) {
-        return ResponseEntity.ok(sinhVienService.register(req));
+        return sinhVienService.register(req);
     }
 }

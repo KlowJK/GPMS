@@ -1,6 +1,7 @@
 // src/main/java/com/backend/gpms/features/auth/domain/PasswordResetToken.java
 package com.backend.gpms.features.auth.domain;
 
+import com.backend.gpms.common.util.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -13,7 +14,7 @@ import java.time.Instant;
         },
         uniqueConstraints = @UniqueConstraint(name="uq_prt_hash", columnNames = "token_hash")
 )
-public class PasswordResetToken {
+public class PasswordResetToken extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -30,6 +31,4 @@ public class PasswordResetToken {
     @Column(name="used", nullable = false)
     private boolean used = false;
 
-    @Column(name="created_at", nullable = false)
-    private Instant createdAt = Instant.now();
 }

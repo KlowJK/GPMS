@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'home_tab.dart';
 import 'trangbaocao.dart'; // ReportListPage
-import 'doan.dart';       // ProjectApp
-import 'traghatky.dart';  // DiaryListPage
-import 'tranghoidong.dart';    // CouncilListPage
-import 'tranghoso.dart';  // chứa class StudentProfilePage
+import 'doan.dart'; // ProjectApp
+import 'traghatky.dart'; // DiaryListPage
+import 'tranghoidong.dart'; // CouncilListPage
+import 'tranghoso.dart'; // chứa class StudentProfilePage
 
 void main() {
   runApp(const HomeSinhvien());
@@ -30,7 +30,6 @@ class HomeSinhvien extends StatelessWidget {
   }
 }
 
-
 class AfterLoginShell extends StatefulWidget {
   const AfterLoginShell({super.key});
   @override
@@ -42,14 +41,13 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
 
   @override
   Widget build(BuildContext context) {
-    // THỨ TỰ TRANG PHẢI TRÙNG THỨ TỰ DESTINATIONS Ở DƯỚI
     final pages = <Widget>[
-      const HomeTab(),           // 0 Trang chủ
-      const ProjectApp(),        // 1 Đồ án
-      const ReportListPage(),    // 2 Báo cáo
-      const DiaryListPage(),     // 3 Nhật ký
-      const CouncilListPage(),   // 4 Hội đồng
-      const StudentProfilePage() // 5 Hồ sơ  <<-- ĐÃ THAY THẾ
+      const HomeTab(),
+      const ProjectApp(),
+      const ReportListPage(),
+      const DiaryListPage(),
+      const CouncilListPage(),
+      const StudentProfilePage(),
     ];
 
     return Scaffold(
@@ -62,7 +60,6 @@ class _AfterLoginShellState extends State<AfterLoginShell> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Trang chủ',
-
           ),
           NavigationDestination(
             icon: Icon(Icons.folder_outlined),
