@@ -18,7 +18,7 @@ public interface SinhVienMapper {
 
     // Chỉ map các field primitive; quan hệ (lop, user) sẽ set ở Service
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "idLop", ignore = true)  // Lop là @ManyToOne
+    @Mapping(target = "lop", ignore = true)  // Lop là @ManyToOne
     @Mapping(target = "user",  ignore = true)  // User là @OneToOne
     @Mapping(target = "duDieuKien", ignore = true) // set theo req ở service
     @Mapping(target = "duongDanAvt", ignore = true)

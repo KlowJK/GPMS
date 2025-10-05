@@ -10,4 +10,6 @@ public interface LopRepository extends JpaRepository<Lop, Long> {
     @Override
     Optional<Lop> findById(Long aLong);
     boolean existsByTenLop(String tenLop);
+    boolean existsByTenLopIgnoreCase(String tenLop);
+
 }
