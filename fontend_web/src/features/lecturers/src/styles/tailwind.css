@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+html, body, #root { height: 100%; }
+body { @apply bg-bgSoft text-slate-800; font-family: Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+}
+
+
+@layer components {
+.container-padding { @apply px-6 sm:px-8 py-6; }
+.card { @apply rounded-2xl bg-white shadow-soft; }
+}

@@ -20,4 +20,4 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
 
     Optional<GiangVien> findByUser_EmailIgnoreCase(String email);
     List<GiangVien> findByBoMon_Id(Long boMonId);
-}
+
