@@ -4,8 +4,6 @@ import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Getter @Setter
 @Entity @Table(name="thanh_vien_hoi_dong",
@@ -16,11 +14,12 @@ public class ThanhVienHoiDong extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="id_hoi_dong", nullable=false)
-    private HoiDongBaoVe idHoiDong;
+    private HoiDong hoiDong;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="id_giang_vien", nullable=false)
-    private GiangVien idGiangVien;
+    private GiangVien giangVien;
+
 }
