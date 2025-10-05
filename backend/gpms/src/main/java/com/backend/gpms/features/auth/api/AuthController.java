@@ -35,19 +35,19 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/forgot_password")
+    @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequest req) {
         service.forgotPassword(req);
         return ResponseEntity.ok().build(); // luôn 200, không tiết lộ email có tồn tại
     }
 
-    @PostMapping("/reset_password")
+    @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest req) {
         service.resetPassword(req);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/change_password")
+    @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User principal,
                                                @RequestBody @Valid ChangePasswordRequest req) {
         service.changePassword(principal.getUsername(), req);

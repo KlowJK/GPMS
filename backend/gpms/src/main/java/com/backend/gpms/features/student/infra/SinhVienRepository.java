@@ -8,4 +8,7 @@ import java.util.Optional;
 
 public interface SinhVienRepository extends JpaRepository<SinhVien, Long> {
     Optional<SinhVien> findByUserId(Long userId);
+
+    Optional<SinhVien> findByUser_Email(String email);
+    Optional<SinhVien> findByMaSinhVien(String maSinhVien);
 }

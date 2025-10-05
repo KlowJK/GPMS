@@ -1,5 +1,6 @@
 package com.backend.gpms.features.account.application;
 
+import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.account.dto.response.CreatedAccountResponse;
 import com.backend.gpms.features.auth.domain.Role;
 import com.backend.gpms.features.auth.domain.User;
@@ -24,7 +25,7 @@ public class SinhVienAccountService {
     private final SinhVienMapper mapper;
 
     @Transactional
-    public CreatedAccountResponse register(SinhVienCreateRequest req) {
+    public ApiResponse<CreatedAccountResponse> register(SinhVienCreateRequest req) {
         if (userRepo.existsByEmail(req.getEmail()))
             throw new IllegalArgumentException("Email đã tồn tại");
 
@@ -43,15 +44,16 @@ public class SinhVienAccountService {
         SinhVien sv = mapper.toSinhVien(req); // nếu có DTO tách riêng
 
         sv.setSoDienThoai(req.getSoDienThoai());  // <-- fix bug
-        sv.setIdLop(lop);
+        sv.setLop(lop);
         sv.setDuDieuKien(Boolean.TRUE);
         sv.setUser(user);
 
         sv = svRepo.save(sv);
 
-        return new CreatedAccountResponse(
+        CreatedAccountResponse response = new CreatedAccountResponse(
                 user.getId(), user.getEmail(), user.getVaiTro().name(),
                 sv.getId(), sv.getHoTen()
         );
+        return ApiResponse.success(response);
     }
 }

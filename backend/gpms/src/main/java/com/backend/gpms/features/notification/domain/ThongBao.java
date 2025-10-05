@@ -1,6 +1,7 @@
 package com.backend.gpms.features.notification.domain;
 
 
+import com.backend.gpms.common.util.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -9,7 +10,7 @@ import java.time.OffsetDateTime;
 
 @Getter @Setter
 @Entity @Table(name="thong_bao")
-public class ThongBao {
+public class ThongBao extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(name="noi_dung", nullable=false, columnDefinition="text") private String noiDung;
     @Column(name="thoi_gian_gui", nullable=false) private OffsetDateTime thoiGianGui = OffsetDateTime.now();

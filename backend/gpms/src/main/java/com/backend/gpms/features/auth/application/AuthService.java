@@ -15,7 +15,6 @@ import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
 import com.backend.gpms.features.student.infra.SinhVienRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.*;
@@ -23,7 +22,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -155,7 +153,6 @@ public class AuthService {
                         .tokenHash(tokenHash)
                         .expiresAt(expiresAt)
                         .used(false)
-                        .createdAt(Instant.now())
                         .build()
         );
 
