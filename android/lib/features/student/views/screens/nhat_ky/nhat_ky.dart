@@ -6,9 +6,9 @@ enum DiaryStatus { pending, approved, rejected }
 
 class DiaryEntry {
   final int week;
-  final String timeRange;          // ví dụ: 15/09/2025 – 21/09/2025
-  final String content;            // nội dung công việc đã thực hiện
-  final String? resultFileName;    // tên file kết quả (mock)
+  final String timeRange; // ví dụ: 15/09/2025 – 21/09/2025
+  final String content; // nội dung công việc đã thực hiện
+  final String? resultFileName; // tên file kết quả (mock)
   final DiaryStatus status;
   final String? teacherNote;
 
@@ -24,19 +24,19 @@ class DiaryEntry {
 
 /* ================== DANH SÁCH NHẬT KÝ ================== */
 
-class DiaryListPage extends StatefulWidget {
-  const DiaryListPage({super.key});
+class NhatKy extends StatefulWidget {
+  const NhatKy({super.key});
 
   @override
-  State<DiaryListPage> createState() => _DiaryListPageState();
+  State<NhatKy> createState() => NhatKyState();
 }
 
-class _DiaryListPageState extends State<DiaryListPage> {
+class NhatKyState extends State<NhatKy> {
   final List<DiaryEntry> _items = []; // bắt đầu rỗng
 
   // Thông tin kỳ/đợt hiển thị phía trên (mock)
   final String _startAt = '15-09-2025 10:00:00';
-  final String _endAt   = '29-09-2025 23:59:33';
+  final String _endAt = '29-09-2025 23:59:33';
   final String _deadlineWeek1 = 'Tuần 1';
 
   Future<void> _goSubmit() async {
@@ -57,9 +57,15 @@ class _DiaryListPageState extends State<DiaryListPage> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final double maxW = w >= 1200 ? 1000 : w >= 900 ? 840 : w >= 600 ? 560 : w;
-    final double pad  = w >= 900 ? 24 : 16;
-    final double gap  = w >= 900 ? 16 : 12;
+    final double maxW = w >= 1200
+        ? 1000
+        : w >= 900
+        ? 840
+        : w >= 600
+        ? 560
+        : w;
+    final double pad = w >= 900 ? 24 : 16;
+    final double gap = w >= 900 ? 16 : 12;
 
     return Scaffold(
       appBar: AppBar(
@@ -77,17 +83,28 @@ class _DiaryListPageState extends State<DiaryListPage> {
                 // Thông tin chung
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _dotText('Ngày bắt đầu: $_startAt', const Color(0xFFFFDD00)),
+                        _dotText(
+                          'Ngày bắt đầu: $_startAt',
+                          const Color(0xFFFFDD00),
+                        ),
                         const SizedBox(height: 4),
-                        _dotText('Ngày kết thúc: $_endAt', const Color(0xFFFFDD00)),
+                        _dotText(
+                          'Ngày kết thúc: $_endAt',
+                          const Color(0xFFFFDD00),
+                        ),
                         const SizedBox(height: 4),
-                        _dotText('Thời hạn nộp nhật ký: $_deadlineWeek1', const Color(0xFFFFDD00)),
+                        _dotText(
+                          'Thời hạn nộp nhật ký: $_deadlineWeek1',
+                          const Color(0xFFFFDD00),
+                        ),
                       ],
                     ),
                   ),
@@ -100,17 +117,16 @@ class _DiaryListPageState extends State<DiaryListPage> {
                     title: 'Bạn chưa có nhật ký trong hệ thống.',
                     subtitle: 'Nhấn nút “+” để nộp nhật ký tuần.',
                   )
-                else
-                  ...[
-                    // danh sách nhật ký
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _DiaryCard(item: _items[i]),
-                    ),
-                  ],
+                else ...[
+                  // danh sách nhật ký
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _DiaryCard(item: _items[i]),
+                  ),
+                ],
               ],
             ),
           ),
@@ -127,7 +143,8 @@ class _DiaryListPageState extends State<DiaryListPage> {
     return Row(
       children: [
         Container(
-          width: 10, height: 10,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(color: color, width: 1.5),
@@ -147,8 +164,16 @@ class _DiaryCard extends StatelessWidget {
   final DiaryEntry item;
 
   (Color bg, Color fg, String label) get _badge => switch (item.status) {
-    DiaryStatus.approved => (const Color(0xFFDCFCE7), const Color(0xFF166534), 'GVHD đã xác nhận'),
-    DiaryStatus.rejected => (const Color(0xFFFEE2E2), const Color(0xFF991B1B), 'Từ chối'),
+    DiaryStatus.approved => (
+      const Color(0xFFDCFCE7),
+      const Color(0xFF166534),
+      'GVHD đã xác nhận',
+    ),
+    DiaryStatus.rejected => (
+      const Color(0xFFFEE2E2),
+      const Color(0xFF991B1B),
+      'Từ chối',
+    ),
     _ => (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Chờ duyệt'),
   };
 
@@ -171,7 +196,9 @@ class _DiaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Tuần ${item.week}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 _Badge(text: label, bg: bg, fg: fg),
@@ -181,17 +208,24 @@ class _DiaryCard extends StatelessWidget {
             _meta('Thời gian', item.timeRange),
             _meta('Nội dung công việc đã thực hiện', item.content),
             if (item.resultFileName != null) ...[
-              _meta('Kết quả đạt được',
-                  'File: ',
-                  trailing: InkWell(
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Mở tệp: ${item.resultFileName} (demo)')),
+              _meta(
+                'Kết quả đạt được',
+                'File: ',
+                trailing: InkWell(
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Mở tệp: ${item.resultFileName} (demo)'),
                     ),
-                    child: Text(
-                      item.resultFileName!,
-                      style: TextStyle(color: cs.primary, decoration: TextDecoration.underline),
+                  ),
+                  child: Text(
+                    item.resultFileName!,
+                    style: TextStyle(
+                      color: cs.primary,
+                      decoration: TextDecoration.underline,
                     ),
-                  )),
+                  ),
+                ),
+              ),
             ],
             if (item.teacherNote != null && item.teacherNote!.isNotEmpty)
               _meta('Nhận xét GVHD', item.teacherNote!),
@@ -206,12 +240,21 @@ class _DiaryCard extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 110, child: Text(k, style: const TextStyle(color: Colors.black54))),
+        SizedBox(
+          width: 110,
+          child: Text(k, style: const TextStyle(color: Colors.black54)),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: trailing == null
               ? Text(v)
-              : Row(children: [Text(v), const SizedBox(width: 4), Flexible(child: trailing)]),
+              : Row(
+                  children: [
+                    Text(v),
+                    const SizedBox(width: 4),
+                    Flexible(child: trailing),
+                  ],
+                ),
         ),
       ],
     ),
@@ -231,8 +274,8 @@ class SubmitDiaryPage extends StatefulWidget {
 class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
   final _contentCtrl = TextEditingController();
   final _fileCtrl = TextEditingController();
-  late int _week;                  // tuần đang chọn
-  late String _timeRange;          // khoảng thời gian hiển thị
+  late int _week; // tuần đang chọn
+  late String _timeRange; // khoảng thời gian hiển thị
   bool _sending = false;
 
   @override
@@ -265,12 +308,20 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
         title: const Text('Nhập tên tệp kết quả'),
         content: TextField(
           controller: _fileCtrl,
-          decoration: const InputDecoration(hintText: 'VD: 225117362_DuongVanHung_2.pdf'),
+          decoration: const InputDecoration(
+            hintText: 'VD: 225117362_DuongVanHung_2.pdf',
+          ),
           onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()), child: const Text('Lưu')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
+            child: const Text('Lưu'),
+          ),
         ],
       ),
     );
@@ -280,7 +331,11 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
 
   Future<void> _submit() async {
     if (_contentCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập nội dung công việc đã thực hiện')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập nội dung công việc đã thực hiện'),
+        ),
+      );
       return;
     }
 
@@ -295,8 +350,11 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
         week: _week,
         timeRange: _timeRange,
         content: _contentCtrl.text.trim(),
-        resultFileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
-        status: DiaryStatus.approved, // mock: auto “đã xác nhận” cho giống hình 3
+        resultFileName: _fileCtrl.text.trim().isEmpty
+            ? null
+            : _fileCtrl.text.trim(),
+        status:
+            DiaryStatus.approved, // mock: auto “đã xác nhận” cho giống hình 3
         teacherNote: 'GVND đã xác nhận', // mock note
       ),
     );
@@ -305,9 +363,15 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final double maxW = w >= 1200 ? 820 : w >= 900 ? 700 : w >= 600 ? 540 : w;
-    final double pad  = w >= 900 ? 24 : 16;
-    final double gap  = w >= 900 ? 16 : 12;
+    final double maxW = w >= 1200
+        ? 820
+        : w >= 900
+        ? 700
+        : w >= 600
+        ? 540
+        : w;
+    final double pad = w >= 900 ? 24 : 16;
+    final double gap = w >= 900 ? 16 : 12;
 
     final border = OutlineInputBorder(
       borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -330,7 +394,9 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
               children: [
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Column(
@@ -344,7 +410,12 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                             DropdownButton<int>(
                               value: _week,
                               items: List.generate(12, (i) => i + 1)
-                                  .map((w) => DropdownMenuItem(value: w, child: Text('$w')))
+                                  .map(
+                                    (w) => DropdownMenuItem(
+                                      value: w,
+                                      child: Text('$w'),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (v) {
                                 if (v == null) return;
@@ -356,9 +427,14 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                             ),
                             const Spacer(),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: ShapeDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
                                 shape: const StadiumBorder(),
                               ),
                               child: Text(
@@ -371,7 +447,10 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                         SizedBox(height: gap),
 
                         // Nội dung đã thực hiện
-                        Text('Nội dung công việc đã thực hiện', style: Theme.of(context).textTheme.bodyLarge),
+                        Text(
+                          'Nội dung công việc đã thực hiện',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
                         const SizedBox(height: 6),
                         TextField(
                           controller: _contentCtrl,
@@ -383,19 +462,28 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                             border: border,
                             enabledBorder: border,
                             focusedBorder: border.copyWith(
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
                           ),
                         ),
                         SizedBox(height: gap),
 
                         // Kết quả đạt được (attach file - mock)
-                        Text('Kết quả đạt được:', style: Theme.of(context).textTheme.bodyLarge),
+                        Text(
+                          'Kết quả đạt được:',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
                         const SizedBox(height: 6),
                         _AttachFileTile(
-                          fileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+                          fileName: _fileCtrl.text.trim().isEmpty
+                              ? null
+                              : _fileCtrl.text.trim(),
                           onPick: _pickFileName,
-                          onClear: _fileCtrl.text.trim().isEmpty ? null : () => setState(_fileCtrl.clear),
+                          onClear: _fileCtrl.text.trim().isEmpty
+                              ? null
+                              : () => setState(_fileCtrl.clear),
                         ),
 
                         const SizedBox(height: 12),
@@ -405,7 +493,12 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                             onPressed: _sending ? null : _submit,
                             child: _sending
                                 ? const SizedBox(
-                                width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
                                 : const Text('Nộp nhật ký'),
                           ),
                         ),
@@ -417,7 +510,9 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                 // Hướng dẫn
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Row(
@@ -428,7 +523,7 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                         const Expanded(
                           child: Text(
                             'Điền nội dung công việc theo tuần, đính kèm file kết quả (nếu có). '
-                                'Sau khi nộp, nhật ký sẽ hiển thị ở trang danh sách.',
+                            'Sau khi nộp, nhật ký sẽ hiển thị ở trang danh sách.',
                           ),
                         ),
                       ],
@@ -447,7 +542,11 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
 /* ================== COMMON ================== */
 
 class _AttachFileTile extends StatelessWidget {
-  const _AttachFileTile({required this.fileName, required this.onPick, this.onClear});
+  const _AttachFileTile({
+    required this.fileName,
+    required this.onPick,
+    this.onClear,
+  });
   final String? fileName;
   final VoidCallback onPick;
   final VoidCallback? onClear;
@@ -468,11 +567,20 @@ class _AttachFileTile extends StatelessWidget {
         children: [
           const Icon(Icons.cloud_upload_outlined),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis)),
+          Expanded(
+            child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
           const SizedBox(width: 8),
           if (has && onClear != null)
-            IconButton(onPressed: onClear, icon: const Icon(Icons.close), tooltip: 'Xóa'),
-          FilledButton.tonal(onPressed: onPick, child: Text(has ? 'Sửa' : 'Chọn tệp')),
+            IconButton(
+              onPressed: onClear,
+              icon: const Icon(Icons.close),
+              tooltip: 'Xóa',
+            ),
+          FilledButton.tonal(
+            onPressed: onPick,
+            child: Text(has ? 'Sửa' : 'Chọn tệp'),
+          ),
         ],
       ),
     );
@@ -480,7 +588,11 @@ class _AttachFileTile extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.title, required this.subtitle});
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
   final IconData icon;
   final String title;
   final String subtitle;
@@ -501,7 +613,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),

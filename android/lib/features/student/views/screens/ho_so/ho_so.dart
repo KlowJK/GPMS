@@ -38,12 +38,12 @@ const _demo = StudentProfile(
   major: 'Kĩ thuật phần mềm',
   status: 'Đang học tập',
   avatarUrl:
-  'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=256&q=80',
+      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=256&q=80',
 );
 
 /// ======= PAGE =======
-class StudentProfilePage extends StatelessWidget {
-  const StudentProfilePage({super.key, this.data = _demo});
+class HoSo extends StatelessWidget {
+  const HoSo({super.key, this.data = _demo});
   final StudentProfile data;
 
   @override
@@ -60,7 +60,11 @@ class StudentProfilePage extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth;
-          final double maxW = w >= 1200 ? 900 : w >= 900 ? 720 : 560;
+          final double maxW = w >= 1200
+              ? 900
+              : w >= 900
+              ? 720
+              : 560;
           final double pad = w >= 900 ? 24 : 16;
           final double gap = w >= 900 ? 18 : 12;
 
@@ -176,7 +180,9 @@ class StudentProfilePage extends StatelessWidget {
                                 backgroundColor: const Color(0xFFBF2D2D),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 14, horizontal: 24),
+                                  vertical: 14,
+                                  horizontal: 24,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
@@ -218,9 +224,7 @@ class _ProfileHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
       decoration: const BoxDecoration(
         color: Color(0xFF2F7CD3),
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(16),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       child: Column(
         children: [
@@ -231,18 +235,17 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             data.name,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             data.faculty,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.white),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
@@ -272,10 +275,9 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8, top: 12),
       child: Text(
         text,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -295,12 +297,13 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle =
-    Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black87);
-    final valueStyle = Theme.of(context)
-        .textTheme
-        .bodyMedium
-        ?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF393938));
+    final labelStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: Colors.black87);
+    final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: const Color(0xFF393938),
+    );
 
     return ListTile(
       dense: true,

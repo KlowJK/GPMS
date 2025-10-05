@@ -12,7 +12,6 @@ void main() {
   );
 }
 
-
 class GPMSApp extends StatelessWidget {
   const GPMSApp({super.key});
 
@@ -123,29 +122,6 @@ class HomeGuestResponsive extends StatelessWidget {
                     ),
 
                     _TopicList(gap: gap),
-
-                    // CTA đăng nhập
-                    SizedBox(height: gap * 2),
-                    Center(
-                      child: Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        children: [
-                          Text(
-                            'Đăng nhập để đăng ký đề tài',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),

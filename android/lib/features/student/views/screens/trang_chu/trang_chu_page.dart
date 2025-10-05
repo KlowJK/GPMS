@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../widgets/task_tile.dart';
-import '../widgets/all_tasks_page.dart';
-import '../widgets/section_header.dart';
-import '../widgets/noti_tile.dart';
-import '../widgets/all_noti_page.dart';
-import '../widgets/news_tile.dart';
-import '../widgets/all_news_page.dart';
-import '../widgets/topic_library_card.dart';
+import '../../widgets/task_tile.dart';
+import '../../widgets/all_tasks_page.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/noti_tile.dart';
+import '../../widgets/all_noti_page.dart';
+import '../../widgets/news_tile.dart';
+import '../../widgets/all_news_page.dart';
+import '../../widgets/topic_library_card.dart';
 
-class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+class TrangChuPage extends StatelessWidget {
+  const TrangChuPage({super.key});
 
   @override
   Widget build(BuildContext context) {
