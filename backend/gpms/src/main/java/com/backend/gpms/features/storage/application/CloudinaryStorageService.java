@@ -17,22 +17,26 @@ public class CloudinaryStorageService implements StorageService {
 
     private final Cloudinary cloudinary;
 
-    @Value("${cloudinary.folder:gpms/dev}")
+    @Value("${cloudinary.folder:gpms}")
     private String defaultFolder;
 
     @Override
     public String upload(MultipartFile file) {
         try {
-            String ext = org.apache.commons.io.FilenameUtils.getExtension(file.getOriginalFilename());
-            java.util.Set<String> rawTypes = java.util.Set.of("docx", "doc", "pdf", "zip", "rar", "xlsx", "xls", "pptx", "ppt");
-            String resourceType = rawTypes.contains(ext.toLowerCase()) ? "raw" : "auto";
-            Map result = cloudinary.uploader().upload(file.getBytes(), Map.of("resource_type", resourceType));
-            return result.get("secure_url").toString();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            Map<?, ?> res = cloudinary.uploader().upload(
+                    file.getBytes(),                               // <-- dùng byte[]
+                    ObjectUtils.asMap(
+                            "resource_type", "auto",
+                            "folder", defaultFolder,
+                            "use_filename", true,
+                            "unique_filename", true
+                    )
+            );
+            return (String) res.get("secure_url");
+        } catch (Exception e) {
+            throw new RuntimeException("Cloudinary upload failed: " + e.getMessage(), e);
         }
     }
-
 
     @Override
     public UploadResult upload(MultipartFile file, String folder, String publicIdHint) {
