@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:dropdown_search/dropdown_search.dart';
+import '../../../../models/giang_vien_huong_dan.dart';
+import '../../../../viewmodels/do_an_viewmodel.dart';
 
-/// Kết quả trả về sau khi đăng ký (để bạn có thể dùng Navigator.pop)
 class RegisterResult {
   final String title;
-  final String advisor;
+  final int advisorId;
+  final String advisorName;
   final String? overviewFile;
 
   RegisterResult({
     required this.title,
-    required this.advisor,
+    required this.advisorId,
+    required this.advisorName,
     this.overviewFile,
   });
 }
 
 class DangKyDeTai extends StatefulWidget {
   const DangKyDeTai({super.key});
-
   @override
   State<DangKyDeTai> createState() => DangKyDeTaiState();
 }
@@ -32,12 +36,13 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
   bool _sending = false;
   String? _advisor;
 
-  final _advisors = const [
-    'TS. Trần Văn B',
-    'PGS. Nguyễn Thị C',
-    'ThS. Lê Văn D',
-    'ThS. Phạm Thu E',
-  ];
+  // bỏ String? _advisor;
+  GiangVienHuongDan? _selectedAdvisor; // {'id': int, 'hoTen': String}
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -75,7 +80,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
       ),
     );
     if (!mounted) return;
-    if (txt != null) setState(() {}); // _fileCtrl đã giữ giá trị
+    if (txt != null) setState(() {});
   }
 
   Future<void> _confirmAndSubmit() async {
@@ -136,12 +141,12 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
         const SnackBar(content: Text('Đã gửi đăng ký đề tài. Đang chờ duyệt!')),
       );
 
-    // Trả kết quả về màn trước (nếu được mở qua Navigator.push)
     Navigator.pop(
       context,
       RegisterResult(
         title: _titleCtrl.text.trim(),
-        advisor: _advisor!,
+        advisorId: _selectedAdvisor!.id,
+        advisorName: _selectedAdvisor!.hoTen,
         overviewFile: _fileCtrl.text.trim().isEmpty
             ? null
             : _fileCtrl.text.trim(),
@@ -166,14 +171,16 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
 
     final border = OutlineInputBorder(
       borderSide: BorderSide(color: Theme.of(context).dividerColor),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(0),
     );
+
+    final viewmodels = Provider.of<DoAnViewModel>(context);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
         title: const Text(
-          'Đăng ký thực hiện đề tài',
+          'Đăng ký đề tài',
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
@@ -185,7 +192,6 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
             child: ListView(
               padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
               children: [
-                // ====== THÔNG TIN ĐĂNG KÝ ======
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -203,7 +209,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Thông tin đăng ký',
+                                  '   ',
                                   style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
@@ -230,33 +236,57 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                           SizedBox(height: gap),
 
                           // GVHD
-                          DropdownButtonFormField<String>(
-                            value: _advisor,
-                            items: _advisors
-                                .map(
-                                  (e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(e),
+                          if (viewmodels.isLoadingAdvisors) ...[
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                          ] else if (viewmodels.advisorError != null) ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Text(
+                                viewmodels.advisorError!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ] else ...[
+                            DropdownSearch<GiangVienHuongDan>(
+                              items: viewmodels.advisors,
+                              itemAsString: (gv) => gv.hoTen,
+                              selectedItem: _selectedAdvisor,
+                              onChanged: (v) =>
+                                  setState(() => _selectedAdvisor = v),
+                              compareFn: (a, b) => a.id == b.id,
+                              dropdownDecoratorProps: DropDownDecoratorProps(
+                                dropdownSearchDecoration: InputDecoration(
+                                  labelText: 'Giảng viên hướng dẫn',
+                                  hintText: 'Vui lòng chọn giảng viên',
+                                  border: border,
+                                  enabledBorder: border,
+                                  focusedBorder: border.copyWith(
+                                    borderSide: BorderSide(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
                                   ),
-                                )
-                                .toList(),
-                            decoration: InputDecoration(
-                              labelText: 'Giảng viên hướng dẫn',
-                              hintText: 'Vui lòng chọn giảng viên',
-                              border: border,
-                              enabledBorder: border,
-                              focusedBorder: border.copyWith(
-                                borderSide: BorderSide(
-                                  color: Theme.of(context).colorScheme.primary,
+                                  isDense: true,
                                 ),
                               ),
-                              isDense: true,
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                searchFieldProps: TextFieldProps(
+                                  decoration: const InputDecoration(
+                                    hintText: 'Tìm kiếm giảng viên...',
+                                  ),
+                                ),
+                              ),
+                              validator: (v) => v == null
+                                  ? 'Hãy chọn giảng viên hướng dẫn'
+                                  : null,
                             ),
-                            validator: (v) => v == null
-                                ? 'Hãy chọn giảng viên hướng dẫn'
-                                : null,
-                            onChanged: (v) => setState(() => _advisor = v),
-                          ),
+                          ],
+
                           SizedBox(height: gap),
 
                           // Tên đề tài
@@ -282,26 +312,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                                 ? 'Hãy nhập tên đề tài'
                                 : null,
                           ),
-                          SizedBox(height: gap),
 
-                          // Mô tả ngắn
-                          TextFormField(
-                            controller: _descCtrl,
-                            focusNode: _focusDesc,
-                            maxLines: 3,
-                            decoration: InputDecoration(
-                              labelText: 'Mô tả ngắn (tùy chọn)',
-                              hintText:
-                                  'Tóm tắt mục tiêu, phạm vi, công nghệ dự kiến…',
-                              border: border,
-                              enabledBorder: border,
-                              focusedBorder: border.copyWith(
-                                borderSide: BorderSide(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          ),
                           SizedBox(height: gap),
 
                           // Đính kèm tổng quan
@@ -316,11 +327,6 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                           ),
 
                           SizedBox(height: gap),
-
-                          // “Ảnh xem trước” (layout responsive)
-                          _PreviewTile(gap: gap),
-
-                          const Divider(height: 24),
 
                           Align(
                             alignment: Alignment.centerRight,
@@ -340,44 +346,6 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: gap),
-
-                // ====== GHI CHÚ ======
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(gap),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.info_outline),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Lưu ý: ',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                const TextSpan(
-                                  text:
-                                      'Bạn có thể chỉnh sửa hồ sơ khi trạng thái còn “Chờ duyệt”. '
-                                      'Sau khi được duyệt, hệ thống mở chức năng nộp đề cương.',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -432,54 +400,6 @@ class _AttachFileTile extends StatelessWidget {
           FilledButton.tonal(
             onPressed: onPick,
             child: Text(hasFile ? 'Sửa' : 'Đính kèm'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PreviewTile extends StatelessWidget {
-  const _PreviewTile({required this.gap});
-  final double gap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: EdgeInsets.all(gap),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Row(
-        children: [
-          // Ảnh demo tỉ lệ 16:9, tự co giãn theo không gian
-          Expanded(
-            flex: 3,
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(
-                  child: Icon(Icons.image_outlined, size: 42),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: gap),
-          // Mô tả ngắn bên phải
-          Expanded(
-            flex: 4,
-            child: Text(
-              'Xem nhanh nội dung/tổng quan tệp đính kèm (nếu có). '
-              'Khi tích hợp thật, phần này có thể hiển thị thumbnail PDF hoặc thông tin file.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
           ),
         ],
       ),

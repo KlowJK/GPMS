@@ -7,8 +7,17 @@ import '../../../shared/models/user_entity.dart';
 
 class AuthService {
   /// Base URL configuration
-  static String get baseUrl =>
-      kIsWeb ? 'http://localhost:8080' : 'http://10.0.2.2:8080';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8080';
+    }
+    const useEmulator = true;
+    if (useEmulator) {
+      return 'http://10.0.2.2:8080';
+    } else {
+      return 'http://192.168.1.10:8080';
+    }
+  }
 
   static const _authKeys = [
     'token',

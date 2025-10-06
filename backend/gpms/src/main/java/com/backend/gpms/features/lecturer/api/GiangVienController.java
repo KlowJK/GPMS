@@ -1,14 +1,15 @@
 package com.backend.gpms.features.lecturer.api;
 
-import com.backend.gpms.features.lecturer.application.GiangVienLookupService;
-import com.backend.gpms.features.lecturer.dto.response.GiangVienLookupResponse;
+import com.backend.gpms.common.util.ApiResponse;
+import com.backend.gpms.features.lecturer.application.GiangVienService;
+import com.backend.gpms.features.lecturer.dto.response.GiangVienLiteResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "GiangVien")
 @RestController
@@ -17,12 +18,13 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class GiangVienController {
 
-    private final GiangVienLookupService service;
+    private final GiangVienService service;
 
     @Operation(summary = "Tra cứu giảng viên có slot hướng dẫn theo id lớp")
     @GetMapping("/advisors")
-    public ResponseEntity<GiangVienLookupResponse> advisors(
-            @RequestParam("idLop") @Positive Long idLop) {
-        return ResponseEntity.ok(service.lookupByLopId(idLop));
+    public ApiResponse<List<GiangVienLiteResponse>> giangVienList() {
+       return ApiResponse.<List<GiangVienLiteResponse>>builder()
+               .result(service.giangVienLiteResponseList())
+               .build();
     }
 }
