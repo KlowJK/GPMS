@@ -5,6 +5,8 @@ import '../do_an/do_an.dart';
 import '../nhat_ky/nhat_ky.dart';
 import '../hoi_dong/hoi_dong.dart';
 import '../ho_so/ho_so.dart';
+import 'package:provider/provider.dart';
+import '../../../viewmodels/do_an_viewmodel.dart';
 
 class TrangChuSinhVien extends StatelessWidget {
   const TrangChuSinhVien({super.key});
@@ -39,7 +41,10 @@ class _AfterLoginShellState extends State<TrangChuWidget> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       const TrangChuPage(),
-      const DoAn(),
+      ChangeNotifierProvider(
+        create: (_) => DoAnViewModel()..fetchDeTaiChiTiet(),
+        child: const DoAn(),
+      ),
       const BaoCao(),
       const NhatKy(),
       const HoiDong(),
