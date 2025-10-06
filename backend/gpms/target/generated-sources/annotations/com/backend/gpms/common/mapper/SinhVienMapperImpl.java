@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-10-03T00:32:58+0700",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (Microsoft)"
+    date = "2025-10-06T01:00:11+0700",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.4 (Oracle Corporation)"
 )
 @Component
 public class SinhVienMapperImpl implements SinhVienMapper {
