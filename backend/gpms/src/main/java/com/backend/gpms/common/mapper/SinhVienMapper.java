@@ -1,12 +1,18 @@
 package com.backend.gpms.common.mapper;
 
+import com.backend.gpms.features.lecturer.dto.response.ApprovalSinhVienResponse;
+import com.backend.gpms.features.lecturer.dto.response.SinhVienSupervisedResponse;
 import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.student.dto.request.SinhVienCreateRequest;
+import com.backend.gpms.features.student.dto.request.SinhVienCreationRequest;
 import com.backend.gpms.features.student.dto.request.SinhVienUpdateRequest;
+import com.backend.gpms.features.student.dto.response.GetSinhVienWithoutDeTaiResponse;
+import com.backend.gpms.features.student.dto.response.SinhVienCreationResponse;
+import com.backend.gpms.features.student.dto.response.SinhVienInfoResponse;
 import com.backend.gpms.features.student.dto.response.SinhVienResponse;
 import org.mapstruct.*;
 import com.backend.gpms.features.department.domain.Lop;
-import com.backend.gpms.features.department.infra.LopRepository;
+
 
 
 @Mapper(
@@ -23,5 +29,53 @@ public interface SinhVienMapper {
     @Mapping(target = "duDieuKien", ignore = true) // set theo req ở service
     @Mapping(target = "duongDanAvt", ignore = true)
     SinhVien toSinhVien(SinhVienCreateRequest req);
+
+    @Mapping(target = "user.email",  source = "email")
+    @Mapping(target = "user.vaiTro", expression = "java(com.backend.gpms.features.auth.domain.Role.SINH_VIEN)")
+    @Mapping(target = "lop", source = "idLop")
+    SinhVien toSinhVien(SinhVienCreationRequest request);
+
+    @Mapping(source = "user.email", target = "email")
+    @Mapping(source = "lop", target = "lopId")
+    SinhVienCreationResponse toSinhVienCreationResponse(SinhVien sinhVien);
+
+    @Mapping(source = "user.email", target = "email")
+    @Mapping(source = "lop.tenLop", target = "tenLop")
+    SinhVienResponse toSinhVienResponse(SinhVien sinhVien);
+
+    @Mapping(source = "lop.tenLop", target = "tenLop")
+    @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
+    SinhVienSupervisedResponse toSinhVienSupervisedResponse(SinhVien sv);
+
+    @Mapping(source = "lop.tenLop", target = "tenLop")
+    @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
+    SinhVienSupervisedResponse toStudentSupervisedResponse(SinhVien sv);
+
+    @Mapping(source = "lop.tenLop", target = "tenLop")
+    @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
+    @Mapping(source = "deTai.trangThai", target = "trangThai")
+    @Mapping(source = "deTai.id", target = "idDeTai")
+    @Mapping(source = "deTai.noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
+    @Mapping(source = "deTai.nhanXet", target = "nhanXet")
+    ApprovalSinhVienResponse toDeTaiSinhVienApprovalResponse(SinhVien sv);
+
+    @Mapping(source = "lop.tenLop", target = "tenLop")
+    @Mapping(source = "user.email", target = "email")
+    @Mapping(source = "lop.nganh.khoa.tenKhoa", target = "tenKhoa")
+    @Mapping(source = "lop.nganh.tenNganh", target = "tenNganh")
+    SinhVienInfoResponse toSinhVienInfoResponse(SinhVien sv);
+
+    GetSinhVienWithoutDeTaiResponse toGetSinhVienWithoutDeTaiResponse(SinhVien sv);
+
+    default Lop map(Long lopId) {
+        if (lopId == null) return null;
+        Lop lop = new Lop();
+        lop.setId(lopId);
+        return lop;
+    }
+
+    default Long map(Lop lop) {
+        return lop != null ? lop.getId() : null;
+    }
 
 }

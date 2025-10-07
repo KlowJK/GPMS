@@ -7,7 +7,7 @@ import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.auth.infra.UserRepository;
 import com.backend.gpms.features.department.infra.BoMonRepository;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
-import com.backend.gpms.features.lecturer.dto.request.GiangVienCreationRequest;
+import com.backend.gpms.features.lecturer.dto.request.GiangVienCreateRequest;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
 import com.backend.gpms.common.mapper.GiangVienMapper;
 import jakarta.transaction.Transactional;
@@ -25,7 +25,7 @@ public class GiangVienAccountService {
     private final GiangVienMapper mapper;
 
     @Transactional
-    public ApiResponse<CreatedAccountResponse> register(GiangVienCreationRequest req) {
+    public ApiResponse<CreatedAccountResponse> register(GiangVienCreateRequest req) {
         if (userRepo.existsByEmail(req.getEmail()))
             throw new IllegalArgumentException("Email đã tồn tại");
 

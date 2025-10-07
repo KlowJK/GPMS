@@ -2,14 +2,12 @@ package com.backend.gpms.features.auth.domain;
 
 
 import com.backend.gpms.common.util.BaseEntity;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.student.domain.SinhVien;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-
-import lombok.Getter;
-import lombok.Setter;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
@@ -18,6 +16,7 @@ import java.time.OffsetDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Entity @Table(name="tai_khoan")
 public class User extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,4 +35,9 @@ public class User extends BaseEntity {
 
     @Column(name = "kich_hoat", nullable = false)
     private Boolean trangThaiKichHoat = true;
+
+    @OneToOne(mappedBy = "user")
+    SinhVien sinhVien;
+    @OneToOne(mappedBy = "user")
+    GiangVien giangVien;
 }

@@ -10,13 +10,15 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class SinhVienResponse {
+public class SinhVienInfoResponse {
 
     String maSV;
     String hoTen;
     String soDienThoai;
     String email;
     String tenLop;
-    boolean kichHoat;
+    String tenKhoa;
+    String tenNganh;
+    String cvUrl;
 
 }
