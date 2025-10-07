@@ -1,7 +1,9 @@
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
 import '../services/do_an_service.dart';
-import 'package:flutter/foundation.dart';
+
 class DoAnViewModel extends ChangeNotifier {
   DeTaiDetail? deTaiDetail;
   bool isLoading = true;
@@ -22,9 +24,6 @@ class DoAnViewModel extends ChangeNotifier {
     try {
       final result = await DoAnService.fetchDeTaiChiTiet();
       deTaiDetail = result;
-      if (result == null) {
-        error = 'Bạn chưa đăng ký đề tài.';
-      }
     } catch (e) {
       error = 'Đã xảy ra lỗi: $e';
     } finally {
@@ -69,11 +68,11 @@ class DoAnViewModel extends ChangeNotifier {
         deTaiDetail = result;
         return true;
       } else {
-        error = 'Đăng ký đề tài thất bại2.';
+        error = 'Đăng ký đề tài thất bại.';
         return false;
       }
     } catch (e) {
-      error = 'Đăng ký đề tài thất bại3: $e';
+      error = 'Đăng ký đề tài thất bại: $e';
       return false;
     } finally {
       isLoading = false;
@@ -81,4 +80,3 @@ class DoAnViewModel extends ChangeNotifier {
     }
   }
 }
-

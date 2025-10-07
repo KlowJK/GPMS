@@ -82,7 +82,7 @@ class DoAnService {
         return DeTaiDetail.fromJson(data['result']);
       }
     } else {
-      throw Exception('Đăng ký đề tài thất bại1: ${response.statusCode}');
+      throw Exception('Đăng ký đề tài thất bại: ${response.statusCode}');
     }
     return null;
   }

@@ -13,20 +13,11 @@ class NopDeCuongScreen extends StatefulWidget {
 }
 
 class _NopDeCuongScreenState extends State<NopDeCuongScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _fileCtrl = TextEditingController();
-
   Uint8List? _selectedFileBytes;
   String? _selectedFileName;
   String? _selectedFilePath;
 
   bool _sending = false;
-
-  @override
-  void dispose() {
-    _fileCtrl.dispose();
-    super.dispose();
-  }
 
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -58,16 +49,15 @@ class _NopDeCuongScreenState extends State<NopDeCuongScreen> {
     }
 
     setState(() => _sending = true);
-    // TODO: Call ViewModel to submit
-    await Future.delayed(const Duration(seconds: 2)); // Giả lập gọi API
+    // Logic gốc (chưa thực hiện)
+    await Future.delayed(const Duration(seconds: 2));
     setState(() => _sending = false);
 
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
-        const SnackBar(content: Text('Nộp đề cương thành công.')),
+        const SnackBar(content: Text('Chức năng này chưa được thực hiện.')),
       );
-    Navigator.pop(context);
   }
 
   @override
@@ -108,66 +98,63 @@ class _NopDeCuongScreenState extends State<NopDeCuongScreen> {
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(gap * 1.5),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text('Lần nộp:'),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 50,
-                                height: 40,
-                                child: TextFormField(
-                                  initialValue: widget.submissionCount.toString(),
-                                  enabled: false,
-                                  textAlign: TextAlign.center,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: theme.dividerColor.withOpacity(0.1),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                      borderSide: BorderSide(
-                                        color: theme.dividerColor.withOpacity(0.3),
-                                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text('Lần nộp:'),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 50,
+                              height: 40,
+                              child: TextFormField(
+                                initialValue: widget.submissionCount.toString(),
+                                enabled: false,
+                                textAlign: TextAlign.center,
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: theme.dividerColor.withOpacity(0.1),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: theme.dividerColor.withOpacity(0.3),
                                     ),
-                                    contentPadding: EdgeInsets.zero,
                                   ),
+                                  contentPadding: EdgeInsets.zero,
                                 ),
                               ),
-                            ],
-                          ),
-                          SizedBox(height: gap * 1.5),
-                          const Text('File đề cương (chỉ PDF):'),
-                          SizedBox(height: gap),
-                          _buildFilePicker(),
-                          SizedBox(height: gap * 2),
-                          Center(
-                            child: FilledButton(
-                              onPressed: _sending ? null : _submit,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 48,
-                                  vertical: 14,
-                                ),
-                              ),
-                              child: _sending
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text('Nộp đề cương'),
                             ),
+                          ],
+                        ),
+                        SizedBox(height: gap * 1.5),
+                        const Text('File đề cương (chỉ PDF):'),
+                        SizedBox(height: gap),
+                        _buildFilePicker(),
+                        SizedBox(height: gap * 2),
+                        Center(
+                          child: FilledButton(
+                            onPressed: _sending ? null : _submit,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 48,
+                                vertical: 14,
+                              ),
+                            ),
+                            child: _sending
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Nộp đề cương'),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
