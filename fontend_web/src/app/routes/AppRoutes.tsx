@@ -5,7 +5,7 @@ import DoAn from "../../features/lecturers/pages/DoAn";
 import NhatKy from "../../features/lecturers/pages/NhatKy";
 import BaoCao from "../../features/lecturers/pages/BaoCao";
 import HoiDong from "../../features/lecturers/pages/HoiDong";
-
+import CommitteesPage from "../../features/committees/pages/CommitteesPage";
 
 export default function AppRoutes() {
   return (
@@ -22,7 +22,9 @@ export default function AppRoutes() {
        <Route path="hoi-dong" element={<HoiDong />} />
       </Route>
 
-      {/* 404 */}
+      {/* Committees (Hội đồng) — module riêng */}
+       <Route path="/committees" element={<CommitteesPage />} />
+     {/* 404 */}
       <Route path="*" element={<div className="p-8">Không tìm thấy trang</div>} />
     </Routes>
   );
