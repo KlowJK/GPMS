@@ -23,7 +23,7 @@ class DoAnState extends State<DoAn> {
       await vm.fetchAdvisors();
     }
     if (vm.advisors.isNotEmpty) {
-      final result = await Navigator.push<RegisterResult>(
+      await Navigator.push<RegisterResult>(
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider.value(
@@ -31,19 +31,6 @@ class DoAnState extends State<DoAn> {
             child: const DangKyDeTai(),
           ),
         ),
-      );
-      if (!mounted) return;
-      if (result != null) {
-        setState(() {
-          // Xử lý khi đăng ký thành công nếu cần thiết
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng ký đề tài thành công')),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể tải danh sách giảng viên!')),
       );
     }
   }
@@ -53,6 +40,12 @@ class DoAnState extends State<DoAn> {
       context,
       MaterialPageRoute(builder: (_) => const HoanDoAn()),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Đã fetch ở DoAnViewModel constructor, không cần gọi lại ở đây
   }
 
   @override
@@ -101,6 +94,7 @@ class DoAnState extends State<DoAn> {
                                     onPressed: _goRegister,
                                     label: const Text('Đăng ký đề tài'),
                                     style: FilledButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2563EB),
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 14,
                                       ),
@@ -113,6 +107,7 @@ class DoAnState extends State<DoAn> {
                                     onPressed: _goPostpone,
                                     label: const Text('Đề nghị hoãn đồ án'),
                                     style: OutlinedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2563EB),
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 14,
                                       ),
@@ -132,6 +127,7 @@ class DoAnState extends State<DoAn> {
                                   onPressed: _goRegister,
                                   label: const Text('Đăng ký đề tài'),
                                   style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 14,
                                     ),
@@ -145,6 +141,7 @@ class DoAnState extends State<DoAn> {
                                   onPressed: _goPostpone,
                                   label: const Text('Đề nghị hoãn đồ án'),
                                   style: OutlinedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 14,
                                     ),
@@ -158,31 +155,40 @@ class DoAnState extends State<DoAn> {
                     SizedBox(height: gap),
 
                     if (_tab == DoAnTab.detai) ...[
-                      if (vm.deTaiDetail != null && vm.error == null)
+                      if (vm.isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (vm.deTaiDetail != null && vm.error == null) ...[
+                        SizedBox(height: gap * 1),
+                        Text(
+                          "Thông tin đề tài",
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        SizedBox(height: gap * 1),
                         _ProjectInfoCard(
                           gap: gap,
                           title: vm.deTaiDetail!.tenDeTai,
                           advisor: vm.deTaiDetail!.gvhdTen,
                           overviewFile: vm.deTaiDetail!.tongQuanFilename,
-                          fileUrl: vm.deTaiDetail!.tongQuanDeTaiUrl,
+                          fileUrl: vm.deTaiDetail!.tongQuanDeTaiUrl ?? '',
                           status: vm.deTaiDetail!.trangThai,
                           nhanXet: vm.deTaiDetail!.nhanXet,
-                        )
-                      else
+                        ),
+                      ] else ...[
+                        SizedBox(height: gap * 1),
                         const _EmptyState(
                           icon: Icons.assignment,
                           title: 'Bạn chưa đăng ký đề tài',
                           subtitle:
                               'Vui lòng nhấn “Đăng ký đề tài” để bắt đầu.',
                         ),
+                      ],
                     ] else ...[
                       if (vm.deTaiDetail != null)
-                        DeCuong(
-                          gap: gap,
-                          onCreate: () {
-                            // TODO: điều hướng sang màn "Tạo đề cương"
-                          },
-                        )
+                        DeCuong(gap: gap, onCreate: () {})
                       else
                         DeCuong(
                           gap: gap,
@@ -213,15 +219,15 @@ class _ProjectInfoCard extends StatelessWidget {
     required this.gap,
     required this.title,
     required this.advisor,
-    required this.overviewFile,
+    this.overviewFile, // <-- String?
     required this.fileUrl,
-    this.status = 'Chờ duyệt',
+    required this.status,
     this.nhanXet,
   });
   final double gap;
   final String title;
   final String advisor;
-  final String overviewFile;
+  final String? overviewFile; // <-- nullable
   final String fileUrl;
   final String status;
   final String? nhanXet;
@@ -229,8 +235,7 @@ class _ProjectInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      // ...
       child: Padding(
         padding: EdgeInsets.all(gap),
         child: Column(
@@ -250,7 +255,6 @@ class _ProjectInfoCard extends StatelessWidget {
                     : status == 'TU_CHOI'
                     ? 'Từ chối'
                     : status,
-
                 fg: status == 'CHO_DUYET'
                     ? Colors.amber
                     : status == 'DA_DUYET'
@@ -308,26 +312,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _TaskTile extends StatelessWidget {
-  const _TaskTile({required this.title, required this.subtitle});
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        child: const Icon(Icons.checklist, size: 18),
-      ),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: TextButton(onPressed: () {}, child: const Text('Thực hiện')),
-      onTap: () {},
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
     required this.icon,
@@ -342,7 +326,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 144, horizontal: 36),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
