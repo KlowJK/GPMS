@@ -26,9 +26,9 @@ public interface DeTaiMapper {
     DeTai toDeTai(DeTaiRequest request);
 
     // Entity -> Response
+    @Mapping(source = "giangVienHuongDan.id", target = "gvhdId")
     @Mapping(source = "giangVienHuongDan.hoTen", target = "gvhdTen")
-    @Mapping(source = "giangVienHuongDan", target = "gvhdId")
-    @Mapping(source = "sinhVien", target = "sinhVienId")
+    @Mapping(source = "sinhVien.id", target = "sinhVienId")
     @Mapping(source = "noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
     @Mapping(source = "noiDungDeTaiUrl", target = "tongQuanFilename", qualifiedByName = "extractFilenameFromUrl")
     DeTaiResponse toDeTaiResponse(DeTai entity);
