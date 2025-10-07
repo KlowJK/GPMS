@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import '../services/do_an_service.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
-
+import '../services/do_an_service.dart';
+import 'package:flutter/foundation.dart';
 class DoAnViewModel extends ChangeNotifier {
   DeTaiDetail? deTaiDetail;
   bool isLoading = true;
@@ -82,3 +81,4 @@ class DoAnViewModel extends ChangeNotifier {
     }
   }
 }
+
