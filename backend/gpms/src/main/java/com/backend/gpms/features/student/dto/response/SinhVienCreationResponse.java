@@ -9,14 +9,13 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class SinhVienResponse {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SinhVienCreationResponse {
 
     String maSV;
     String hoTen;
     String soDienThoai;
     String email;
-    String tenLop;
-    boolean kichHoat;
+    Long lopId;
 
 }

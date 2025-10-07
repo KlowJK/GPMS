@@ -1,22 +1,20 @@
-package com.backend.gpms.features.student.dto.response;
+package com.backend.gpms.features.lecturer.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 @Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class SinhVienResponse {
+public class GiangVienImportResponse {
 
-    String maSV;
-    String hoTen;
-    String soDienThoai;
-    String email;
-    String tenLop;
-    boolean kichHoat;
+    private int totalRows;
+    private int success;
+    private List<String> errors;
 
 }

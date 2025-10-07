@@ -1,24 +1,17 @@
-package com.backend.gpms.features.student.dto.request;
-
-import jakarta.validation.constraints.*;
-import lombok.*;
-import java.time.LocalDate;
+package com.backend.gpms.features.lecturer.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Builder
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SinhVienUpdateRequest {
-
-
+public class GiangVienUpdateRequest {
 
     @NotEmpty(message = "HO_TEN_EMPTY")
     String hoTen;
@@ -28,11 +21,14 @@ public class SinhVienUpdateRequest {
             message = "SO_DIEN_THOAI_INVALID"
     )
     String soDienThoai;
+
     @Email(message = "EMAIL_INVALID", regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")
     String email;
+
     String matKhau;
-    @NotNull(message = "LOP_EMPTY")
-    Long lopId;
 
+    Long boMonId;
+
+    String hocVi;
+    String hocHam;
 }
-
