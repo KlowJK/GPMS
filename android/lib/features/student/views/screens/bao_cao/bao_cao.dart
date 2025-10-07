@@ -1,64 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../models/report_item.dart';
+import '../../../viewmodels/bao_cao_viewmodel.dart';
+import '../../../services/bao_cao_service.dart';
 
-/* ===================== MODEL ===================== */
-
-enum ReportStatus { pending, approved, rejected }
-
-class ReportItem {
-  final String fileName;
-  final DateTime createdAt;
-  final int version;
-  final ReportStatus status;
-  final String? note;
-
-  const ReportItem({
-    required this.fileName,
-    required this.createdAt,
-    required this.version,
-    this.status = ReportStatus.pending,
-    this.note,
-  });
-}
-
-/* ============== DANH SÁCH BÁO CÁO (Trang chính) ============== */
-
-class BaoCao extends StatefulWidget {
+class BaoCao extends StatelessWidget {
   const BaoCao({super.key});
 
   @override
-  State<BaoCao> createState() => BaoCaoState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => BaoCaoViewModel(
+        service: BaoCaoService(baseUrl: 'https://your-backend-url.com/api'),
+      )..fetchReports(),
+      child: const _BaoCaoBody(),
+    );
+  }
 }
 
-class BaoCaoState extends State<BaoCao> {
-  final List<ReportItem> _items = []; // dữ liệu demo
+class _BaoCaoBody extends StatelessWidget {
+  const _BaoCaoBody();
 
-  int _nextVersion() {
-    if (_items.isEmpty) return 1;
-    int maxVer = 0;
-    for (final e in _items) {
-      if (e.version > maxVer) maxVer = e.version;
-    }
-    return maxVer + 1;
-  }
-
-  Future<void> _goSubmit() async {
+  Future<void> _goSubmit(BuildContext context, int nextVersion) async {
     final result = await Navigator.push<ReportItem>(
       context,
       MaterialPageRoute(
-        builder: (_) => SubmitReportPage(nextVersion: _nextVersion()),
+        builder: (_) => SubmitReportPage(nextVersion: nextVersion),
       ),
     );
-    if (!mounted) return;
     if (result != null) {
-      setState(() => _items.insert(0, result));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã nộp báo cáo thành công')),
-      );
+      await context.read<BaoCaoViewModel>().submitReport(result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã nộp báo cáo thành công')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<BaoCaoViewModel>();
     final w = MediaQuery.of(context).size.width;
     final double maxW = w >= 1200
         ? 1000
@@ -69,6 +51,15 @@ class BaoCaoState extends State<BaoCao> {
         : w;
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
+
+    int nextVersion() {
+      if (vm.items.isEmpty) return 1;
+      int maxVer = 0;
+      for (final e in vm.items) {
+        if (e.version > maxVer) maxVer = e.version;
+      }
+      return maxVer + 1;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -83,23 +74,27 @@ class BaoCaoState extends State<BaoCao> {
             constraints: BoxConstraints(maxWidth: maxW),
             child: Padding(
               padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
-              child: _items.isEmpty
-                  ? const _EmptyState(
-                      icon: Icons.description_outlined,
-                      title: 'Bạn chưa có báo cáo trong hệ thống.',
-                      subtitle: 'Nhấn nút “+” để nộp báo cáo.',
-                    )
-                  : ListView.separated(
-                      itemCount: _items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _ReportCard(item: _items[i]),
-                    ),
+              child: vm.loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : vm.error != null
+                      ? Center(child: Text('Lỗi: ${vm.error}'))
+                      : vm.items.isEmpty
+                          ? const _EmptyState(
+                              icon: Icons.description_outlined,
+                              title: 'Bạn chưa có báo cáo trong hệ thống.',
+                              subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                            )
+                          : ListView.separated(
+                              itemCount: vm.items.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
+                            ),
             ),
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _goSubmit,
+        onPressed: () => _goSubmit(context, nextVersion()),
         child: const Icon(Icons.add),
       ),
     );
