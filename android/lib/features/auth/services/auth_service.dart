@@ -7,8 +7,17 @@ import '../../../shared/models/user_entity.dart';
 
 class AuthService {
   /// Base URL configuration
-  static String get baseUrl =>
-      kIsWeb ? 'http://localhost:8080' : 'http://10.0.2.2:8080';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8080';
+    }
+    const useEmulator = true;
+    if (useEmulator) {
+      return 'http://10.0.2.2:8080';
+    } else {
+      return 'http://192.168.1.10:8080';
+    }
+  }
 
   static const _authKeys = [
     'token',
@@ -62,13 +71,8 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final user = UserEntity.fromJson(data);
-
         final prefs = await SharedPreferences.getInstance();
-
-        // ❌ Sửa: trước đây code gọi remove từng key
-        // ✅ Nay dùng _clearAuthKeys cho gọn
         await _clearAuthKeys(prefs);
-
         // Lưu dữ liệu mới
         await prefs.setString('token', user.token);
         await prefs.setString('typeToken', user.typeToken);
@@ -87,6 +91,14 @@ class AuthService {
         }
         if (user.fullName != null) {
           await prefs.setString('fullName', user.fullName!);
+        }
+        // Kiểm tra lại token vừa lưu
+        final savedToken = prefs.getString('token');
+        if (savedToken == null || savedToken.isEmpty) {
+          if (kDebugMode) {
+            print('❌ Token was not saved correctly after login!');
+          }
+          throw Exception('Lỗi lưu token sau khi đăng nhập.');
         }
 
         // Debug verify
@@ -150,19 +162,20 @@ class AuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-
       if (kDebugMode) {
         print('🔍 Retrieving token from SharedPreferences:');
-        print('   - Token exists: ${token != null}');
+        print('   - Token exists: [31m${token != null}[0m');
         print('   - Token length: ${token?.length ?? 0}');
-        if (token != null) {
-          print(
-            '   - Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
-          );
+        if (token == null || token.isEmpty) {
+          print('❌ Token is null or empty!');
+        } else {
+          print('   - Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
         }
         print('   - All SharedPreferences keys: ${prefs.getKeys()}');
       }
-
+      if (token == null || token.isEmpty) {
+        return null;
+      }
       return token;
     } catch (e) {
       if (kDebugMode) {

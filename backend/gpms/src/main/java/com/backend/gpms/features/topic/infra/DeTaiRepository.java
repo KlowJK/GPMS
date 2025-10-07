@@ -17,11 +17,11 @@ public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
     Optional<DeTai> findById(Long id);
 
     @Query("""
-           select d.giangVienHuongDan as giangVienId, count(d) as soDeTai
+           select d.giangVienHuongDan.id as giangVienId, count(d) as soDeTai
            from DeTai d
-           where d.giangVienHuongDan in :gvIds
+           where d.giangVienHuongDan.id in :gvIds
              and d.trangThai in ('DA_DUYET')
-           group by d.giangVienHuongDan
+           group by d.giangVienHuongDan.id
            """)
     List<GiangVienLoad> countActiveByGiangVienIds(Collection<Long> gvIds);
 

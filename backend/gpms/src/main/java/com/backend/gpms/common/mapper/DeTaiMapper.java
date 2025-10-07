@@ -8,6 +8,7 @@ import com.backend.gpms.features.topic.dto.response.DeTaiResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 
 @Mapper(
@@ -22,13 +23,14 @@ public interface DeTaiMapper {
     @Mapping(target = "nhanXet", ignore = true)
     @Mapping(target = "sinhVien", ignore = true)
     @Mapping(target = "noiDungDeTaiUrl", ignore = true)
-
     DeTai toDeTai(DeTaiRequest request);
 
     // Entity -> Response
+    @Mapping(source = "giangVienHuongDan.id", target = "gvhdId")
     @Mapping(source = "giangVienHuongDan.hoTen", target = "gvhdTen")
-    @Mapping(source = "giangVienHuongDan", target = "gvhdId")
-    @Mapping(source = "sinhVien", target = "sinhVienId")
+    @Mapping(source = "sinhVien.id", target = "sinhVienId")
+    @Mapping(source = "noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
+    @Mapping(source = "noiDungDeTaiUrl", target = "tongQuanFilename", qualifiedByName = "extractFilenameFromUrl")
     DeTaiResponse toDeTaiResponse(DeTai entity);
 
     @Mapping(source = "gvhdId", target = "giangVienHuongDan")
@@ -47,5 +49,12 @@ public interface DeTaiMapper {
         GiangVien g = new GiangVien();
         g.setId(id);
         return g;
+    }
+
+    @Named("extractFilenameFromUrl")
+    default String extractFilenameFromUrl(String url) {
+        if (url == null) return null;
+        int lastSlash = url.lastIndexOf('/');
+        return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
     }
 }

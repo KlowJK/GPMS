@@ -78,6 +78,7 @@ public class DeTaiService {
             deTaiMapper.update(request, deTai);
         }
 
+        deTai.setGiangVienHuongDan(gv); // Đảm bảo gán đầy đủ thông tin giảng viên hướng dẫn từ DB
         deTai.setBoMon(gv.getBoMon());
 
         deTai.setTrangThai(TrangThaiDeTai.CHO_DUYET);
