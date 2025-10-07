@@ -33,7 +33,8 @@ class DeNghiHoanModel {
       ),
       lyDo: json['lyDo'] ?? '',
       minhChungUrl: json['minhChungUrl'],
-      requestedAt: DateTime.parse(json['requestedAt']),
+      // Safely parse requestedAt, fallback to current time if null
+      requestedAt: json['requestedAt'] != null ? DateTime.parse(json['requestedAt']) : DateTime.now(),
       decidedAt: json['decidedAt'] != null ? DateTime.parse(json['decidedAt']) : null,
       nguoiPheDuyetId: json['nguoiPheDuyetId'],
       ghiChuQuyetDinh: json['ghiChuQuyetDinh'],
