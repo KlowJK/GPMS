@@ -51,7 +51,7 @@ public enum ErrorCode {
     ACCESS_DENIED(1218, "Access Denied", HttpStatus.FORBIDDEN),
     FILE_EMPTY(1219, "File is empty", HttpStatus.BAD_REQUEST),
     FILE_TYPE_NOT_ALLOWED(1220, "File type not allowed", HttpStatus.BAD_REQUEST),
-    //Duc
+    //
     DE_TAI_EMPTY(1101, "Ten de tai cannot be empty", HttpStatus.BAD_REQUEST),
     DE_TAI_GVHD_REQUIRED(1102, "GVHD is required", HttpStatus.BAD_REQUEST),
     DE_TAI_FILE_INVALID(1103, "Invalid overview file", HttpStatus.BAD_REQUEST),

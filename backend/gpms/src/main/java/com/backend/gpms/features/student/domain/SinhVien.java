@@ -4,11 +4,16 @@ import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.department.domain.Lop;
 import com.backend.gpms.features.topic.domain.DeTai;
+import com.backend.gpms.features.topic.domain.DonHoanDoAn;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter; import lombok.Setter;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter @Setter
+@Builder
 @Entity @Table(name="sinh_vien", indexes = {
         @Index(name="idx_sv_nganh", columnList="id_nganh"),
         @Index(name="idx_sv_lop", columnList="id_lop")
@@ -37,4 +42,8 @@ public class SinhVien extends BaseEntity {
 
     @OneToOne(mappedBy = "sinhVien")
     private DeTai deTai;
+
+    @OneToMany(mappedBy = "sinhVien", fetch = FetchType.LAZY)
+    List<DonHoanDoAn> donHoanList = new ArrayList<>();
+
 }
