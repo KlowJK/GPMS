@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../services/sinh_vien_service.dart';
 
 class SinhVienTab extends StatefulWidget {
   const SinhVienTab({super.key});
@@ -7,127 +8,208 @@ class SinhVienTab extends StatefulWidget {
   State<SinhVienTab> createState() => _SinhVienTabState();
 }
 
-class _SinhVienTabState extends State<SinhVienTab> {
-  // Demo danh sách sinh viên
-  final List<StudentItem> _items = List.generate(
-    8,
+class _SinhVienTabState extends State<SinhVienTab>
+    with AutomaticKeepAliveClientMixin {
+  final List<_StudentItem> _items = [];
+  bool _loading = false;
+  String? _error;
 
-    (i) => StudentItem(
-      name: 'Hà Văn Thắng',
-      className: '64KTPM4',
-      studentId: '22511724${90 + i}',
-      topic: 'Xây dựng ứng dụng quản lý đồ án tốt nghiệp',
-      cvFile: 'thang_$i.cv',
-    ),
-  );
+  int _page = 0;
+  final int _size = 10;
+  bool _lastPage = false;
+
+  final _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load(reset: true);
+    _scroll.addListener(_onScrollBottom);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onScrollBottom() {
+    if (_loading || _lastPage) return;
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 160) {
+      _load();
+    }
+  }
+
+  Future<void> _load({bool reset = false}) async {
+    if (_loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+      if (reset) {
+        _page = 0;
+        _lastPage = false;
+        _items.clear();
+      }
+    });
+
+    try {
+      final data = await SinhVienService.fetchPage(page: _page, size: _size);
+      final page = data['result'] as Map<String, dynamic>;
+      final content = (page['content'] as List? ?? []);
+      final isLast = (page['last'] as bool?) ?? true;
+
+      final mapped = content.map<_StudentItem>((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        return _StudentItem(
+          name: (m['hoTen'] ?? m['ten'] ?? '—') as String,
+          className: (m['tenLop'] ?? m['lop'] ?? '—') as String,
+          studentId: (m['maSV'] ?? m['msv'] ?? '') as String,
+          topic: (m['tenDeTai'] ?? m['topic'] ?? '—') as String,
+          cvFile: (m['cvUrl'] ?? '') as String,
+        );
+      }).toList();
+
+      setState(() {
+        _items.addAll(mapped);
+        _lastPage = isLast;
+        _page++;
+      });
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openDetail(_StudentItem it) async {
+    // gọi API chi tiết
+    try {
+      final detail = await SinhVienService.fetchInfo(it.studentId);
+      final r = Map<String, dynamic>.from(detail['result'] as Map);
+      if (!mounted) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => _TopicDetailScreen(
+            student: _StudentInfo(
+              name: (r['hoTen'] ?? it.name) as String,
+              email: (r['email'] ?? '—') as String,
+              phone: (r['soDienThoai'] ?? '—') as String,
+              gender: '—',
+              studentId: (r['maSV'] ?? it.studentId) as String,
+              major: (r['tenNganh'] ?? '—') as String,
+              className: (r['tenLop'] ?? it.className) as String,
+            ),
+            topicTitle: it.topic,
+            cvUrl: r['cvUrl'] as String?,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không mở được chi tiết: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
+        // Hàng nút: số lượng + Nộp danh sách + Refresh
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  'Danh sách sinh viên (${_items.length}):',
+                  'Danh sách sinh viên (${_items.length}+):',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              _GreenPillButton(
-                icon: Icons.upload_file,
-                label: 'Nộp danh sách',
-                onPressed: () => _showSubmitConfirmDialog(context),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF16A34A),
+                  foregroundColor: Colors.white,
+                  shape: const StadiumBorder(),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã nộp danh sách')),
+                  );
+                },
+                icon: const Icon(Icons.upload_file, size: 18),
+                label: const Text('Nộp danh sách'),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Tải lại',
+                onPressed: () => _load(reset: true),
+                icon: const Icon(Icons.refresh),
               ),
             ],
           ),
         ),
+
+        // Nội dung
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final isWide = c.maxWidth >= 1000;
-              final isMedium = c.maxWidth >= 700 && c.maxWidth < 1000;
-              final cross = isWide ? 3 : (isMedium ? 2 : 1);
-
-              if (cross == 1) {
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-
-                  itemBuilder: (_, i) => _StudentCard(
-                    item: _items[i],
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => TopicDetailScreen(
-                            student: StudentInfo(
-                              name: _items[i].name,
-                              email: 'havanthang@e.tlu.vn',
-                              dob: DateTime(2003, 9, 24),
-                              phone: '0123456789',
-                              gender: 'Nữ',
-                              studentId: _items[i].studentId,
-                              major: 'Kỹ thuật phần mềm',
-                            ),
-                            topicTitle: _items[i].topic,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+          child: _error != null
+              ? Center(child: Text('Lỗi: $_error'))
+              : RefreshIndicator(
+            onRefresh: () => _load(reset: true),
+            child: _items.isEmpty && !_loading
+                ? ListView(
+              children: const [
+                SizedBox(height: 120),
+                Center(child: Text('Chưa có sinh viên nào.')),
+              ],
+            )
+                : ListView.separated(
+              controller: _scroll,
+              padding: const EdgeInsets.all(16),
+              itemCount: _items.length + (_loading ? 1 : 0),
+              separatorBuilder: (_, __) =>
+              const SizedBox(height: 12),
+              itemBuilder: (_, i) {
+                if (_loading && i == _items.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                final it = _items[i];
+                return _StudentCard(
+                  item: it,
+                  onTap: () => _openDetail(it),
                 );
-              }
-
-              return GridView.builder(
-                padding: const EdgeInsets.all(16),
-
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cross,
-                  mainAxisExtent: 110,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: _items.length,
-                itemBuilder: (_, i) => _StudentCard(
-                  item: _items[i],
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TopicDetailScreen(
-                          student: StudentInfo(
-                            name: _items[i].name,
-                            email: 'havanthang@e.tlu.vn',
-                            dob: DateTime(2003, 9, 24),
-                            phone: '0123456789',
-                            gender: 'Nữ',
-                            studentId: _items[i].studentId,
-                            major: 'Kỹ thuật phần mềm',
-                          ),
-                          topicTitle: _items[i].topic,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+              },
+            ),
           ),
         ),
       ],
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
-class StudentItem {
+/// --------- models + UI nhỏ gọn cho tab
+
+class _StudentItem {
   final String name;
   final String className;
   final String studentId;
   final String topic;
   final String cvFile;
 
-  StudentItem({
+  _StudentItem({
     required this.name,
     required this.className,
     required this.studentId,
@@ -136,92 +218,10 @@ class StudentItem {
   });
 }
 
-class _GreenPillButton extends StatelessWidget {
-  const _GreenPillButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFF16A34A),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
-        elevation: 0,
-      ),
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-    );
-  }
-}
-
-Future<void> _showSubmitConfirmDialog(BuildContext context) async {
-  await showDialog<void>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: const Color(0xFF2F7CD3).withOpacity(0.12),
-              child: const Icon(Icons.help_outline, color: Color(0xFF2F7CD3)),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Bạn có chắc chắn muốn gửi danh sách đề tài hướng dẫn không?',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF2F7CD3),
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã nộp danh sách')),
-                      );
-                    },
-                    child: const Text('Xác nhận'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Quay lại'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
 class _StudentCard extends StatelessWidget {
   const _StudentCard({required this.item, required this.onTap});
 
-  final StudentItem item;
+  final _StudentItem item;
   final VoidCallback onTap;
 
   @override
@@ -247,41 +247,34 @@ class _StudentCard extends StatelessWidget {
                   runSpacing: 2,
                   spacing: 8,
                   children: [
-                    Text(
-                      item.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    Text(item.name,
+                        style: Theme.of(context).textTheme.titleMedium),
                     Text(
                       item.studentId,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      item.className,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-
-                    const SizedBox(width: 8),
+                    Text(item.className,
+                        style: Theme.of(context).textTheme.bodySmall),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'CV: ',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-
-                        InkWell(
-                          onTap: () {},
+                        Text('CV: ',
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        Flexible(
                           child: Text(
-                            item.cvFile,
-
-                            style: Theme.of(context).textTheme.bodyMedium
+                            item.cvFile.isEmpty ? '—' : item.cvFile,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
-                                  color: cs.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -290,10 +283,10 @@ class _StudentCard extends StatelessWidget {
                       'Đề tài: ${item.topic}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -307,36 +300,38 @@ class _StudentCard extends StatelessWidget {
   }
 }
 
-class TopicDetailScreen extends StatefulWidget {
-  const TopicDetailScreen({
-    super.key,
-    required this.student,
-    required this.topicTitle,
+/// ----------------- màn chi tiết (tận dụng UI cũ)
+
+class _StudentInfo {
+  final String name;
+  final String email;
+  final String phone;
+  final String gender;
+  final String studentId;
+  final String major;
+  final String className;
+
+  _StudentInfo({
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.gender,
+    required this.studentId,
+    required this.major,
+    required this.className,
   });
-
-  final StudentInfo student;
-  final String topicTitle;
-
-  @override
-  State<TopicDetailScreen> createState() => _TopicDetailScreenState();
 }
 
-class _TopicDetailScreenState extends State<TopicDetailScreen> {
-  late List<SubmissionInfo> submissions = <SubmissionInfo>[
-    SubmissionInfo(
-      attempt: 1,
-      date: DateTime(2025, 9, 13),
-      fileName: '225117362_DuongVanHung_1.pdf',
-      status: SubmissionStatus.pending,
-    ),
-    SubmissionInfo(
-      attempt: 2,
-      date: DateTime(2025, 9, 19),
-      fileName: '225117362_DuongVanHung_2.pdf',
-      status: SubmissionStatus.approved,
-      note: 'Nộp tốt',
-    ),
-  ];
+class _TopicDetailScreen extends StatelessWidget {
+  const _TopicDetailScreen({
+    required this.student,
+    required this.topicTitle,
+    this.cvUrl,
+  });
+
+  final _StudentInfo student;
+  final String topicTitle;
+  final String? cvUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -346,478 +341,87 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
         foregroundColor: Colors.white,
         title: const Text('Thông tin chi tiết đề tài'),
       ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              sliver: SliverToBoxAdapter(
-                child: _TopicHeader(title: widget.topicTitle),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            elevation: 1,
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.topic, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Đề tài: $topicTitle',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-
-              sliver: SliverToBoxAdapter(
-                child: _StudentSection(
-                  student: widget.student,
-                  twoColumns: MediaQuery.of(context).size.width >= 900,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              sliver: SliverToBoxAdapter(
-                child: Text(
-                  'Đề cương:',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              sliver: SliverList.separated(
-                itemCount: submissions.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => _SubmissionCard(
-                  info: submissions[i],
-                  onApprove: () async {
-                    final note = await showCommentSheet(context);
-                    if (note == null) return;
-                    setState(() {
-                      submissions[i] = submissions[i].copyWith(
-                        status: SubmissionStatus.approved,
-                        note: note,
-                      );
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đã duyệt đề cương')),
-                    );
-                  },
-                  onReject: () async {
-                    final note = await showCommentSheet(context);
-                    if (note == null || note.trim().isEmpty) return;
-                    setState(() {
-                      submissions[i] = submissions[i].copyWith(
-                        status: SubmissionStatus.rejected,
-                        note: note.trim(),
-                      );
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đã từ chối đề cương')),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 1,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            label: 'Trang chủ',
           ),
-          NavigationDestination(icon: Icon(Icons.assignment), label: 'Đồ án'),
-          NavigationDestination(
-            icon: Icon(Icons.timeline_outlined),
-            label: 'Tiến độ',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.summarize_outlined),
-            label: 'Báo cáo',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Hồ sơ',
+          const SizedBox(height: 12),
+          Card(
+            elevation: 1,
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _kv(context, 'Họ tên', student.name, Icons.person),
+                  const Divider(height: 16),
+                  _kv(context, 'Email', student.email, Icons.email),
+                  const Divider(height: 16),
+                  _kv(context, 'SĐT', student.phone, Icons.phone),
+                  const Divider(height: 16),
+                  _kv(context, 'Mã SV', student.studentId, Icons.badge),
+                  const Divider(height: 16),
+                  _kv(context, 'Lớp', student.className, Icons.class_),
+                  const Divider(height: 16),
+                  _kv(context, 'Ngành', student.major, Icons.school),
+                  if ((cvUrl ?? '').isNotEmpty) ...[
+                    const Divider(height: 16),
+                    _kv(context, 'CV', cvUrl!, Icons.description_outlined),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-class SubmissionInfo {
-  final int attempt;
-  final DateTime date;
-  final String fileName;
-  final SubmissionStatus status;
-  final String? note;
-
-  SubmissionInfo({
-    required this.attempt,
-    required this.date,
-    required this.fileName,
-    required this.status,
-    this.note,
-  });
-
-  SubmissionInfo copyWith({
-    int? attempt,
-    DateTime? date,
-    String? fileName,
-    SubmissionStatus? status,
-    String? note,
-  }) {
-    return SubmissionInfo(
-      attempt: attempt ?? this.attempt,
-      date: date ?? this.date,
-      fileName: fileName ?? this.fileName,
-      status: status ?? this.status,
-      note: note ?? this.note,
-    );
-  }
-}
-
-class StudentInfo {
-  final String name;
-  final String email;
-  final DateTime dob;
-  final String phone;
-  final String gender;
-  final String studentId;
-  final String major;
-
-  StudentInfo({
-    required this.name,
-    required this.email,
-    required this.dob,
-    required this.phone,
-    required this.gender,
-    required this.studentId,
-    required this.major,
-  });
-}
-
-enum SubmissionStatus { pending, approved, rejected }
-
-class _SubmissionCard extends StatelessWidget {
-  const _SubmissionCard({
-    required this.info,
-    required this.onApprove,
-    required this.onReject,
-  });
-
-  final SubmissionInfo info;
-  final VoidCallback onApprove;
-  final VoidCallback onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor(SubmissionStatus s) {
-      switch (s) {
-        case SubmissionStatus.pending:
-          return const Color(0xFFC9B325);
-        case SubmissionStatus.approved:
-          return const Color(0xFF16A34A);
-        case SubmissionStatus.rejected:
-          return const Color(0xFFDC2626);
-      }
-    }
-
-    String statusText(SubmissionStatus s) {
-      switch (s) {
-        case SubmissionStatus.pending:
-          return 'Đang chờ duyệt';
-        case SubmissionStatus.approved:
-          return 'Đã duyệt';
-        case SubmissionStatus.rejected:
-          return 'Từ chối';
-      }
-    }
-
-    return Card(
-      elevation: 1,
-      color: const Color(0xFFE4F6FF),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Số lần nộp: ${info.attempt}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-
-                const Spacer(),
-                Text('Ngày nộp: ${_fmtDate(info.date)}'),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text('File: ', style: Theme.of(context).textTheme.bodyMedium),
-                Flexible(
-                  child: Text(
-                    info.fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      decoration: TextDecoration.underline,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Trạng thái: ',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-
-                Text(
-                  statusText(info.status),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: statusColor(info.status),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                if ((info.note ?? '').isNotEmpty)
-                  Flexible(
-                    child: Text(
-                      'Ghi chú: ${info.note!}',
-                      textAlign: TextAlign.end,
-
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (info.status == SubmissionStatus.pending)
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626), // đỏ
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: onReject,
-                      icon: const Icon(Icons.close),
-                      label: const Text('Từ chối'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D4ED8), // xanh dương
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: onApprove,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Duyệt'),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _fmtDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}
-
-class _TopicHeader extends StatelessWidget {
-  const _TopicHeader({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.topic, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Đề tài: $title',
-                style: Theme.of(context).textTheme.titleMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Future<String?> showCommentSheet(BuildContext context) async {
-  final controller = TextEditingController();
-
-  return showModalBottomSheet<String>(
-    context: context,
-    useSafeArea: true,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Nhận xét',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  minLines: 6,
-                  maxLines: 10,
-                  decoration: InputDecoration(
-                    hintText: 'Đưa ra nhận xét ...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.center,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF2F7CD3),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 10,
-                      ),
-                    ),
-                    onPressed: () {
-                      final t = controller.text.trim();
-                      if (t.isEmpty) return;
-                      Navigator.pop(context, t);
-                    },
-                    child: const Text('Xác nhận'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
-
-class _StudentSection extends StatelessWidget {
-  const _StudentSection({required this.student, required this.twoColumns});
-  final StudentInfo student;
-  final bool twoColumns;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    final tiles = <_KV>[
-      _KV('Họ tên', student.name, Icons.person),
-      _KV('Email', student.email, Icons.email),
-      _KV('Ngày sinh', _fmtDate(student.dob), Icons.cake),
-      _KV('Số điện thoại', student.phone, Icons.phone),
-      _KV('Giới tính', student.gender, Icons.transgender),
-      _KV('Mã sinh viên', student.studentId, Icons.badge),
-      _KV('Ngành', student.major, Icons.school),
-    ];
-
-    Widget item(_KV kv) => Row(
+  Widget _kv(BuildContext context, String k, String v, IconData i) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(kv.icon, size: 18, color: cs.primary),
+        Icon(i, size: 18, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
         Expanded(
           child: Wrap(
             alignment: WrapAlignment.spaceBetween,
             children: [
-              Text(kv.key, style: Theme.of(context).textTheme.bodyMedium),
+              Text(k, style: Theme.of(context).textTheme.bodyMedium),
               Text(
-                kv.value,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF393938),
-                ),
+                v,
                 textAlign: TextAlign.right,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
         ),
       ],
     );
-
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: twoColumns
-            ? GridView.builder(
-                itemCount: tiles.length,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisExtent: 44,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 8,
-                ),
-                itemBuilder: (_, i) => item(tiles[i]),
-              )
-            : Column(
-                children: [
-                  for (int i = 0; i < tiles.length; i++) ...[
-                    item(tiles[i]),
-                    if (i != tiles.length - 1)
-                      Divider(
-                        height: 16,
-                        color: Theme.of(context).dividerColor,
-                      ),
-                  ],
-                ],
-              ),
-      ),
-    );
   }
-
-  String _fmtDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}
-
-class _KV {
-  final String key;
-  final String value;
-  final IconData icon;
-  _KV(this.key, this.value, this.icon);
 }
