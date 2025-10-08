@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import '../models/de_cuong.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
 import '../services/do_an_service.dart';
 
 class DoAnViewModel extends ChangeNotifier {
   DeTaiDetail? deTaiDetail;
+  DeCuong? deCuong;
   bool isLoading = true;
   String? error;
 
@@ -73,6 +75,32 @@ class DoAnViewModel extends ChangeNotifier {
       }
     } catch (e) {
       error = 'Đăng ký đề tài thất bại: $e';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> nopDeCuong({
+    required String fileUrl,
+  }) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+    try {
+      final result = await DoAnService.nopDeCuong(
+        fileUrl: fileUrl,
+      );
+      if (result != null) {
+        deCuong = result;
+        return true;
+      } else {
+        error = 'Nộp đề cương thất bại.';
+        return false;
+      }
+    } catch (e) {
+      error = 'Nộp đề cương thất bại: $e';
       return false;
     } finally {
       isLoading = false;
