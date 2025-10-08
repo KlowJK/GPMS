@@ -24,7 +24,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -51,7 +50,7 @@ public class SinhVienService {
     UserRepository taiKhoanRepository;
     StorageService cloudinaryService;
 
-    @PreAuthorize("hasAuthority('SCOPE_TRO_LY_KHOA')")
+
     public SinhVienCreationResponse createSinhVien(SinhVienCreationRequest request) {
 
         if(taiKhoanRepository.existsByEmail(request.getEmail())) {
@@ -86,7 +85,6 @@ public class SinhVienService {
 
 
 
-    @PreAuthorize("hasAuthority('SCOPE_TRO_LY_KHOA')")
     public SinhVienImportResponse importSinhVien(MultipartFile file) throws IOException {
         int total = 0, ok = 0;
         List<String> errs = new ArrayList<>();
@@ -145,13 +143,13 @@ public class SinhVienService {
                 .build();
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public Page<SinhVienResponse> getAllSinhVien(Pageable pageable) {
         Page<SinhVien> sinhVienPage = sinhVienRepository.findAll(pageable);
         return sinhVienPage.map(sinhVienMapper::toSinhVienResponse);
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public Page<SinhVienResponse> getAllSinhVienByTenOrMaSV(String request, Pageable pageable) {
         if(request == null || request.isBlank()) {
             return getAllSinhVien(pageable);
@@ -161,7 +159,6 @@ public class SinhVienService {
         return sinhVienPage.map(sinhVienMapper::toSinhVienResponse);
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_TRO_LY_KHOA')")
     public void changeSinhVienStatus(String maSV) {
 
         SinhVien sinhVien = sinhVienRepository.findByMaSinhVien((maSV))
@@ -170,8 +167,6 @@ public class SinhVienService {
         sinhVienRepository.save(sinhVien);
 
     }
-
-    @PreAuthorize("hasAuthority('SCOPE_TRO_LY_KHOA')")
 
     public SinhVienCreationResponse updateSinhVien(SinhVienUpdateRequest request, String maSV) {
         SinhVien existingSinhVien = sinhVienRepository.findByMaSinhVien(maSV)
@@ -199,14 +194,14 @@ public class SinhVienService {
         return sinhVienMapper.toSinhVienCreationResponse(sinhVienRepository.save(existingSinhVien));
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public SinhVienInfoResponse getSinhVienInfo(String maSV) {
         SinhVien sinhVien = sinhVienRepository.findByMaSinhVien(maSV)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
         return sinhVienMapper.toSinhVienInfoResponse(sinhVien);
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public List<GetSinhVienWithoutDeTaiResponse> getSinhVienWithoutDeTai() {
         List<SinhVien> sinhVienList = sinhVienRepository.findAllByDeTaiIsNullAndUser_TrangThaiKichHoatTrue();
         return sinhVienList.stream()
@@ -214,7 +209,7 @@ public class SinhVienService {
                 .toList();
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_SINH_VIEN')")
+
     public void uploadCV(MultipartFile file) throws IOException {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         SinhVien sinhVien = sinhVienRepository.findByUser_Email(auth.getName())
