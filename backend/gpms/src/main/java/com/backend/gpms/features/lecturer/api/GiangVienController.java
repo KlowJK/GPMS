@@ -39,7 +39,7 @@ public class GiangVienController {
     private final GiangVienService giangVienService;
     DeTaiService deTaiService;
 
-    @Operation(summary = "Tra cứu giảng viên có slot hướng dẫn theo id lớp")
+    @Operation(summary = "List giảng viên có slot hướng dẫn thuộc bộ môn, thuộc khoa của sinh viên đăng ký đề tài")
     @GetMapping("/advisors")
     public ApiResponse<List<GiangVienLiteResponse>> giangVienList() {
        return ApiResponse.success(giangVienService.giangVienLiteResponseList());

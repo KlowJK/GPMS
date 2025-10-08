@@ -154,7 +154,7 @@ public class GiangVienService {
         return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public Set<GiangVienInfoResponse> getGiangVienByBoMonAndSoLuongDeTai(Long boMonId) {
         BoMon boMon = boMonRepository.findById(boMonId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
@@ -169,7 +169,7 @@ public class GiangVienService {
         return responses;
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRO_LY_KHOA', 'ROLE_TRUONG_BO_MON')")
+
     public List<SinhVienSupervisedResponse> getMySinhVienSupervisedAll(String q) {
         String email = currentEmail();
 
@@ -189,7 +189,7 @@ public class GiangVienService {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_TRO_LY_KHOA', 'ROLE_ADMIN')")
+
     public GiangVienCreationResponse createGiangVien(GiangVienCreationRequest giangVienCreationRequest) {
 
         if(giangVienRepository.existsByMaGiangVien(giangVienCreationRequest.getMaGiangVien())) {
@@ -231,7 +231,7 @@ public class GiangVienService {
 
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+
     public void createTroLyKhoa(TroLyKhoaCreationRequest troLyKhoaCreationRequest) {
         GiangVien troLyKhoa = giangVienRepository.findById(troLyKhoaCreationRequest.getGiangVienId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
@@ -245,7 +245,7 @@ public class GiangVienService {
         giangVienRepository.save(troLyKhoa);
     }
 
-    @PreAuthorize("hasAuthority('ROLE_TRO_LY_KHOA')")
+
     public GiangVienImportResponse importGiangVien(MultipartFile file) throws IOException {
         int total = 0, ok = 0;
         List<String> errs = new ArrayList<>();
@@ -328,7 +328,7 @@ public class GiangVienService {
         return auth.getName();
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public List<GiangVienLiteResponse> getGiangVienLiteByBoMon(Long boMonId) {
         BoMon bm = boMonRepository.findById(boMonId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
@@ -338,13 +338,13 @@ public class GiangVienService {
                 .toList();
     }
 
-    @PreAuthorize("isAuthenticated()")
+
     public Page<GiangVienResponse> getAllGiangVien(Pageable pageable) {
         Page<GiangVien> page = giangVienRepository.findAll(pageable);
         return page.map(giangVienMapper::toGiangVienResponse);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_TRO_LY_KHOA', 'ROLE_ADMIN')")
+
     public GiangVienResponse updateGiangVien(Long id, GiangVienUpdateRequest request) {
         GiangVien existingGV = giangVienRepository.findById(id)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
