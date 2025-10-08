@@ -51,12 +51,6 @@ class DoAnState extends State<DoAn> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    // Đã fetch ở DoAnViewModel constructor, không cần gọi lại ở đây
-  }
-
-  @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final double maxContentWidth = w >= 1200
@@ -81,134 +75,25 @@ class DoAnState extends State<DoAn> {
                   child: Center(
                       child: ConstrainedBox(
                           constraints: BoxConstraints(maxWidth: maxContentWidth),
-                          child: ListView(
-                            padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+                          // Using a Column with an Expanded child is more robust for tabbed views
+                          // than a single ListView was.
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                            _TabsBar(
-                            current: _tab,
-                            onChanged: (t) => setState(() => _tab = t),
-                          ),
-                          SizedBox(height: gap),
-
-                          if (_tab == DoAnTab.detai)
-                      LayoutBuilder(
-                      builder: (context, c) {
-                  final isWide = c.maxWidth >= 520;
-                  if (isWide) {
-                  return Row(
-                  children: [
-                  Expanded(
-                  child: FilledButton.icon(
-              onPressed: _goRegister,
-              label: const Text('Đăng ký đề tài'),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB),
-              padding: const EdgeInsets.symmetric(
-              vertical: 14,
-              ),
-              ),
-              ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-              child: FilledButton.icon(
-              onPressed: _goPostpone,
-              label: const Text('Đề nghị hoãn đồ án'),
-              style: OutlinedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              padding: const EdgeInsets.symmetric(
-              vertical: 14,
-              ),
-              ),
-              ),
-              ),
-              ],
-              );
-              }
-
-              return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-              SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-              onPressed: _goRegister,
-              label: const Text('Đăng ký đề tài'),
-              style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              padding: const EdgeInsets.symmetric(
-              vertical: 14,
-              ),
-              ),
-              ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-              onPressed: _goPostpone,
-              label: const Text('Đề nghị hoãn đồ án'),
-              style: OutlinedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              padding: const EdgeInsets.symmetric(
-              vertical: 14,
-              ),
-              ),
-              ),
-              ),
-              ],
-              );
-              },
-              ),
-              SizedBox(height: gap),
-
-              if (_tab == DoAnTab.detai) ...[if (vm.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (vm.deTaiDetail != null && vm.error == null) ...[
-                  SizedBox(height: gap * 1),
-                  Text(
-                    "Thông tin đề tài",
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: gap * 1),
-                  _ProjectInfoCard(
-                    gap: gap,
-                    title: vm.deTaiDetail!.tenDeTai,
-                    advisor: vm.deTaiDetail!.gvhdTen,
-                    overviewFile: vm.deTaiDetail!.tongQuanFilename,
-                    fileUrl: vm.deTaiDetail!.tongQuanDeTaiUrl ?? '',
-                    status: vm.deTaiDetail!.trangThai,
-                    nhanXet: vm.deTaiDetail!.nhanXet,
-                  ),
-                ] else ...[
-                  SizedBox(height: gap * 1),
-                  const _EmptyState(
-                    icon: Icons.assignment,
-                    title: 'Bạn chưa đăng ký đề tài',
-                    subtitle:
-                    'Vui lòng nhấn “Đăng ký đề tài” để bắt đầu.',
-                  ),
-                ],
-              ] else ...[
-                if (vm.deTaiDetail != null)
-                  DeCuong(gap: gap, onCreate: _goToNopDeCuong)
-                else
-                  DeCuong(
-                    gap: gap,
-                    onCreate: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Hãy đăng ký đề tài trước khi tạo đề cương.',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
+                                child: _TabsBar(
+                                  current: _tab,
+                                  onChanged: (t) => setState(() => _tab = t),
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              // Expanded provides the Tab content with bounded constraints, fixing layout errors.
+                              Expanded(
+                                child: _tab == DoAnTab.detai
+                                    ? _buildDeTaiTab(context, vm, pad, gap)
+                                    : _buildDeCuongTab(context, vm, gap),
+                              ),
                             ],
                           ),
                       ),
@@ -218,7 +103,118 @@ class DoAnState extends State<DoAn> {
         },
     );
   }
+
+  Widget _buildDeTaiTab(BuildContext context, DoAnViewModel vm, double pad, double gap) {
+    // This tab content is now wrapped in its own ListView to be scrollable.
+    return ListView(
+      padding: EdgeInsets.all(pad),
+      children: [
+        LayoutBuilder(
+          builder: (context, c) {
+            final isWide = c.maxWidth >= 520;
+            if (isWide) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _goRegister,
+                      label: const Text('Đăng ký đề tài'),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _goPostpone,
+                      label: const Text('Đề nghị hoãn đồ án'),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: _goRegister,
+                  label: const Text('Đăng ký đề tài'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _goPostpone,
+                  label: const Text('Đề nghị hoãn đồ án'),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        SizedBox(height: gap),
+        if (vm.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (vm.deTaiDetail != null && vm.error == null) ...[
+          SizedBox(height: gap * 1),
+          Text(
+            "Thông tin đề tài",
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: gap * 1),
+          _ProjectInfoCard(
+            gap: gap,
+            title: vm.deTaiDetail!.tenDeTai,
+            advisor: vm.deTaiDetail!.gvhdTen,
+            overviewFile: vm.deTaiDetail!.tongQuanFilename,
+            fileUrl: vm.deTaiDetail!.tongQuanDeTaiUrl ?? '',
+            status: vm.deTaiDetail!.trangThai,
+            nhanXet: vm.deTaiDetail!.nhanXet,
+          ),
+        ] else ...[
+          SizedBox(height: gap * 1),
+          const _EmptyState(
+            icon: Icons.assignment,
+            title: 'Bạn chưa đăng ký đề tài',
+            subtitle: 'Vui lòng nhấn “Đăng ký đề tài” để bắt đầu.',
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDeCuongTab(BuildContext context, DoAnViewModel vm, double gap) {
+    // The DeCuong widget now receives proper constraints from the Expanded parent.
+    if (vm.deTaiDetail != null) {
+      return DeCuong(gap: gap, onCreate: _goToNopDeCuong);
+    } else {
+      return DeCuong(
+        gap: gap,
+        onCreate: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Hãy đăng ký đề tài trước khi tạo đề cương.'),
+            ),
+          );
+        },
+      );
+    }
+  }
 }
+
 
 class _ProjectInfoCard extends StatelessWidget {
   const _ProjectInfoCard({
@@ -294,8 +290,7 @@ class _InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment:
-        CrossAxisAlignment.start, // Đảm bảo label luôn ở top
+        crossAxisAlignment: CrossAxisAlignment.start, 
         children: [
           SizedBox(width: 100, child: Text(label, style: styleLabel)),
           const SizedBox(width: 8),
@@ -397,7 +392,6 @@ class _TabsBar extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            // Divider xám mảnh + gạch dưới màu primary trượt mượt
             Stack(
               children: [
                 Container(height: 1, color: Colors.black12),

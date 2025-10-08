@@ -15,23 +15,24 @@ class DeCuong extends StatelessWidget {
       create: (_) => DoAnViewModel(),
       child: Consumer<DoAnViewModel>(
         builder: (context, viewModel, child) {
-          Widget body;
+          Widget bodyContent;
+
+          // Logic to determine what to show in the body
           if (viewModel.isLoading && viewModel.deCuongLogs.isEmpty) {
-            body = const Center(child: CircularProgressIndicator());
-          } else if (viewModel.error != null && viewModel.deCuongLogs.isEmpty) {
-            body = Center(child: Text(viewModel.error!));
+            // 1. Show loading indicator only on the first load
+            bodyContent = const Center(child: CircularProgressIndicator());
+          } else if (viewModel.deCuongLogs.isEmpty) {
+            // 2. If the list is empty for any reason, show the friendly empty state
+            bodyContent = _buildEmptyState(context);
           } else {
-            body = SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 80), // Padding for FAB
-              child: viewModel.deCuongLogs.isEmpty
-                  ? _buildEmptyState(context)
-                  : _buildLogList(context, viewModel.deCuongLogs),
-            );
+            // 3. If there is data, show the scrollable list
+            bodyContent = _buildLogList(context, viewModel.deCuongLogs);
           }
 
+          // Use a Stack to layer the FAB on top of the body content
           return Stack(
             children: [
-              body,
+              bodyContent,
               Positioned(
                 bottom: 16,
                 right: 16,
@@ -48,9 +49,10 @@ class DeCuong extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(gap),
-      child: Center(
+    // A centered widget that fills the available space
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -68,26 +70,30 @@ class DeCuong extends StatelessWidget {
   }
 
   Widget _buildLogList(BuildContext context, List<DeCuongLog> logs) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(gap, gap, gap, gap / 2),
-          child: Text(
-            'Danh sách đề cương',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+    // A scrollable view for the list of logs
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 80), // Padding to avoid FAB overlap
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(gap, gap, gap, gap / 2),
+            child: Text(
+              'Danh sách đề cương',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: logs.length,
-          itemBuilder: (context, index) {
-            final log = logs[index];
-            return _buildLogItem(context, log);
-          },
-        ),
-      ],
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: logs.length,
+            itemBuilder: (context, index) {
+              final log = logs[index];
+              return _buildLogItem(context, log);
+            },
+          ),
+        ],
+      ),
     );
   }
 
