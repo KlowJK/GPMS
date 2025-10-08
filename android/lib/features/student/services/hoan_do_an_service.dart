@@ -15,6 +15,38 @@ class HoanDoAnService {
 
   HoanDoAnService({required this.baseUrl});
 
+  Future<List<DeNghiHoanModel>> getDanhSachDeNghi() async {
+    final token = await AuthService.getToken();
+    if (token == null) {
+      throw Exception('Lỗi xác thực: Không tìm thấy token.');
+    }
+
+    final uri = Uri.parse('$baseUrl/api/de-tai/danh-sach-sinh-vien/hoan-do-an');
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    final Map<String, dynamic> responseData = jsonDecode(utf8.decode(response.bodyBytes));
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (responseData.containsKey('result') &&
+          responseData['result'] is Map &&
+          responseData['result'].containsKey('content')) {
+        final List<dynamic> content = responseData['result']['content'];
+        return content.map((json) => DeNghiHoanModel.fromJson(json)).toList();
+      } else {
+        throw Exception('Lỗi API: Phản hồi không hợp lệ.');
+      }
+    } else {
+      final errorMessage = responseData['message'] ?? 'Lấy danh sách thất bại.';
+      throw Exception('Lỗi ${response.statusCode}: $errorMessage');
+    }
+  }
+
   Future<DeNghiHoanModel> guiDeNghiHoan({
     required String lyDo,
     String? filePath,
