@@ -63,16 +63,23 @@ public class HoiDongService{
     EntityManager em;
 
 
-    public Page<HoiDongResponse> getHoiDongsDangDienRa(String keyword, Pageable pageable) {
-        LocalDate today = LocalDate.now();
-        boolean hasKeyword = keyword != null && !keyword.isBlank();
+    public Page<HoiDongResponse> getHoiDongsDangDienRa(String keyword,Long idDetai,Long idGiangVien, Pageable pageable) {
+        boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
+        boolean hasIdDetai = idDetai != null && idDetai >0;
+        boolean hasIdGiangVien = idGiangVien != null && idGiangVien >0;
 
         DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
 
         Page<HoiDong> page;
         if (hasKeyword) {
             page = hoiDongRepository.findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(dotBaoVe, keyword, pageable);
-        }else {
+        }else
+        if (hasIdDetai) {
+            page = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDetai, pageable);
+        } else
+        if (hasIdGiangVien) {
+            page = hoiDongRepository.findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(dotBaoVe,idGiangVien, pageable);
+        } else {
             page = hoiDongRepository.findHoiDongByDotBaoVe(dotBaoVe, pageable);
         }
 
