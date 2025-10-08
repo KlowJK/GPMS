@@ -20,8 +20,8 @@ public class DonHoanDoAnResponse {
     String lyDo;
     String minhChungUrl;
 
-    LocalDateTime requestedAt;
-    LocalDateTime decidedAt;
+    LocalDateTime updatedAt;
+    LocalDateTime createdAt;
 
     Long nguoiPheDuyetId;
     String ghiChuQuyetDinh;

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/de_nghi_hoan_model.dart';
 import '../services/hoan_do_an_service.dart';
@@ -33,7 +34,9 @@ class HoanDoAnViewModel extends ChangeNotifier {
 
   Future<void> guiDeNghiHoan({
     required String lyDo,
-    File? minhChungFile,
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
   }) async {
     _isLoading = true;
     _error = null;
@@ -41,9 +44,12 @@ class HoanDoAnViewModel extends ChangeNotifier {
     _notify();
 
     try {
+      // Pass the new parameters to the service
       await service.guiDeNghiHoan(
         lyDo: lyDo,
-        minhChungFile: minhChungFile,
+        filePath: filePath,
+        fileBytes: fileBytes,
+        fileName: fileName,
       );
       _isSuccess = true;
     } catch (e) {

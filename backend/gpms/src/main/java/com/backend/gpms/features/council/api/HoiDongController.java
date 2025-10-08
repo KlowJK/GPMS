@@ -6,11 +6,13 @@ import com.backend.gpms.features.council.dto.request.HoiDongRequest;
 import com.backend.gpms.features.council.dto.response.HoiDongResponse;
 import com.backend.gpms.features.council.dto.response.PhanCongBaoVeResponse;
 import com.backend.gpms.features.council.dto.response.ThanhVienHoiDongResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -28,13 +30,20 @@ public class HoiDongController {
 
     HoiDongService hoiDongService;
 
+    @Operation(summary = "Lấy danh sách hội đồng đang diễn ra - lấy hội đồng SV-> chỉ truyền id đề tài của sinh viên, giảng viên -> id giảng viên, lấy hội đồng theo tên -> keyword, lấy tất cả hội đồng đang diễn ra -> không truyền gì")
     @GetMapping
     public ApiResponse<Page<HoiDongResponse>> getHoiDongDangDienRa(
-            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false)
+            String keyword,
+            @RequestParam(required = false)
+            Long idDeTai,
+            @RequestParam(required = false)
+            Long idGiangVien,
+            @ParameterObject
             @PageableDefault(page = 0, size = 10, sort = "thoiGianBatDau", direction = Sort.Direction.DESC)
             Pageable pageable) {
         return ApiResponse.<Page<HoiDongResponse>>builder()
-                .result(hoiDongService.getHoiDongsDangDienRa(keyword, pageable))
+                .result(hoiDongService.getHoiDongsDangDienRa(keyword,idDeTai,idGiangVien, pageable))
                 .build();
     }
 

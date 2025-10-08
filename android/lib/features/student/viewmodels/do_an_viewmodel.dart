@@ -1,9 +1,16 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import '../models/de_cuong.dart';
+import '../models/de_cuong_log.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
 import '../services/do_an_service.dart';
-import 'package:flutter/foundation.dart';
+
 class DoAnViewModel extends ChangeNotifier {
   DeTaiDetail? deTaiDetail;
+  DeCuong? deCuong;
+  List<DeCuongLog> deCuongLogs = [];
   bool isLoading = true;
   String? error;
 
@@ -13,6 +20,21 @@ class DoAnViewModel extends ChangeNotifier {
 
   DoAnViewModel() {
     fetchDeTaiChiTiet();
+    fetchDeCuongLogs();
+  }
+
+  Future<void> fetchDeCuongLogs() async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+    try {
+      deCuongLogs = await DoAnService.fetchDeCuongLogs();
+    } catch (e) {
+      error = 'Đã xảy ra lỗi khi tải lịch sử nộp đề cương: $e';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchDeTaiChiTiet() async {
@@ -22,9 +44,6 @@ class DoAnViewModel extends ChangeNotifier {
     try {
       final result = await DoAnService.fetchDeTaiChiTiet();
       deTaiDetail = result;
-      if (result == null) {
-        error = 'Bạn chưa đăng ký đề tài.';
-      }
     } catch (e) {
       error = 'Đã xảy ra lỗi: $e';
     } finally {
@@ -69,11 +88,39 @@ class DoAnViewModel extends ChangeNotifier {
         deTaiDetail = result;
         return true;
       } else {
-        error = 'Đăng ký đề tài thất bại2.';
+        error = 'Đăng ký đề tài thất bại.';
         return false;
       }
     } catch (e) {
-      error = 'Đăng ký đề tài thất bại3: $e';
+      error = 'Đăng ký đề tài thất bại: $e';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> nopDeCuong({
+    required String fileUrl,
+  }) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+    try {
+      final result = await DoAnService.nopDeCuong(
+        fileUrl: fileUrl,
+      );
+      if (result != null) {
+        deCuong = result;
+        // Sau khi nộp thành công, tải lại danh sách logs
+        await fetchDeCuongLogs();
+        return true;
+      } else {
+        error = 'Nộp đề cương thất bại.';
+        return false;
+      }
+    } catch (e) {
+      error = 'Nộp đề cương thất bại: $e';
       return false;
     } finally {
       isLoading = false;
@@ -81,4 +128,3 @@ class DoAnViewModel extends ChangeNotifier {
     }
   }
 }
-
