@@ -13,8 +13,8 @@ import com.backend.gpms.features.outline.domain.DeCuong;
 import com.backend.gpms.features.outline.domain.NhanXetDeCuong;
 import com.backend.gpms.features.outline.domain.TrangThaiDeCuong;
 import com.backend.gpms.features.outline.dto.request.DeCuongUploadRequest;
+import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
-import com.backend.gpms.features.outline.dto.response.NhanXetDeCuongResponse;
 import com.backend.gpms.features.outline.infra.DeCuongRepository;
 import com.backend.gpms.features.outline.infra.NhanXetDeCuongRepository;
 import com.backend.gpms.features.topic.domain.DeTai;
@@ -27,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -53,7 +55,7 @@ public class DeCuongService {
 
     private static final ZoneId ZONE_BKK = ZoneId.of("Asia/Bangkok");
 
-    @PreAuthorize("hasAuthority('SCOPE_SINH_VIEN')")
+
     public DeCuongResponse submitDeCuong(DeCuongUploadRequest request) {
         // 1) Lấy email hiện hành
         final String email = currentUsername();
@@ -84,21 +86,25 @@ public class DeCuongService {
 
         // 7) Tạo mới/cập nhật DeCuong theo SV hiện hành
         DeCuong dc = deCuongRepository
-                .findByDeTai_SinhVien_User_EmailIgnoreCase(email)
+                .findFirstByDeTai_SinhVien_User_EmailIgnoreCaseOrderByCreatedAtDesc(email)
                 .map(existing -> {
                     if (existing.getTrangThaiDeCuong() == TrangThaiDeCuong.DA_DUYET) {
                         throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
                     }
-                    existing.setDuongDanFile(finalUrl);
-                    existing.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
-                    existing.setPhienBan(existing.getPhienBan() + 1);
-                    return existing;
+                    DeCuong createdVersion = new DeCuong();
+                    createdVersion.setDeTai(deTai);
+                    createdVersion.setDuongDanFile(finalUrl);
+                    createdVersion.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
+                    createdVersion.setPhienBan(existing.getPhienBan() + 1);
+                    createdVersion.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
+                    return createdVersion;
                 })
                 .orElseGet(() -> {
                     DeCuong created = new DeCuong();
                     created.setDeTai(deTai);
                     created.setDuongDanFile(finalUrl);
                     created.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
+                    created.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
                     created.setPhienBan(1);
                     return created;
                 });
@@ -108,32 +114,25 @@ public class DeCuongService {
     }
 
 
-    @PreAuthorize("hasAuthority('SCOPE_SINH_VIEN')")
-    public NhanXetDeCuongResponse viewDeCuongLog() {
+
+    public List<DeCuongNhanXetResponse> viewDeCuongLog() {
         String email = currentUsername();
+        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_User_EmailIgnoreCase(email);
+        if (deCuongs.isEmpty()) throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
 
-        // Tìm đề cương theo tài khoản SV (mỗi SV tối đa 1 đề tài nhờ UNIQUE)
-        DeCuong dc = deCuongRepository
-                .findByDeTai_SinhVien_User_EmailIgnoreCase(email)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND));
-
-        // Lấy toàn bộ log bị từ chối (được ghi khi GV reject)
-        var logs = deCuongLogRepository.findByDeCuong_IdOrderByCreatedAtAsc(dc.getId());
-
-        NhanXetDeCuongResponse res = new NhanXetDeCuongResponse();
-        res.setFileUrlMoiNhat(dc.getDuongDanFile());
-        res.setNgayNopGanNhat(dc.getUpdatedAt() != null ? dc.getUpdatedAt().toLocalDate() : null);
-        res.setTongSoLanNop(dc.getPhienBan());
-        res.setCacNhanXetTuChoi(
-                logs.stream()
-                        .filter(l -> l.getNhanXet() != null && !l.getNhanXet().isBlank())
-                        .map(l -> new NhanXetDeCuongResponse.RejectNote(l.getCreatedAt() != null ? l.getCreatedAt().toLocalDate() : null, l.getNhanXet()))
-                        .toList()
-        );
-        return res;
+        // Lấy trước toàn bộ nhận xét của các đề cương liên quan (tránh N+1)
+        List<Long> ids = deCuongs.stream().map(DeCuong::getId).toList();
+        List<NhanXetDeCuong> allComments = deCuongLogRepository.findByDeCuong_IdInOrderByCreatedAtAsc(ids);
+        Map<Long, List<NhanXetDeCuong>> commentsByDeCuongId = allComments.stream().collect(Collectors.groupingBy(c -> c.getDeCuong().getId()));
+        List<DeCuongNhanXetResponse> responses = mapper.toDeCuongNhanXetResponse(deCuongs);
+        for (DeCuongNhanXetResponse res : responses) {
+            List<NhanXetDeCuong> cList = commentsByDeCuongId.getOrDefault(res.getId(), List.of());
+            res.setNhanXets(mapper.toNhanXetDeCuongResponse(cList));
+        }
+        return responses;
     }
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_GIANG_VIEN', 'SCOPE_TRUONG_BO_MON', 'SCOPE_TRO_LY_KHOA')")
+
     public DeCuongResponse reviewDeCuong(Long deCuongId, boolean approve, String reason) {
         String email = currentUsername();
         GiangVien gv = giangVienRepository.findByUser_EmailIgnoreCase(email)
@@ -190,7 +189,7 @@ public class DeCuongService {
     }
 
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_GIANG_VIEN','SCOPE_TRUONG_BO_MON', 'SCOPE_TRO_LY_KHOA')")
+
     public Page<DeCuongResponse> getAllDeCuong(Pageable pageable) {
         // 1) Lấy danh sách dot đang mở NOP_DE_CUONG hôm nay
         Long activeDotId = timeGatekeeper.getCurrentDotBaoVe().getId(); // ném NOT_IN_DOT_BAO_VE nếu không có
@@ -200,9 +199,8 @@ public class DeCuongService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         boolean isGV = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("SCOPE_GIANG_VIEN")
-                        || a.getAuthority().equals("SCOPE_TRUONG_BO_MON") || a.getAuthority().equals("SCOPE_TRO_LY_KHOA"));
-
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GIANG_VIEN")
+                        || a.getAuthority().equals("ROLE_TRUONG_BO_MON") || a.getAuthority().equals("ROLE_TRO_LY_KHOA"));
 
         Page<DeCuong> page = isGV
                 ? deCuongRepository
@@ -213,7 +211,9 @@ public class DeCuongService {
         return page.map(mapper::toResponse);
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_TRUONG_BO_MON')")
+
+
+
     public Page<DeCuongResponse> getAcceptedForTBM(Pageable pageable) {
         // 1) Lấy danh sách dot đang mở
         Long activeDotId = timeGatekeeper.getCurrentDotBaoVe().getId();
@@ -229,7 +229,7 @@ public class DeCuongService {
                 .map(mapper::toResponse);
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_TRUONG_BO_MON')")
+
     public byte[] exportAcceptedForTBMAsExcel() {
         // 1) Lấy danh sách dot đang mở
         Long activeDotId = timeGatekeeper.getCurrentDotBaoVe().getId();

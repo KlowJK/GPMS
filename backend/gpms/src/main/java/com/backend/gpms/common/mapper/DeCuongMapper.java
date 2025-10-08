@@ -1,8 +1,11 @@
 package com.backend.gpms.common.mapper;
 
 import com.backend.gpms.features.outline.domain.DeCuong;
+import com.backend.gpms.features.outline.domain.NhanXetDeCuong;
 import com.backend.gpms.features.outline.dto.request.DeCuongRequest;
+import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
+import com.backend.gpms.features.outline.dto.response.NhanXetDeCuongResponse;
 import com.backend.gpms.features.topic.domain.DeTai;
 import org.mapstruct.*;
 
@@ -18,16 +21,40 @@ public interface DeCuongMapper {
 
     // Entity -> Response
     @Mappings({
-            @Mapping(source = "deTai.tenDeTai",               target = "tenDeTai"),
             @Mapping(source = "deTai.sinhVien.maSinhVien",  target = "maSV"),
             @Mapping(source = "deTai.sinhVien.hoTen", target = "hoTenSinhVien"),
+            @Mapping(source = "deTai.tenDeTai",               target = "tenDeTai"),
             @Mapping(source = "deTai.giangVienHuongDan.hoTen",      target = "hoTenGiangVien"),
             @Mapping(source = "phienBan",                     target = "soLanNop"),
             @Mapping(source = "duongDanFile",                   target = "deCuongUrl"),
     })
     DeCuongResponse toResponse(DeCuong entity);
 
-    List<DeCuongResponse> toResponse(List<DeCuong> entities);
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "deCuongUrl", source = "duongDanFile")
+    @Mapping(target = "trangThai", source = "trangThaiDeCuong")
+    @Mapping(target = "phienBan", source = "phienBan")
+    @Mapping(target = "tenDeTai", source = "deTai.tenDeTai")
+    @Mapping(target = "maSV", source = "deTai.sinhVien.maSinhVien")
+    @Mapping(target = "hoTenSinhVien", source = "deTai.sinhVien.hoTen")
+    @Mapping(target = "hoTenGiangVienHuongDan", source = "giangVienHuongDan.hoTen")
+    @Mapping(target = "hoTenGiangVienPhanBien", source = "giangVienPhanBien.hoTen")
+    @Mapping(target = "hoTenTruongBoMon", source = "truongBoMon.hoTen")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "nhanXets", ignore = true) // set sau
+    DeCuongNhanXetResponse toDeCuongNhanXetResponse(DeCuong entity);
+
+    List<DeCuongNhanXetResponse> toDeCuongNhanXetResponse(List<DeCuong> entities);
+
+
+    @Mapping(target = "nhanXet", source = "nhanXet")
+    @Mapping(target = "idGiangVien", source = "giangVien.id")
+    @Mapping(target = "hoTenGiangVien", source = "giangVien.hoTen")
+    @Mapping(target = "createdAt", source = "createdAt")
+    NhanXetDeCuongResponse toNhanXetDeCuongResponse(NhanXetDeCuong entity);
+
+    List<NhanXetDeCuongResponse> toNhanXetDeCuongResponse(List<NhanXetDeCuong> entities);
 
     // Request -> Entity (tạo mới)
     @Mapping(source = "deTaiId", target = "deTai", qualifiedByName = "idToDeTai")

@@ -21,7 +21,6 @@ public class DeCuong extends BaseEntity {
 
     @Column(name="duong_dan_file", nullable=false) private String duongDanFile;
 
-    @Column(name="ngay_nop", nullable=false) private LocalDate ngayNop;
 
     @OneToOne(fetch =  FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien giangVienHuongDan;
