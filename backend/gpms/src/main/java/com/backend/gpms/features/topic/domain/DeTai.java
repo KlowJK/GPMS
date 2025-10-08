@@ -45,4 +45,6 @@ public class DeTai extends BaseEntity {
     @JoinColumn(name="id_bo_mon", nullable=false)
     private BoMon boMon;
 
+
+
 }

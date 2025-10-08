@@ -109,13 +109,19 @@ public class DeTaiService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
         GiangVien gv = giangVienRepository.findByMaGiangVien(request.getMaGV()).
                 orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        ThoiGianThucHien thoiGianDangKy = timeGatekeeper.validateThoiGianDangKy();
+        DotBaoVe dotBaoVe = thoiGianDangKy.getDotBaoVe();
         Optional<DeTai> deTai = deTaiRepository.findDeTaiBySinhVien_Id(sv.getId());
         if(deTai.isPresent()) {
             throw new ApplicationException(ErrorCode.SINH_VIEN_ALREADY_REGISTERED_DE_TAI);
         }
         DeTai newDeTai = DeTai.builder()
+                .tenDeTai("Chưa có đề tài")
                 .sinhVien(sv)
                 .giangVienHuongDan(gv)
+                .boMon(gv.getBoMon())
+                .dotBaoVe(dotBaoVe)
+                .trangThai(TrangThaiDeTai.DA_DUYET)
                 .build();
         deTaiRepository.save(newDeTai);
         return DeTaiGiangVienHuongDanResponse.builder()

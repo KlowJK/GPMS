@@ -47,4 +47,8 @@ public interface HoiDongRepository extends JpaRepository<HoiDong, Long> {
     Page<HoiDong> findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(DotBaoVe dotBaoVe, String tenHoiDongBaoVe, Pageable pageable);
 
     Page<HoiDong> findHoiDongByDotBaoVe(DotBaoVe dotBaoVe, Pageable pageable);
+
+    Page<HoiDong> findByDotBaoVeAndDeTaiSet_Id(DotBaoVe dotBaoVe, Long deTaiId, Pageable pageable);
+
+    Page<HoiDong>findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(DotBaoVe dotBaoVe,Long giangVienId, Pageable pageable);
 }

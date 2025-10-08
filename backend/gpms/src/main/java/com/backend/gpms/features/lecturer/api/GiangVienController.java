@@ -37,7 +37,7 @@ import java.util.Set;
 public class GiangVienController {
 
     private final GiangVienService giangVienService;
-    DeTaiService deTaiService;
+    private final DeTaiService deTaiService;
 
     @Operation(summary = "List giảng viên có slot hướng dẫn thuộc bộ môn, thuộc khoa của sinh viên đăng ký đề tài")
     @GetMapping("/advisors")
@@ -45,8 +45,6 @@ public class GiangVienController {
        return ApiResponse.success(giangVienService.giangVienLiteResponseList());
 
     }
-
-
     @PostMapping
     public ApiResponse<GiangVienCreationResponse> createGiangVien(@RequestBody @Valid GiangVienCreationRequest giangVienCreationRequest) {
 
@@ -128,7 +126,7 @@ public class GiangVienController {
                 .result(giangVienService.updateGiangVien(id, request))
                 .build();
     }
-
+    @Operation(summary = "Giảng viên xét duyệt đề tài sinh viên đăng ký")
     @PutMapping("/do-an/xet-duyet-de-tai/{deTaiId}/approve")
     public ApiResponse<DeTaiResponse> approveDeTaiByLecturer(
             @PathVariable Long deTaiId,
@@ -137,10 +135,9 @@ public class GiangVienController {
         if (request == null) request = new DeTaiApprovalRequest();
         request.setApproved(true);
 
-        return ApiResponse.<DeTaiResponse>builder()
-                .result(deTaiService.approveByGiangVien(deTaiId, request.getNhanXet()))
-                .build();
+        return ApiResponse.success(deTaiService.approveByGiangVien(deTaiId, request.getNhanXet()));
     }
+
 
     @PutMapping("/do-an/xet-duyet-de-tai/{deTaiId}/reject")
     @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -148,15 +145,13 @@ public class GiangVienController {
             content = @Content(examples = @ExampleObject(
                     name = "Reject body", value = "{ \"approved\": false, \"nhanXet\": \"Lý do từ chối\" }"
             ))
-    ))
+    ), summary = "Giảng viên từ chối đề tài sinh viên đăng ký")
     public ApiResponse<DeTaiResponse> rejectDeTaiByLecturer(
             @PathVariable Long deTaiId,
             @RequestBody(required = false) @Valid DeTaiApprovalRequest request) {
         if (request == null) request = new DeTaiApprovalRequest();
-        request.setApproved(false); // ép false bất kể client gửi gì
-        return ApiResponse.<DeTaiResponse>builder()
-                .result(deTaiService.rejectByGiangVien(deTaiId, request.getNhanXet()))
-                .build();
+        request.setApproved(false);
+        return ApiResponse.success(deTaiService.rejectByGiangVien(deTaiId, request.getNhanXet()));
     }
 
     @GetMapping("/sinh-vien/all")
