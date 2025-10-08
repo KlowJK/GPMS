@@ -143,7 +143,6 @@ public class SinhVienService {
                 .build();
     }
 
-
     public Page<SinhVienResponse> getAllSinhVien(Pageable pageable) {
         Page<SinhVien> sinhVienPage = sinhVienRepository.findAll(pageable);
         return sinhVienPage.map(sinhVienMapper::toSinhVienResponse);
@@ -159,6 +158,7 @@ public class SinhVienService {
         return sinhVienPage.map(sinhVienMapper::toSinhVienResponse);
     }
 
+
     public void changeSinhVienStatus(String maSV) {
 
         SinhVien sinhVien = sinhVienRepository.findByMaSinhVien((maSV))
@@ -167,6 +167,7 @@ public class SinhVienService {
         sinhVienRepository.save(sinhVien);
 
     }
+
 
     public SinhVienCreationResponse updateSinhVien(SinhVienUpdateRequest request, String maSV) {
         SinhVien existingSinhVien = sinhVienRepository.findByMaSinhVien(maSV)

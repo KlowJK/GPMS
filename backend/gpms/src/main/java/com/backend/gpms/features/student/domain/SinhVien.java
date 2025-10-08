@@ -6,6 +6,7 @@ import com.backend.gpms.features.department.domain.Lop;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.DonHoanDoAn;
 import jakarta.persistence.*;
+
 import lombok.*;
 
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+
 @Entity @Table(name="sinh_vien", indexes = {
         @Index(name="idx_sv_nganh", columnList="id_nganh"),
         @Index(name="idx_sv_lop", columnList="id_lop")

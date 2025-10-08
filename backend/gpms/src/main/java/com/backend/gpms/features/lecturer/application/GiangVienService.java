@@ -154,6 +154,7 @@ public class GiangVienService {
         return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
     }
 
+
     public Set<GiangVienInfoResponse> getGiangVienByBoMonAndSoLuongDeTai(Long boMonId) {
         BoMon boMon = boMonRepository.findById(boMonId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
@@ -167,6 +168,7 @@ public class GiangVienService {
         });
         return responses;
     }
+
 
     public List<SinhVienSupervisedResponse> getMySinhVienSupervisedAll(String q) {
         String email = currentEmail();
@@ -186,6 +188,7 @@ public class GiangVienService {
                 .map(sinhVienMapper::toStudentSupervisedResponse)
                 .toList();
     }
+
 
     public GiangVienCreationResponse createGiangVien(GiangVienCreationRequest giangVienCreationRequest) {
 
@@ -228,6 +231,7 @@ public class GiangVienService {
 
     }
 
+
     public void createTroLyKhoa(TroLyKhoaCreationRequest troLyKhoaCreationRequest) {
         GiangVien troLyKhoa = giangVienRepository.findById(troLyKhoaCreationRequest.getGiangVienId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
@@ -240,6 +244,7 @@ public class GiangVienService {
         troLyKhoa.getUser().setVaiTro(Role.TRO_LY_KHOA);
         giangVienRepository.save(troLyKhoa);
     }
+
 
     public GiangVienImportResponse importGiangVien(MultipartFile file) throws IOException {
         int total = 0, ok = 0;
@@ -323,6 +328,7 @@ public class GiangVienService {
         return auth.getName();
     }
 
+
     public List<GiangVienLiteResponse> getGiangVienLiteByBoMon(Long boMonId) {
         BoMon bm = boMonRepository.findById(boMonId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
@@ -337,6 +343,7 @@ public class GiangVienService {
         Page<GiangVien> page = giangVienRepository.findAll(pageable);
         return page.map(giangVienMapper::toGiangVienResponse);
     }
+
 
     public GiangVienResponse updateGiangVien(Long id, GiangVienUpdateRequest request) {
         GiangVien existingGV = giangVienRepository.findById(id)
