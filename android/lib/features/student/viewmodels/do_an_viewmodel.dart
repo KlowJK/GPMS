@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../models/de_cuong.dart';
+import '../models/de_cuong_log.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
 import '../services/do_an_service.dart';
@@ -8,6 +10,7 @@ import '../services/do_an_service.dart';
 class DoAnViewModel extends ChangeNotifier {
   DeTaiDetail? deTaiDetail;
   DeCuong? deCuong;
+  List<DeCuongLog> deCuongLogs = [];
   bool isLoading = true;
   String? error;
 
@@ -17,6 +20,21 @@ class DoAnViewModel extends ChangeNotifier {
 
   DoAnViewModel() {
     fetchDeTaiChiTiet();
+    fetchDeCuongLogs();
+  }
+
+  Future<void> fetchDeCuongLogs() async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+    try {
+      deCuongLogs = await DoAnService.fetchDeCuongLogs();
+    } catch (e) {
+      error = 'Đã xảy ra lỗi khi tải lịch sử nộp đề cương: $e';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchDeTaiChiTiet() async {
@@ -94,6 +112,8 @@ class DoAnViewModel extends ChangeNotifier {
       );
       if (result != null) {
         deCuong = result;
+        // Sau khi nộp thành công, tải lại danh sách logs
+        await fetchDeCuongLogs();
         return true;
       } else {
         error = 'Nộp đề cương thất bại.';

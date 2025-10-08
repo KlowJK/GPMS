@@ -105,32 +105,6 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              const Text('Lần nộp:'),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 50,
-                                height: 40,
-                                child: TextFormField(
-                                  initialValue: widget.submissionCount.toString(),
-                                  enabled: false,
-                                  textAlign: TextAlign.center,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: theme.dividerColor.withOpacity(0.1),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                      borderSide: BorderSide(
-                                        color: theme.dividerColor.withOpacity(0.3),
-                                      ),
-                                    ),
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                           SizedBox(height: gap * 1.5),
                           const Text('URL File đề cương:'),
                           SizedBox(height: gap),

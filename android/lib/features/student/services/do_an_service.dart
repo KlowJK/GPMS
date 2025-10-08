@@ -5,12 +5,35 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../../auth/services/auth_service.dart';
 import '../models/de_cuong.dart';
+import '../models/de_cuong_log.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
 
 class DoAnService {
   static String get _baseUrl => AuthService.baseUrl;
   static const _timeout = Duration(seconds: 15);
+
+  static Future<List<DeCuongLog>> fetchDeCuongLogs() async {
+    final token = await AuthService.getToken();
+    if (token == null) {
+      throw Exception('Người dùng chưa đăng nhập hoặc phiên đã hết hạn.');
+    }
+    final response = await http.get(
+      Uri.parse("$_baseUrl/api/de-cuong/sinh-vien/log"),
+      headers: {'accept': '*/*', 'Authorization': 'Bearer $token'},
+    ).timeout(_timeout);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['result'] != null) {
+        final List<dynamic> logsJson = data['result'];
+        return logsJson.map((json) => DeCuongLog.fromJson(json)).toList();
+      }
+      return [];
+    } else {
+      throw Exception('Không thể tải lịch sử nộp đề cương.');
+    }
+  }
 
   static Future<DeTaiDetail?> fetchDeTaiChiTiet() async {
     final token = await AuthService.getToken();
