@@ -3,8 +3,10 @@ package com.backend.gpms.features.outline.api;
 import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.outline.application.DeCuongService;
 import com.backend.gpms.features.outline.dto.request.DeCuongUploadRequest;
+import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
 import com.backend.gpms.features.outline.dto.response.NhanXetDeCuongResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -21,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "DeCuong")
@@ -52,11 +55,10 @@ public class DeCuongController {
                 .build();
     }
 
-
+    @Operation(summary = "List đề cương của sinh viên đã nộp")
     @GetMapping("/sinh-vien/log")
-    public ApiResponse<NhanXetDeCuongResponse> viewDeCuongLog() {
-        var res = deCuongService.viewDeCuongLog();
-        return ApiResponse.<NhanXetDeCuongResponse>builder().result(res).build();
+    public ApiResponse<List<DeCuongNhanXetResponse>> viewDeCuongLog() {
+        return ApiResponse.success( deCuongService.viewDeCuongLog());
     }
 
     @PutMapping("/{id}/duyet")
