@@ -195,7 +195,7 @@ public class HoiDongService{
                                 maSv, dot.getId(), TrangThaiDeTai.DA_DUYET);
 
                 if (candidates.isEmpty()) {
-                    String reason = "SV chưa có đề tài được duyệt trong đợt này";
+                    String reason = "Sinh viên chưa có đề tài được duyệt trong đợt này";
                     failures.add(fail(maSv, tenDt, reason));
                     logs.add(new ImportLogRow(maSv, tenDt, false, reason));
                     continue;

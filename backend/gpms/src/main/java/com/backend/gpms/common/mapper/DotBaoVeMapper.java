@@ -14,9 +14,19 @@ import org.mapstruct.ReportingPolicy;
 )
 public interface DotBaoVeMapper {
 
+    @Mapping(source = "tenDot", target = "tenDotBaoVe")
+    @Mapping(source = "ngayBatDau", target = "thoiGianBatDau")
+    @Mapping(source = "ngayKetThuc", target = "thoiGianKetThuc")
     DotBaoVeResponse toDotBaoVeResponse(DotBaoVe request);
+
+    @Mapping(source = "tenDotBaoVe", target = "tenDot")
+    @Mapping(source = "thoiGianBatDau", target = "ngayBatDau")
+    @Mapping(source = "thoiGianKetThuc", target = "ngayKetThuc")
     DotBaoVe toDotBaoVe(DotBaoVeRequest request);
 
+    @Mapping(source = "tenDotBaoVe", target = "tenDot")
+    @Mapping(source = "thoiGianBatDau", target = "ngayBatDau")
+    @Mapping(source = "thoiGianKetThuc", target = "ngayKetThuc")
     void updateDotBaoVeFromDto(DotBaoVeRequest request, @MappingTarget DotBaoVe entity);
 
 }

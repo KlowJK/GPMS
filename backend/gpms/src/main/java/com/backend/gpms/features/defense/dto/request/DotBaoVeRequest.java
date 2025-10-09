@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class DotBaoVeRequest {
 
     String tenDotBaoVe;
-    int hocKi;
+    String hocKi;
     LocalDate thoiGianBatDau;
     LocalDate thoiGianKetThuc;
     String namHoc;

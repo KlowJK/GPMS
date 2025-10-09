@@ -13,12 +13,11 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class DotBaoVeResponse {
-    Long id;
-    String tenDotBaoVe;
-    int hocKi;
-    LocalDate thoiGianBatDau;
-    LocalDate thoiGianKetThuc;
-    int namBatDau;
-    int namKetThuc;
+    Long id;//
+    String tenDotBaoVe;//
+    String hocKi;//
+    LocalDate thoiGianBatDau;//
+    LocalDate thoiGianKetThuc;//
+    String namHoc;
 
 }

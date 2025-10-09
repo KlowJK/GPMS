@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class GiangVienCreationRequest {
 
-    @Pattern(regexp = "^[0-9]{10}$", message = "MA_SV_INVALID")
+    @Pattern(regexp = "^[0-9]{10}$", message = "MA_GV_INVALID")
     String maGiangVien;
 
     @NotEmpty(message = "HO_TEN_EMPTY")
