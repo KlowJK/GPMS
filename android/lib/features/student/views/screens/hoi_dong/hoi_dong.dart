@@ -1,70 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-/* ===================== MODEL ===================== */
+import '../../../models/hoi_dong_item.dart';
+import '../../../viewmodels/hoi_dong_viewmodel.dart';
 
-enum CouncilStatus { upcoming, ongoing, finished }
-
-class CouncilItem {
-  final String name;
-  final DateTime startDate;
-  final DateTime endDate;
-  final CouncilStatus status;
-
-  const CouncilItem({
-    required this.name,
-    required this.startDate,
-    required this.endDate,
-    required this.status,
-  });
-}
-
-/* ================ DEMO DATA (tĩnh) ================= */
-
-final List<CouncilItem> demoCouncils = [
-  CouncilItem(
-    name: 'Hội đồng A',
-    startDate: DateTime(2025, 10, 16),
-    endDate: DateTime(2025, 10, 17),
-    status: CouncilStatus.upcoming,
-  ),
-  CouncilItem(
-    name: 'Hội đồng B',
-    startDate: DateTime(2025, 9, 30, 8),
-    endDate: DateTime(2025, 9, 30, 17),
-    status: CouncilStatus.ongoing,
-  ),
-  CouncilItem(
-    name: 'Hội đồng C',
-    startDate: DateTime(2025, 8, 12),
-    endDate: DateTime(2025, 8, 12),
-    status: CouncilStatus.finished,
-  ),
-  CouncilItem(
-    name: 'Hội đồng D',
-    startDate: DateTime(2025, 11, 1, 7, 30),
-    endDate: DateTime(2025, 11, 1, 11, 30),
-    status: CouncilStatus.upcoming,
-  ),
-  CouncilItem(
-    name: 'Hội đồng E',
-    startDate: DateTime(2025, 9, 20),
-    endDate: DateTime(2025, 9, 20),
-    status: CouncilStatus.finished,
-  ),
-];
-
-/* ================== COUNCIL LIST PAGE ================== */
+/* ================== COUNCIL LIST PAGE (MVVM) ================== */
 
 class HoiDong extends StatelessWidget {
   const HoiDong({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => HoiDongViewModel()..fetchForCurrentStudent(fallbackToAll: true),
+      child: const _HoiDongBody(),
+    );
+  }
+}
+
+class _HoiDongBody extends StatelessWidget {
+  const _HoiDongBody();
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      // Đặt AppBar TRỰC TIẾP ở Scaffold (không bọc SafeArea bên ngoài)
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
-        foregroundColor: Colors.white, // đảm bảo chữ/icon trắng trong M3
+        foregroundColor: Colors.white,
         centerTitle: true,
         title: const Text('Hội đồng'),
       ),
@@ -75,43 +37,60 @@ class HoiDong extends StatelessWidget {
             final double maxW = w >= 1200
                 ? 1100
                 : w >= 900
-                ? 900
-                : w >= 600
-                ? 600
-                : w;
+                    ? 900
+                    : w >= 600
+                        ? 600
+                        : w;
             final double pad = w >= 900 ? 24 : 16;
             final double gap = w >= 900 ? 16 : 12;
 
             return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxW),
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
-                  children: [
-                    Text(
-                      'Danh sách hội đồng bảo vệ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: gap),
+                child: Consumer<HoiDongViewModel>(
+                  builder: (context, vm, _) {
+                    // show error once via SnackBar
+                    if (vm.error != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (vm.error != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(vm.error!)),
+                          );
+                          vm.clearError();
+                        }
+                      });
+                    }
 
-                    if (demoCouncils.isEmpty)
-                      const _EmptyState(
-                        icon: Icons.apartment,
-                        title: 'Chưa có hội đồng nào.',
-                        subtitle: 'Vui lòng quay lại sau.',
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: demoCouncils.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) =>
-                            _CouncilCard(item: demoCouncils[i]),
-                      ),
-                  ],
+                    return ListView(
+                      padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
+                      children: [
+                        Text(
+                          'Danh sách hội đồng bảo vệ',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        SizedBox(height: gap),
+
+                        if (vm.isLoading)
+                          const Center(child: CircularProgressIndicator())
+                        else if (vm.items.isEmpty)
+                          const _EmptyState(
+                            icon: Icons.apartment,
+                            title: 'Chưa có hội đồng nào.',
+                            subtitle: 'Vui lòng quay lại sau.',
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: vm.items.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (_, i) => _CouncilCardHoiDong(item: vm.items[i]),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
             );
@@ -122,41 +101,41 @@ class HoiDong extends StatelessWidget {
   }
 }
 
-/* ================== CARD HIỂN THỊ HỘI ĐỒNG ================== */
+/* ================== CARD HIỂN THỊ HỘI ĐỒNG (từ HoiDongItem) ================== */
 
-class _CouncilCard extends StatelessWidget {
-  const _CouncilCard({required this.item});
-  final CouncilItem item;
+class _CouncilCardHoiDong extends StatelessWidget {
+  const _CouncilCardHoiDong({required this.item});
+  final HoiDongItem item;
 
-  String _fmt(DateTime d) {
+  String _fmt(DateTime? d) {
+    if (d == null) return '-';
     String two(int v) => v.toString().padLeft(2, '0');
     final date = '${two(d.day)}/${two(d.month)}/${d.year}';
     final time = '${two(d.hour)}:${two(d.minute)}';
-    // nếu giờ:phút là 00:00 -> chỉ hiển thị ngày
     return (d.hour == 0 && d.minute == 0) ? date : '$date $time';
   }
 
   (Color bg, Color fg, String label) get _badge {
-    switch (item.status) {
-      case CouncilStatus.upcoming:
-        return (
-          const Color(0xFFDBEAFE),
-          const Color(0xFF1E3A8A),
-          'Sắp diễn ra',
-        );
-      case CouncilStatus.ongoing:
-        return (
-          const Color(0xFFFDE68A),
-          const Color(0xFF92400E),
-          'Đang diễn ra',
-        );
-      case CouncilStatus.finished:
-        return (
-          const Color(0xFFD1FAE5),
-          const Color(0xFF065F46),
-          'Đã kết thúc',
-        );
+    final status = (item.trangThai ?? '').toLowerCase();
+    if (status.contains('upcoming') || status.contains('sap') || status.contains('sapdienra')) {
+      return (
+        const Color(0xFFDBEAFE),
+        const Color(0xFF1E3A8A),
+        'Sắp diễn ra',
+      );
     }
+    if (status.contains('ongoing') || status.contains('dang')) {
+      return (
+        const Color(0xFFFDE68A),
+        const Color(0xFF92400E),
+        'Đang diễn ra',
+      );
+    }
+    return (
+      const Color(0xFFD1FAE5),
+      const Color(0xFF065F46),
+      'Đã kết thúc',
+    );
   }
 
   @override
@@ -183,7 +162,6 @@ class _CouncilCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tên + trạng thái
                   Row(
                     children: [
                       Expanded(
@@ -195,7 +173,7 @@ class _CouncilCard extends StatelessWidget {
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
-                              TextSpan(text: item.name),
+                              TextSpan(text: item.tenHoiDong),
                             ],
                           ),
                         ),
@@ -204,7 +182,6 @@ class _CouncilCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // Thời gian
                   Text.rich(
                     TextSpan(
                       children: [
@@ -214,8 +191,7 @@ class _CouncilCard extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         TextSpan(
-                          text:
-                              '${_fmt(item.startDate)}  –  ${_fmt(item.endDate)}',
+                          text: '${_fmt(item.thoiGianBatDau)}  –  ${_fmt(item.thoiGianKetThuc)}',
                         ),
                       ],
                     ),
@@ -287,7 +263,6 @@ class _Badge extends StatelessWidget {
     return DecoratedBox(
       decoration: const ShapeDecoration(
         shape: StadiumBorder(),
-        // màu set qua Container để auto match theme brightness
       ),
       child: Container(
         decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
