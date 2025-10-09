@@ -116,15 +116,94 @@ class _CouncilCardHoiDong extends StatelessWidget {
   }
 
   (Color bg, Color fg, String label) get _badge {
+    final nowUtc = DateTime.now().toUtc();
+    final start = item.thoiGianBatDau;
+    final end = item.thoiGianKetThuc;
+
+    DateTime? toUtcSafe(DateTime? dt) {
+      if (dt == null) return null;
+      try {
+        return dt.toUtc();
+      } catch (_) {
+        return dt;
+      }
+    }
+
+    final startUtc = toUtcSafe(start);
+    DateTime? endUtc = toUtcSafe(end);
+
+    // If endUtc is present and looks like a date-only (midnight UTC), treat it as end of day to be inclusive
+    if (endUtc != null && endUtc.hour == 0 && endUtc.minute == 0 && endUtc.second == 0 && endUtc.millisecond == 0 && endUtc.microsecond == 0) {
+      endUtc = endUtc.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+    }
+
+    // Defensive: if backend returned start after end, swap them and log
+    if (startUtc != null && endUtc != null && startUtc.isAfter(endUtc)) {
+      debugPrint('[HoiDong] Warning: startUtc > endUtc for id=${item.id}; swapping values startUtc=$startUtc endUtc=$endUtc');
+      final tmp = startUtc;
+      final newStartUtc = endUtc;
+      final newEndUtc = tmp;
+      final isBefore = nowUtc.isBefore(newStartUtc!);
+      final isAfter = nowUtc.isAfter(newEndUtc);
+      debugPrint('[HoiDong] id=${item.id} corrected startUtc=$newStartUtc endUtc=$newEndUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter');
+      if (isBefore) {
+        return (
+          const Color(0xFFDBEAFE),
+          const Color(0xFF1E3A8A),
+          'Sắp diễn ra',
+        );
+      }
+      if (isAfter) {
+        return (
+          const Color(0xFFD1FAE5),
+          const Color(0xFF065F46),
+          'Đã kết thúc',
+        );
+      }
+      return (
+        const Color(0xFFFDE68A),
+        const Color(0xFF92400E),
+        'Đang diễn ra',
+      );
+    }
+
+    // If both start and end exist, determine status from times (inclusive end)
+    if (startUtc != null && endUtc != null) {
+      final isBefore = nowUtc.isBefore(startUtc);
+      final isAfter = nowUtc.isAfter(endUtc);
+      debugPrint('[HoiDong] id=${item.id} startUtc=$startUtc endUtc=$endUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter');
+      if (isBefore) {
+        return (
+          const Color(0xFFDBEAFE),
+          const Color(0xFF1E3A8A),
+          'Sắp diễn ra',
+        );
+      }
+      if (isAfter) {
+        return (
+          const Color(0xFFD1FAE5),
+          const Color(0xFF065F46),
+          'Đã kết thúc',
+        );
+      }
+      // now is between start and end (inclusive)
+      return (
+        const Color(0xFFFDE68A),
+        const Color(0xFF92400E),
+        'Đang diễn ra',
+      );
+    }
+
+    // Fallback to textual status if dates are not present
     final status = (item.trangThai ?? '').toLowerCase();
-    if (status.contains('upcoming') || status.contains('sap') || status.contains('sapdienra')) {
+    if (status.contains('upcoming') || status.contains('sap') || status.contains('sapdienra') || status.contains('sắp')) {
       return (
         const Color(0xFFDBEAFE),
         const Color(0xFF1E3A8A),
         'Sắp diễn ra',
       );
     }
-    if (status.contains('ongoing') || status.contains('dang')) {
+    if (status.contains('ongoing') || status.contains('dang') || status.contains('đang')) {
       return (
         const Color(0xFFFDE68A),
         const Color(0xFF92400E),
