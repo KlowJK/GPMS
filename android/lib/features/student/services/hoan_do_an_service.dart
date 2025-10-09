@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +17,9 @@ class HoanDoAnService {
 
   Future<DeNghiHoanModel> guiDeNghiHoan({
     required String lyDo,
-    File? minhChungFile,
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
   }) async {
     final token = await AuthService.getToken();
     if (token == null) {
@@ -33,12 +36,23 @@ class HoanDoAnService {
 
     request.fields['lyDo'] = lyDo;
 
-    if (minhChungFile != null) {
-      request.files.add(await http.MultipartFile.fromPath(
-        'minhChungFile',
-        minhChungFile.path,
-        filename: p.basename(minhChungFile.path),
-      ));
+    // Handle file attachment based on platform
+    if (fileName != null) {
+      if (kIsWeb && fileBytes != null) {
+        // Web platform uses bytes
+        request.files.add(http.MultipartFile.fromBytes(
+          'minhChungFile',
+          fileBytes,
+          filename: fileName,
+        ));
+      } else if (!kIsWeb && filePath != null) {
+        // Mobile platform uses path
+        request.files.add(await http.MultipartFile.fromPath(
+          'minhChungFile',
+          filePath,
+          filename: fileName,
+        ));
+      }
     }
 
     try {
