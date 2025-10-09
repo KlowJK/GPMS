@@ -7,7 +7,9 @@ import '../services/hoan_do_an_service.dart';
 class HoanDoAnViewModel extends ChangeNotifier {
   final HoanDoAnService service;
 
-  HoanDoAnViewModel({required this.service});
+  HoanDoAnViewModel({required this.service}) {
+    fetchDeNghiHoan(); // Fetch the list on initialization
+  }
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -17,6 +19,15 @@ class HoanDoAnViewModel extends ChangeNotifier {
 
   bool _isSuccess = false;
   bool get isSuccess => _isSuccess;
+
+  List<DeNghiHoanModel> _deNghiList = [];
+  List<DeNghiHoanModel> get deNghiList => _deNghiList;
+
+  bool _isFetchingList = false;
+  bool get isFetchingList => _isFetchingList;
+
+  String? _fetchListError;
+  String? get fetchListError => _fetchListError;
 
   bool _isDisposed = false;
 
@@ -32,6 +43,21 @@ class HoanDoAnViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchDeNghiHoan() async {
+    _isFetchingList = true;
+    _fetchListError = null;
+    _notify();
+
+    try {
+      _deNghiList = await service.getDanhSachDeNghi();
+    } catch (e) {
+      _fetchListError = e.toString();
+    } finally {
+      _isFetchingList = false;
+      _notify();
+    }
+  }
+
   Future<void> guiDeNghiHoan({
     required String lyDo,
     String? filePath,
@@ -44,7 +70,6 @@ class HoanDoAnViewModel extends ChangeNotifier {
     _notify();
 
     try {
-      // Pass the new parameters to the service
       await service.guiDeNghiHoan(
         lyDo: lyDo,
         filePath: filePath,
@@ -52,6 +77,7 @@ class HoanDoAnViewModel extends ChangeNotifier {
         fileName: fileName,
       );
       _isSuccess = true;
+      await fetchDeNghiHoan(); // Refresh the list after successful submission
     } catch (e) {
       _error = e.toString();
     } finally {
