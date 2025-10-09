@@ -207,6 +207,7 @@ public class GiangVienService {
                 .email(giangVienCreationRequest.getEmail())
                 .matKhau(passwordEncoder.encode(giangVienCreationRequest.getMatKhau()))
                 .vaiTro(Role.GIANG_VIEN)
+                .trangThaiKichHoat(true)
                 .build();
 
         BoMon boMon = boMonRepository.findById(giangVienCreationRequest.getIdBoMon())
@@ -220,6 +221,7 @@ public class GiangVienService {
                 .boMon(boMon)
                 .soDienThoai(giangVienCreationRequest.getSoDienThoai())
                 .user(taiKhoan)
+                .quotaInstruct(0)
                 .build();
 
         if(currentUser.getVaiTro() == Role.QUAN_TRI_VIEN){

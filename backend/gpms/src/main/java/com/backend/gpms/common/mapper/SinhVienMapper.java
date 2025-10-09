@@ -35,36 +35,47 @@ public interface SinhVienMapper {
     @Mapping(target = "lop", source = "idLop")
     SinhVien toSinhVien(SinhVienCreationRequest request);
 
+    @Mapping(source = "maSinhVien", target = "maSV")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "lop", target = "lopId")
     SinhVienCreationResponse toSinhVienCreationResponse(SinhVien sinhVien);
 
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "lop.tenLop", target = "tenLop")
+    @Mapping(source = "maSinhVien", target = "maSV")
+    @Mapping(source = "duDieuKien", target = "kichHoat")
     SinhVienResponse toSinhVienResponse(SinhVien sinhVien);
 
+    @Mapping(source = "maSinhVien" , target = "maSV")
     @Mapping(source = "lop.tenLop", target = "tenLop")
     @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
+    @Mapping(source = "duongDanCv", target = "cvUrl")
     SinhVienSupervisedResponse toSinhVienSupervisedResponse(SinhVien sv);
 
+    @Mapping(source = "maSinhVien" , target = "maSV")
     @Mapping(source = "lop.tenLop", target = "tenLop")
     @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
+    @Mapping(source = "duongDanCv", target = "cvUrl")
     SinhVienSupervisedResponse toStudentSupervisedResponse(SinhVien sv);
 
+    @Mapping(source = "maSinhVien" , target = "maSV")
+    @Mapping(source = "deTai.id", target = "idDeTai")
     @Mapping(source = "lop.tenLop", target = "tenLop")
     @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
     @Mapping(source = "deTai.trangThai", target = "trangThai")
-    @Mapping(source = "deTai.id", target = "idDeTai")
     @Mapping(source = "deTai.noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
     @Mapping(source = "deTai.nhanXet", target = "nhanXet")
     ApprovalSinhVienResponse toDeTaiSinhVienApprovalResponse(SinhVien sv);
 
+    @Mapping(source = "maSinhVien" , target = "maSV")
     @Mapping(source = "lop.tenLop", target = "tenLop")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "lop.nganh.khoa.tenKhoa", target = "tenKhoa")
     @Mapping(source = "lop.nganh.tenNganh", target = "tenNganh")
+    @Mapping(source = "duongDanCv", target = "cvUrl")
     SinhVienInfoResponse toSinhVienInfoResponse(SinhVien sv);
 
+    @Mapping(source = "maSinhVien" , target = "maSV")
     GetSinhVienWithoutDeTaiResponse toGetSinhVienWithoutDeTaiResponse(SinhVien sv);
 
     default Lop map(Long lopId) {

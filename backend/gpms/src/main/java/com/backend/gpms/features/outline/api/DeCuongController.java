@@ -50,9 +50,7 @@ public class DeCuongController {
     @PostMapping(value = "/sinh-vien/nop-de-cuong", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DeCuongResponse> submitDeCuong(
             @ModelAttribute @Valid DeCuongUploadRequest request) throws IOException {
-        return ApiResponse.<DeCuongResponse>builder()
-                .result(deCuongService.submitDeCuong(request))
-                .build();
+        return ApiResponse.success(deCuongService.submitDeCuong(request));
     }
 
     @Operation(summary = "List đề cương của sinh viên đã nộp")

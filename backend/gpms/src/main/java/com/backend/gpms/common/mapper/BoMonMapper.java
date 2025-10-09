@@ -17,6 +17,7 @@ import org.mapstruct.ReportingPolicy;
 public interface BoMonMapper {
     @Mapping(source = "khoaId", target = "khoa")
     BoMon toBoMon(BoMonRequest request);
+
     @Mapping(source = "khoa", target = "khoaId")
     BoMonResponse toBoMonResponse(BoMon boMon);
 
@@ -24,7 +25,6 @@ public interface BoMonMapper {
     @Mapping(target = "hoTen",  source = "truongBoMon.hoTen")
     @Mapping(target = "hocVi",  source = "truongBoMon.hocVi")
     @Mapping(target = "hocHam", source = "truongBoMon.hocHam")
-    @Mapping(target = "tenBoMon", source = "tenBoMon")
     TruongBoMonCreationResponse toTruongBoMonCreationResponse(BoMon boMon);
 
     @Mapping(target = "khoaId", source = "khoa.id")
