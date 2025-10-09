@@ -22,15 +22,19 @@ public interface GiangVienMapper {
     @Mapping(target = "boMon", ignore = true)
     @Mapping(target = "user",   ignore = true)
     @Mapping(target = "duongDanAvt", ignore = true)
+    @Mapping(source = "idBoMon", target = "boMon.id")
     GiangVien toGiangVien(GiangVienCreateRequest request);
 
+    @Mapping(source = "maGiangVien", target = "maGV")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "user.vaiTro", target = "vaiTro")
     @Mapping(source = "boMon", target = "boMonId")
     GiangVienCreationResponse toGiangVienCreationResponse(GiangVien entity);
 
+    @Mapping(source = "maGiangVien", target = "maGV")
     GiangVienInfoResponse toGiangVienInfoResponse(GiangVien entity);
 
+    @Mapping(source = "boMon.id",       target = "boMonId")
     GiangVienLiteResponse toLite(GiangVien entity);
 
     @Mapping(source = "user.email", target = "email")

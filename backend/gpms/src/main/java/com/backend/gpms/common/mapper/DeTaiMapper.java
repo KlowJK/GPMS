@@ -22,7 +22,7 @@ public interface DeTaiMapper {
     @Mapping(target = "trangThai", ignore = true)
     @Mapping(target = "nhanXet", ignore = true)
     @Mapping(target = "sinhVien", ignore = true)
-    @Mapping(target = "noiDungDeTaiUrl", ignore = true)
+    @Mapping(source = "fileTongQuan", target = "noiDungDeTaiUrl", ignore = true)
     DeTai toDeTai(DeTaiRequest request);
 
     // Entity -> Response
@@ -37,7 +37,7 @@ public interface DeTaiMapper {
     @Mapping(target = "trangThai", ignore = true)
     @Mapping(target = "nhanXet", ignore = true)
     @Mapping(target = "sinhVien", ignore = true)
-    @Mapping(target = "noiDungDeTaiUrl", ignore = true)
+    @Mapping(source = "fileTongQuan", target = "noiDungDeTaiUrl", ignore = true)
     void update(DeTaiRequest request, @MappingTarget DeTai entity);
 
     // Convert GiangVien and SinhVien to their IDs

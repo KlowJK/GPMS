@@ -12,16 +12,16 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ThanhVienHoiDongResponse {
 
-    Long id;
-    String tenHoiDong;
-    LocalDate thoiGianBatDau;
-    LocalDate thoiGianKetThuc;
+    Long id;//
+    String tenHoiDong;//
+    LocalDate thoiGianBatDau;//
+    LocalDate thoiGianKetThuc;//
 
-    String chuTich;
-    String thuKy;
+    String chuTich;//
+    String thuKy;//
     List<String> giangVienPhanBien;
 
-    List<SinhVienTrongHoiDong> sinhVienList;
+    List<SinhVienTrongHoiDong> sinhVienList;//
 
     @Builder
     @Data

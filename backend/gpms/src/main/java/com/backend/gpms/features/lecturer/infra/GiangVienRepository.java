@@ -37,7 +37,8 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
 
 
     List<GiangVien> findByBoMon_IdOrderByHoTenAsc(Long boMonId);
-    @EntityGraph(attributePaths = {"boMon", "taiKhoan"})
+
+    @EntityGraph(attributePaths = {"boMon", "user"})
     Page<GiangVien> findAll(Pageable pageable);
 
     @Query("SELECT gv FROM GiangVien gv " +
@@ -51,7 +52,7 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
 
     @Query("SELECT COUNT(d) FROM DeTai d " +
             "WHERE d.giangVienHuongDan.maGiangVien = :maGV " +
-            "AND d.sinhVien.user.trangThaiKichHoat = true")
+            "AND d.sinhVien.duDieuKien = true")
     int countDeTaiByGiangVienAndSinhVienActive(@Param("maGV") String maGV);
 
 

@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,44 +43,38 @@ public class HoiDongController {
             @ParameterObject
             @PageableDefault(page = 0, size = 10, sort = "thoiGianBatDau", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ApiResponse.<Page<HoiDongResponse>>builder()
-                .result(hoiDongService.getHoiDongsDangDienRa(keyword,idDeTai,idGiangVien, pageable))
-                .build();
+        return ApiResponse.success(hoiDongService.getHoiDongsDangDienRa(keyword,idDeTai,idGiangVien, pageable));
     }
 
+    @Operation(summary = "Lấy chi tiết hội đồng theo idHoiDong - Có list thành viên hội đồng gv,sv")
     @GetMapping("{hoiDongId}")
     public ApiResponse<ThanhVienHoiDongResponse> getHoiDongDetail(@PathVariable Long hoiDongId) {
-        return ApiResponse.<ThanhVienHoiDongResponse>builder()
-                .result(hoiDongService.getHoiDongDetail(hoiDongId))
-                .build();
+        return ApiResponse.success(hoiDongService.getHoiDongDetail(hoiDongId));
     }
 
+    @Operation(summary = "Tạo mới hội đồng - Trả về chi tiết hội đồng vừa tạo")
+    @PreAuthorize("hasAuthority('ROLE_TRO_LY_KHOA')")
     @PostMapping("/them-hoi-dong")
     public ApiResponse<ThanhVienHoiDongResponse> createHoiDong(@RequestBody @Valid HoiDongRequest request) {
-        return ApiResponse.<ThanhVienHoiDongResponse>builder()
-                .result(hoiDongService.createHoiDong(request))
-                .build();
+        return ApiResponse.success(hoiDongService.createHoiDong(request));
     }
 
+    @Operation(summary = "Import sinh viên vào hội đồng bảo vệ từ file excel - Excel có 2 cột: 1 mã sinh viên, 1 tên đề tài")
     @PostMapping(value = "/{hoiDongId}/import-sinh-vien", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<PhanCongBaoVeResponse> importSinhVienToHoiDong(
             @PathVariable Long hoiDongId,
             @RequestPart("file") MultipartFile file) {
-        return ApiResponse.<PhanCongBaoVeResponse>builder()
-                .result(hoiDongService.importSinhVienToHoiDong(hoiDongId, file))
-                .build();
+        return ApiResponse.success(hoiDongService.importSinhVienToHoiDong(hoiDongId, file));
     }
-
+    @Operation(summary = "Lấy tất cả hội đồng theo đợt bảo vệ - có phân trang, tìm kiếm theo tên hội đồng")
     @GetMapping("/hoi-dong-theo-dot")
     public ApiResponse<Page<HoiDongResponse>> getHoiDongTheoDot(
             @RequestParam Long dotBaoVeId,
             @RequestParam(required = false) String keyword,
-
+            @ParameterObject
             @PageableDefault(page = 0, size = 10, sort = "thoiGianBatDau", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        return ApiResponse.<Page<HoiDongResponse>>builder()
-                .result(hoiDongService.getTatCaHoiDongByDot(dotBaoVeId, keyword,  pageable))
-                .build();
+        return ApiResponse.success(hoiDongService.getTatCaHoiDongByDot(dotBaoVeId, keyword,  pageable));
     }
 }

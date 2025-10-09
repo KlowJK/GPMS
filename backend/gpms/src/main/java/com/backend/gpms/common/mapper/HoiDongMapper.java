@@ -1,5 +1,6 @@
 package com.backend.gpms.common.mapper;
 
+import com.backend.gpms.features.council.dto.response.ThanhVienHoiDongResponse.SinhVienTrongHoiDong;
 import com.backend.gpms.features.council.domain.HoiDong;
 import com.backend.gpms.features.council.domain.ThanhVienHoiDong;
 import com.backend.gpms.features.council.dto.response.HoiDongResponse;
@@ -24,20 +25,32 @@ public interface HoiDongMapper {
     HoiDongResponse toListItem(HoiDong entity);
 
 
-    @Mapping(target = "chuTich", ignore = true)
-    @Mapping(target = "thuKy", ignore = true)
-    @Mapping(target = "giangVienPhanBien", ignore = true)
+    @Mapping(source = "chuTich.hoTen", target = "chuTich")
+    @Mapping(source = "thuKy.hoTen",target = "thuKy")
+    @Mapping(source = "thanhVienHoiDongSet", target = "giangVienPhanBien", qualifiedByName = "mapThanhVienHoiDongSetToGiangVienPhanBien")
     @Mapping(target = "sinhVienList", expression = "java(toSinhVienList(entity.getDeTaiSet()))")
     ThanhVienHoiDongResponse toDetail(HoiDong entity);
+
+    @Named("mapThanhVienHoiDongSetToGiangVienPhanBien")
+    default List<String> mapThanhVienHoiDongSetToGiangVienPhanBien(Set<ThanhVienHoiDong> set) {
+        if (set == null) return List.of();
+        List<String> out = new ArrayList<>();
+        for (ThanhVienHoiDong tv : set) {
+            if (tv == null || tv.getGiangVien() == null) continue;
+            String name = tv.getGiangVien().getHoTen();
+            if (name != null && !name.isBlank()) out.add(name);
+        }
+        return out;
+    }
 
     @Named("enumName")
     default String enumName(Enum<?> e) {
         return e != null ? e.name() : null;
     }
 
-    default List<ThanhVienHoiDongResponse.SinhVienTrongHoiDong> toSinhVienList(Set<DeTai> deTais) {
+    default List<SinhVienTrongHoiDong> toSinhVienList(Set<DeTai> deTais) {
         if (deTais == null) return List.of();
-        List<ThanhVienHoiDongResponse.SinhVienTrongHoiDong> out = new ArrayList<>();
+        List<SinhVienTrongHoiDong> out = new ArrayList<>();
         for (DeTai dt : deTais) {
             if (dt == null) continue;
             SinhVien sv = dt.getSinhVien();
@@ -46,7 +59,7 @@ public interface HoiDongMapper {
             String boMon = (dt.getGiangVienHuongDan() != null && dt.getGiangVienHuongDan().getBoMon() != null)
                     ? dt.getGiangVienHuongDan().getBoMon().getTenBoMon() : null;
 
-            out.add(ThanhVienHoiDongResponse.SinhVienTrongHoiDong.builder()
+            out.add(SinhVienTrongHoiDong.builder()
                     .hoTen(sv != null ? sv.getHoTen() : null)
                     .maSV(sv != null ? sv.getMaSinhVien() : null)
                     .lop(lop)
@@ -77,4 +90,3 @@ public interface HoiDongMapper {
         }
     }
 }
-
