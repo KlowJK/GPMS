@@ -34,7 +34,7 @@ import java.util.Set;
 
 @Tag(name = "GiangVien")
 @RestController
-@RequestMapping("/api/public")
+@RequestMapping("/api/giang-vien")
 @RequiredArgsConstructor
 @Validated
 @Transactional
