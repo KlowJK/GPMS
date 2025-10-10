@@ -77,7 +77,7 @@ public class DeTaiController {
         return ApiResponse.success(deTaiService.addGiangVienHuongDan(request));
     }
 
-    @Operation(summary = "Sinh viên gửi đơn hoãn (lý do + file minh chứng optional")
+    @Operation(summary = "Sinh viên gửi đơn hoãn ,lý do + file minh chứng optional")
     @PostMapping(value = "/sinh-vien/hoan-do-an", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DonHoanDoAnResponse> createPostponeRequest(
             @ModelAttribute @Valid DonHoanDoAnRequest request) {
