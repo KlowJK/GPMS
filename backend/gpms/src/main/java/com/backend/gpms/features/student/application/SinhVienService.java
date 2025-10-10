@@ -76,6 +76,7 @@ public class SinhVienService {
                 .lop(lop)
                 .user(taiKhoan)
                 .soDienThoai(request.getSoDienThoai())
+                .duDieuKien(true)
                 .build();
         taiKhoan.setSinhVien(sinhVien);
         taiKhoanRepository.save(taiKhoan);
