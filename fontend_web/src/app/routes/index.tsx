@@ -81,8 +81,16 @@ export const router = createBrowserRouter([
                         children: [
                             {
                                 path: 'lecturers',
-                                lazy: () =>
-                                    import('@features/lecturers/pages/LecturersListPage').then(m => ({ Component: m.default })),
+                                // Lecturer area layout (topbar + sidebar). Children routes are nested.
+                                lazy: () => import('@features/lecturers/src/routes/LecturersApp').then(m => ({ Component: m.default })),
+                                children: [
+                                    { index: true, lazy: () => import('@features/lecturers/pages/Dashboard').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/list', lazy: () => import('../../features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
+                                    { path: 'nhat-ky', lazy: () => import('@features/lecturers/pages/NhatKy').then(m => ({ Component: m.default })) },
+                                    { path: 'bao-cao', lazy: () => import('@features/lecturers/pages/BaoCao').then(m => ({ Component: m.default })) },
+                                    { path: 'hoi-dong', lazy: () => import('@features/lecturers/pages/HoiDong').then(m => ({ Component: m.default })) },
+                                ],
                             },
                         ],
                     },
