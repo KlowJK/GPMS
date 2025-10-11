@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { axios } from '@shared/libs/axios'
+import { setToken, setUser } from '@shared/libs/storage'
+import type { AxiosError } from 'axios'
 
 // Ảnh: nền = TLU.png (hình minh hoạ), logo = logo_tlu.png
 import LoginBg from '../../../assets/TLU.png';
@@ -11,16 +14,44 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [showPw, setShowPw] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setLoading(true);
         try {
-            // TODO: gọi API thật
-            await new Promise((r) => setTimeout(r, 400));
-            navigate('/topics', { replace: true });
+            const payload = { email: username, matKhau: password }
+            const res = await axios.post('/api/auth/login', payload, {
+                headers: { 'Content-Type': 'application/json' },
+            })
+            setError(null)
+            const accessToken = res.data?.accessToken
+            const user = res.data?.user
+            if (!accessToken) throw new Error('Token not returned from server')
+
+            // store token and user
+            setToken(accessToken)
+            if (user) setUser(user)
+
+            // navigate based on role
+            const role = (user?.role ?? '').toString()
+            if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') {
+                navigate('/lecturers', { replace: true })
+            } else {
+                navigate('/topics', { replace: true })
+            }
+        } catch (err) {
+            const axiosErr = err as AxiosError
+            const serverMsg =
+                (axiosErr?.response as any)?.data?.message ??
+                (axiosErr?.response as any)?.data ??
+                (err as Error)?.message ??
+                'Đăng nhập thất bại'
+            // show error in UI and log details for debugging
+            setError(typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg))
+            console.error('Login error response:', axiosErr?.response?.status, axiosErr?.response?.data, err)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
     }
 
@@ -99,6 +130,9 @@ export default function LoginPage() {
                                 {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
                             </button>
                         </form>
+                        {error && (
+                            <div className="mt-4 text-center text-sm text-red-600">{error}</div>
+                        )}
 
                         <div className="text-center mt-5">
                             <Link to="#" className="text-[#457B9D] underline">
