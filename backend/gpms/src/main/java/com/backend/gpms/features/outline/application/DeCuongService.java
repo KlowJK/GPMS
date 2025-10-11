@@ -172,6 +172,11 @@ public class DeCuongService {
 
         if (approve) {
             dc.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);
+            var log = new NhanXetDeCuong();
+            log.setDeCuong(dc);
+            log.setNhanXet(reason.trim());
+            log.setGiangVien(gv);
+            deCuongLogRepository.save(log);
         } else {
             if (reason == null || reason.isBlank()) {
                 throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
@@ -180,6 +185,7 @@ public class DeCuongService {
             var log = new NhanXetDeCuong();
             log.setDeCuong(dc);
             log.setNhanXet(reason.trim());
+            log.setGiangVien(gv);
             deCuongLogRepository.save(log);
 
             dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
@@ -204,7 +210,7 @@ public class DeCuongService {
 
         Page<DeCuong> page = isGV
                 ? deCuongRepository
-                .findByDeTai_GiangVienHuongDan_User_EmailIgnoreCaseAndDeTai_DotBaoVe_IdIn(email, activeDotIds, pageable)
+                .findByGiangVienHuongDan_User_EmailIgnoreCaseOrGiangVienPhanBien_User_EmailIgnoreCaseOrTruongBoMon_User_EmailIgnoreCaseAndDeTai_DotBaoVe_IdIn(email,email,email, activeDotIds, pageable)
                 : deCuongRepository
                 .findByDeTai_DotBaoVe_IdIn(activeDotIds, pageable);
 
