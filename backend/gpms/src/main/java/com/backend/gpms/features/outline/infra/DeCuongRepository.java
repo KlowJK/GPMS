@@ -18,24 +18,24 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
     Page<DeCuong> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = {
-            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMonQuanLy"
+            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMon"
     })
     Page<DeCuong> findByDeTai_GiangVienHuongDan_User_EmailIgnoreCaseAndDeTai_DotBaoVe_IdIn(
             String email, List<Long> dotIds, Pageable pageable);
 
     @EntityGraph(attributePaths = {
-            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMonQuanLy"
+            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMon"
     })
     Page<DeCuong> findByDeTai_DotBaoVe_IdIn(List<Long> dotIds, Pageable pageable);
 
     @EntityGraph(attributePaths = {
-            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMonQuanLy"
+            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMon"
     })
     Page<DeCuong> findByTrangThaiDeCuongAndDeTai_BoMon_IdAndDeTai_DotBaoVe_IdIn(
             TrangThaiDeCuong trangThai, Long boMonId, List<Long> dotIds, Pageable pageable);
 
     @EntityGraph(attributePaths = {
-            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMonQuanLy"
+            "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMon"
     })
     List<DeCuong> findByTrangThaiDeCuongAndDeTai_BoMon_IdAndDeTai_DotBaoVe_IdIn(
             TrangThaiDeCuong trangThai, Long boMonId, List<Long> dotIds);
@@ -43,4 +43,10 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
     Optional<DeCuong> findFirstByDeTai_SinhVien_User_EmailIgnoreCaseOrderByCreatedAtDesc(String email);
 
     List<DeCuong> findByDeTai_SinhVien_User_EmailIgnoreCase(String email);
+
+    Page<DeCuong> findByTruongBoMon_User_Email(String email, Pageable pageable);
+    Page<DeCuong> findByGiangVienPhanBien_User_Email(String email, Pageable pageable);
+    Page<DeCuong> findByGiangVienHuongDan_User_EmailIgnoreCaseOrGiangVienPhanBien_User_EmailIgnoreCaseOrTruongBoMon_User_EmailIgnoreCaseAndDeTai_DotBaoVe_IdIn(
+            String email1, String email2, String email3, List<Long> dotIds, Pageable pageable
+    );
 }

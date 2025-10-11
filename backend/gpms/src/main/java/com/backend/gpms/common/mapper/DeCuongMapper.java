@@ -21,17 +21,32 @@ public interface DeCuongMapper {
 
     // Entity -> Response
     @Mappings({
-            @Mapping(source = "deTai.sinhVien.maSinhVien",  target = "maSV"),
+            @Mapping(source = "deTai.sinhVien.maSinhVien",  target = "maSinhVien"),
             @Mapping(source = "deTai.sinhVien.hoTen", target = "hoTenSinhVien"),
             @Mapping(source = "deTai.tenDeTai",               target = "tenDeTai"),
-            @Mapping(source = "deTai.giangVienHuongDan.hoTen",      target = "hoTenGiangVien"),
-            @Mapping(source = "phienBan",                     target = "soLanNop"),
+            @Mapping(source = "giangVienHuongDan.hoTen",      target = "giangVienHuongDan"),
             @Mapping(source = "duongDanFile",                   target = "deCuongUrl"),
-            @Mapping(source = "trangThaiDeCuong" , target = "trangThai"),
+            @Mapping(source = "giangVienPhanBien.hoTen",      target = "giangVienPhanBien"),
+            @Mapping(source = "truongBoMon.hoTen",      target = "truongBoMon"),
+            @Mapping(source = "nhanXets", target = "nhanXets", qualifiedByName = "mapNhanXets")
     })
     DeCuongResponse toResponse(DeCuong entity);
 
+    @Named("mapNhanXets")
+    default List<DeCuongResponse.NhanXetDeCuongResponse> mapNhanXets(List<NhanXetDeCuong> nhanXets) {
+        if (nhanXets == null) return null;
+        return nhanXets.stream().map(this::mapNhanXet).toList();
+    }
 
+    @Named("mapNhanXet")
+    default DeCuongResponse.NhanXetDeCuongResponse mapNhanXet(NhanXetDeCuong nhanXet) {
+        if (nhanXet == null) return null;
+        DeCuongResponse.NhanXetDeCuongResponse response = new DeCuongResponse.NhanXetDeCuongResponse();
+        response.setNhanXet(nhanXet.getNhanXet());
+        response.setHoTenGiangVien(nhanXet.getGiangVien() != null ? nhanXet.getGiangVien().getHoTen() : null);
+        response.setCreatedAt(nhanXet.getCreatedAt()); // Giả sử BaseEntity có createdAt
+        return response;
+    }
     @Mapping(target = "id", source = "id")
     @Mapping(target = "deCuongUrl", source = "duongDanFile")
     @Mapping(target = "trangThai", source = "trangThaiDeCuong")
