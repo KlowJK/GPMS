@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    container_name: backend-app
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+    environment:
+      TZ: Asia/Bangkok
+      # SPRING_PROFILES_ACTIVE: prod
+    volumes:
+      - ./secret.yml:/app/config/secret.yml:ro  # Đổi từ /app/secret.yml thành /app/config/secret.yml
