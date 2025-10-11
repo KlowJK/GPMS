@@ -8,6 +8,7 @@ import lombok.Getter; import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter @Setter
 @Entity @Table(name="de_cuong", indexes = @Index(name="idx_dc_dt", columnList="id_de_tai"))
@@ -46,5 +47,8 @@ public class DeCuong extends BaseEntity {
     @Column(name="tbm_duyet", columnDefinition="tt_duyet_don")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private TrangThaiDuyetDon tbmDuyet;
+
+    @OneToMany(mappedBy = "deCuong", cascade = CascadeType.ALL, orphanRemoval = true)
+   private List<NhanXetDeCuong> nhanXets;
 }
 
