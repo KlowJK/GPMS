@@ -78,3 +78,31 @@ export async function approveDeTai(deTaiId: string | number, payload: { approved
     throw err
   }
 }
+
+/**
+ * Reject a proposal
+ * PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/reject
+ * Body: { approved: false, nhanXet: string }
+ * Returns: resp.data.result
+ */
+export async function rejectDeTai(deTaiId: string | number, nhanXet: string) {
+  const url = `/api/giang-vien/do-an/xet-duyet-de-tai/${encodeURIComponent(String(deTaiId))}/reject`
+  const payload = { approved: false, nhanXet }
+  try {
+    const resp = await axios.put(url, payload, { headers: { Accept: '*/*' }, timeout: 10000 })
+    return resp.data?.result
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}

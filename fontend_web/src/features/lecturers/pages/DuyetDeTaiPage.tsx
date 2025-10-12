@@ -1,17 +1,10 @@
 import React, { useState } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import BangDuyetDeTai from '../components/BangDuyetDeTai'
 import ModalXacNhan from '../components/ModalXacNhan'
 import { useReviewsViewModel } from '../viewmodels/useReviewsViewModel'
 
-const localQueryClient = new QueryClient()
-
 export default function DuyetDeTaiPage() {
-  return (
-    <QueryClientProvider client={localQueryClient}>
-      <Inner />
-    </QueryClientProvider>
-  )
+  return <Inner />
 }
 
 function Inner() {
@@ -51,7 +44,7 @@ function Inner() {
       <div className="bg-white shadow rounded">
   <BangDuyetDeTai rows={(vm.data?.content ?? []) as any} isLoading={vm.isLoading} onApprove={onApprove} onReject={(id) => setRejectingId(id)} onView={(url) => vm.openPdf(url)} approvingId={vm.approvingId} />
 
-        <div className="p-4 border-t flex items-center justify-center">
+        {/* <div className="p-4 border-t flex items-center justify-center">
           <div className="flex items-center gap-3">
             <button className="px-3 py-1 border rounded">«</button>
             <button className="px-3 py-1 border rounded bg-slate-200">1</button>
@@ -61,7 +54,7 @@ function Inner() {
             <button className="px-3 py-1 border rounded">10</button>
             <button className="px-3 py-1 border rounded">»</button>
           </div>
-        </div>
+        </div> */}
       </div>
 
   <ModalXacNhan open={!!rejectingId} title="Xác nhận từ chối" message="Bạn có chắc muốn từ chối đề tài này?" onConfirm={onRejectWithReason} onCancel={() => setRejectingId(null)} />
