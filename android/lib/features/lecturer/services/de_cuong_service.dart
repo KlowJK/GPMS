@@ -2,36 +2,32 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:GPMS/features/auth/services/auth_service.dart';
 
-class DeTaiService {
+class DeCuongService {
   static String get _base => AuthService.baseUrl;
 
-  /// GET /api/de-tai/xet-duyet?page=&size=
+  /// GET /api/de-cuong?page=&size=
   static Future<Map<String, dynamic>> fetchPage({int page = 0, int size = 10}) async {
     final token = await AuthService.getToken();
     if (token == null || token.isEmpty) throw Exception('UNAUTHORIZED');
 
-    final uri = Uri.parse('$_base/api/de-tai/xet-duyet')
-        .replace(queryParameters: {'page': '$page', 'size': '$size'});
-
+    final uri = Uri.parse('$_base/api/de-cuong').replace(queryParameters: {'page': '$page', 'size': '$size'});
     final res = await http.get(uri, headers: {
       'accept': 'application/json',
       'Authorization': 'Bearer $token',
     });
+
     if (res.statusCode != 200) {
       throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
-  /// PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/approve
-  static Future<Map<String, dynamic>> approve({
-    required int deTaiId,
-    required String nhanXet,
-  }) async {
+  /// PUT /api/de-cuong/{id}/duyet
+  static Future<Map<String, dynamic>> approve({required int id, required String nhanXet}) async {
     final token = await AuthService.getToken();
     if (token == null || token.isEmpty) throw Exception('UNAUTHORIZED');
 
-    final uri = Uri.parse('$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/approve');
+    final uri = Uri.parse('$_base/api/de-cuong/$id/duyet');
     final res = await http.put(
       uri,
       headers: {
@@ -48,15 +44,12 @@ class DeTaiService {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
-  /// PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/reject
-  static Future<Map<String, dynamic>> reject({
-    required int deTaiId,
-    required String nhanXet,
-  }) async {
+  /// PUT /api/de-cuong/{id}/tu-choi
+  static Future<Map<String, dynamic>> reject({required int id, required String nhanXet}) async {
     final token = await AuthService.getToken();
     if (token == null || token.isEmpty) throw Exception('UNAUTHORIZED');
 
-    final uri = Uri.parse('$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/reject');
+    final uri = Uri.parse('$_base/api/de-cuong/$id/tu-choi');
     final res = await http.put(
       uri,
       headers: {

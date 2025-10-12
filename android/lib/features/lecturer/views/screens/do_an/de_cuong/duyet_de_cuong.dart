@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:GPMS/features/lecturer/services/de_tai_service.dart';
-import 'package:GPMS/features/lecturer/models/de_tai_item.dart';
+import 'package:GPMS/features/lecturer/services/de_cuong_service.dart';
+import 'package:GPMS/features/lecturer/models/de_cuong_item.dart';
 
-class DuyetDeTai extends StatefulWidget {
-  const DuyetDeTai({super.key});
+class DuyetDeCuong extends StatefulWidget {
+  const DuyetDeCuong({super.key});
   @override
-  State<DuyetDeTai> createState() => _DuyetDeTaiState();
+  State<DuyetDeCuong> createState() => _DuyetDeCuongState();
 }
 
-class _DuyetDeTaiState extends State<DuyetDeTai> {
-  final _items = <DeTaiItem>[];
+class _DuyetDeCuongState extends State<DuyetDeCuong> {
+  final _items = <DeCuongItem>[];
   final _scroll = ScrollController();
   bool _loading = false;
   String? _error;
@@ -33,16 +33,15 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
   Future<void> _load({bool reset = false}) async {
     if (_loading) return;
     setState(() {
-      _loading = true;
-      _error = null;
+      _loading = true; _error = null;
       if (reset) { _page = 0; _last = false; _items.clear(); }
     });
 
     try {
-      final raw = await DeTaiService.fetchPage(page: _page, size: _size);
+      final raw = await DeCuongService.fetchPage(page: _page, size: _size);
       final page = (raw['result'] as Map<String, dynamic>);
       final content = List<Map<String, dynamic>>.from(page['content'] ?? []);
-      final mapped = content.map(DeTaiItem.fromJson).toList();
+      final mapped = content.map(DeCuongItem.fromJson).toList();
       setState(() {
         _items.addAll(mapped);
         _last = (page['last'] as bool?) ?? true;
@@ -55,19 +54,23 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
     }
   }
 
-  Future<void> _handleApproveReject(DeTaiItem it, bool approve, int index) async {
+  Future<void> _approveOrReject({
+    required int id,
+    required bool approve,
+    required int index,
+  }) async {
     final note = await _showCommentSheet(context);
     if (note == null || note.trim().isEmpty) return;
 
     try {
       final res = approve
-          ? await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim())
-          : await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
-      final updated = DeTaiItem.fromJson(Map<String, dynamic>.from(res['result']));
+          ? await DeCuongService.approve(id: id, nhanXet: note.trim())
+          : await DeCuongService.reject(id: id, nhanXet: note.trim());
+      final updated = DeCuongItem.fromJson(Map<String, dynamic>.from(res['result']));
       setState(() => _items[index] = updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(approve ? 'Đã duyệt đề tài' : 'Đã từ chối đề tài')),
+        SnackBar(content: Text(approve ? 'Đã duyệt đề cương' : 'Đã từ chối đề cương')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -83,7 +86,7 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              const Text('Danh sách đề tài'),
+              const Text('Danh sách đề cương'),
               const Spacer(),
               IconButton(onPressed: () => _load(reset: true), icon: const Icon(Icons.refresh)),
             ],
@@ -107,13 +110,13 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
                   );
                 }
                 final it = _items[i];
-                return _TopicCard(
+                return _DeCuongCard(
                   item: it,
-                  onApprove: it.status == TopicStatus.pending
-                      ? () => _handleApproveReject(it, true, i)
+                  onApprove: it.status == DeCuongStatus.pending
+                      ? () => _approveOrReject(id: it.id, approve: true, index: i)
                       : null,
-                  onReject: it.status == TopicStatus.pending
-                      ? () => _handleApproveReject(it, false, i)
+                  onReject: it.status == DeCuongStatus.pending
+                      ? () => _approveOrReject(id: it.id, approve: false, index: i)
                       : null,
                 );
               },
@@ -125,27 +128,17 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
   }
 }
 
-class _TopicCard extends StatelessWidget {
-  const _TopicCard({required this.item, this.onApprove, this.onReject});
+class _DeCuongCard extends StatelessWidget {
+  const _DeCuongCard({required this.item, this.onApprove, this.onReject});
 
-  final DeTaiItem item;
+  final DeCuongItem item;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
 
-  Color _statusColor(TopicStatus s) {
-    switch (s) {
-      case TopicStatus.pending: return const Color(0xFFC9B325);
-      case TopicStatus.approved: return const Color(0xFF16A34A);
-      case TopicStatus.rejected: return const Color(0xFFDC2626);
-    }
-  }
-
-  String _statusText(TopicStatus s) {
-    switch (s) {
-      case TopicStatus.pending: return 'Đang chờ duyệt';
-      case TopicStatus.approved: return 'Đã duyệt';
-      case TopicStatus.rejected: return 'Từ chối';
-    }
+  String _fmt(DateTime? d) {
+    if (d == null) return '—';
+    String two(int x) => x.toString().padLeft(2, '0');
+    return '${two(d.day)}/${two(d.month)}/${d.year}';
   }
 
   @override
@@ -157,48 +150,53 @@ class _TopicCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(
-            children: [
-              const CircleAvatar(child: Icon(Icons.person)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Wrap(spacing: 8, children: [
-                  Text(item.studentName ?? 'Sinh viên', style: Theme.of(context).textTheme.titleMedium),
-                  if ((item.studentId ?? '').isNotEmpty)
-                    Text(item.studentId!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
-                ]),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text('Đề tài: ${item.title}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
           Row(children: [
-            Text('Tổng quan đề tài: ', style: Theme.of(context).textTheme.bodyMedium),
+            const CircleAvatar(child: Icon(Icons.person)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Wrap(spacing: 8, runSpacing: 2, children: [
+                Text(item.sinhVienTen ?? 'Sinh viên', style: Theme.of(context).textTheme.titleMedium),
+                if ((item.maSV ?? '').isNotEmpty)
+                  Text(item.maSV!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Text('Ngày nộp: ', style: Theme.of(context).textTheme.bodyMedium),
+            Text(_fmt(item.ngayNop)),
+          ]),
+          const SizedBox(height: 4),
+          Row(children: [
+            Text('File: ', style: Theme.of(context).textTheme.bodyMedium),
             Flexible(
-              child: Text(item.overviewFileName ?? '—',
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                  decoration: (item.overviewFileName ?? '').isEmpty ? TextDecoration.none : TextDecoration.underline,
-                ),
+              child: Text(item.fileName ?? '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    decoration: (item.fileName ?? '').isEmpty ? TextDecoration.none : TextDecoration.underline,
+                  )),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          Row(children: [
+            Text('Trạng thái: ', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              deCuongStatusText(item.status),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: deCuongStatusColor(item.status),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ]),
-          const SizedBox(height: 6),
-          Row(children: [
-            Text('Trạng thái: ', style: Theme.of(context).textTheme.bodyMedium),
-            Text(_statusText(item.status),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: _statusColor(item.status), fontWeight: FontWeight.w600)),
-          ]),
-          if ((item.comment ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('Nhận xét: ${item.comment}'),
+          if ((item.nhanXet ?? '').isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('Nhận xét: ${item.nhanXet}'),
           ],
           const SizedBox(height: 12),
-          if (item.status == TopicStatus.pending)
+          if (item.status == DeCuongStatus.pending)
             Row(children: [
               Expanded(
                 child: FilledButton.icon(

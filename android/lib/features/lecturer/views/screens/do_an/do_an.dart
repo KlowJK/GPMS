@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'sinh_vien/sinh_vien.dart';
 import 'de_tai/duyet_de_tai.dart';
-// import 'de_cuong/duyet_de_cuong.dart';
+import 'de_cuong/duyet_de_cuong.dart';
 
 class DoAn extends StatelessWidget {
   const DoAn({super.key});
@@ -18,12 +18,8 @@ class DoAn extends StatelessWidget {
           foregroundColor: Colors.white,
           centerTitle: true,
           elevation: 0,
-          title: const Text(
-            'Đồ án',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-
-          // TabBar nền trắng, giống hệt ảnh
+          automaticallyImplyLeading: false, // ⬅️ Ẩn mũi tên back
+          title: const Text('Đồ án', style: TextStyle(fontWeight: FontWeight.w700)),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(44),
             child: Container(
@@ -33,12 +29,11 @@ class DoAn extends StatelessWidget {
             ),
           ),
         ),
-
         body: const TabBarView(
           children: [
             SinhVienTab(),
             DuyetDeTai(),
-            // DuyetDeCuong(),
+            DuyetDeCuong(),
           ],
         ),
       ),
@@ -54,18 +49,15 @@ class _TopTabs extends StatelessWidget {
     const blue = Color(0xFF2F7CD3);
 
     return TabBar(
-      labelColor: blue,                           // tab đang chọn: xanh
-      unselectedLabelColor: Color(0xFF888888),   // tab chưa chọn: xám
-      labelStyle: const TextStyle(
-        fontWeight: FontWeight.w600,
-        fontSize: 14,
-      ),
-      indicatorSize: TabBarIndicatorSize.label,  // gạch chân theo đúng độ rộng label
+      labelColor: blue,
+      unselectedLabelColor: Color(0xFF888888),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      indicatorSize: TabBarIndicatorSize.label,
       indicator: const UnderlineTabIndicator(
         borderSide: BorderSide(color: blue, width: 2),
-        insets: EdgeInsets.symmetric(horizontal: 16), // thụt vào nhẹ như ảnh
+        insets: EdgeInsets.symmetric(horizontal: 16),
       ),
-      overlayColor: WidgetStatePropertyAll(Colors.transparent),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
       splashFactory: NoSplash.splashFactory,
       tabs: const [
         Tab(text: 'Sinh viên'),
