@@ -102,7 +102,7 @@ public class GiangVienController {
         return ApiResponse.success(giangVienService.getDeTaiSinhVienApproval(status, pageable));
     }
 
-    @Operation(summary = "List đề cương của sinh viên đã nộp - Role sinh viên")
+    @Operation(summary = "List đề cương của sinh viên đã nộp cho giảng viên")
     @GetMapping("/sinh-vien/log")
     public ApiResponse<List<DeCuongNhanXetResponse>> viewDeCuongLog(@RequestParam String maSinhVien) {
         return ApiResponse.success( giangVienService.viewDeCuongLog(maSinhVien));

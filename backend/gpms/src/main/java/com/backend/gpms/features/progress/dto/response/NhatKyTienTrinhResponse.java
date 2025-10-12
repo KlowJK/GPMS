@@ -12,12 +12,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class NhatKyTienTrinhResponse {
-    private Long id;
-    private String tuan;
-    private LocalDateTime ngayBatDau;
-    private LocalDateTime ngayKetThuc;
-    private String noiDung;
-    private String duongDanFile;
-    private String nhanXet;
+     Long id;
+     String tuan;
+     LocalDateTime ngayBatDau;
+     LocalDateTime ngayKetThuc;
+     String trangThaiNhatKy;
+     String noiDung;
+     String duongDanFile;
+     String nhanXet;
 
 }

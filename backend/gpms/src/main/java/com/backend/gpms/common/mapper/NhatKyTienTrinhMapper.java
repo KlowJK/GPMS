@@ -24,15 +24,12 @@ public interface NhatKyTienTrinhMapper {
     @Mapping(target = "duongDanFile", source = "duongDanFile", qualifiedByName = "mapMultipartFileToString")
     NhatKyTienTrinh toEntity(NhatKyTienTrinhRequest request);
 
-    NhatKyTienTrinhResponse toResponse(NhatKyTienTrinh entity);
-
 
     List<NhatKyTienTrinhResponse> toResponseList(List<NhatKyTienTrinh> entities);
 
 
-    default Page<NhatKyTienTrinhResponse> toResponsePage(Page<NhatKyTienTrinh> entities) {
-        return entities.map(this::toResponse);
-    }
+    NhatKyTienTrinhResponse toNhatKyTienTrinhResponse(NhatKyTienTrinh nhatKyTienTrinh);
+
     @Named("mapMultipartFileToString")
     default String mapMultipartFileToString(MultipartFile file) {
         return file != null ? file.getOriginalFilename() : null;
