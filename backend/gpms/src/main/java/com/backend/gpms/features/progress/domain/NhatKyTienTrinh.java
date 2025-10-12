@@ -28,7 +28,7 @@ public class NhatKyTienTrinh extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name="trang_thai_nhat_ky", nullable=false, columnDefinition="tt_duyet_don")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private TrangThaiDeTai trangThaiNhatKy = TrangThaiDeTai.CHO_DUYET;
+    private TrangThaiDeTai trangThaiNhatKy;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien giangVienHuongDan;

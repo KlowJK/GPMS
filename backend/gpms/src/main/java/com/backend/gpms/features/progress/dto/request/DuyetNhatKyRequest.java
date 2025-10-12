@@ -9,6 +9,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DuyetNhatKyRequest {
+
+    @NotNull(message = "NHAT_KY_ID_REQUIRED")
+     Long id;
     @NotNull(message = "NHAN_XET_REQUIRED")
      String nhanXet;
 
