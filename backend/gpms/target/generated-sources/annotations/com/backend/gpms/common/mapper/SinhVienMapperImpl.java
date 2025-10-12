@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-10-08T00:43:02+0700",
+    date = "2025-10-12T18:27:06+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.4 (Oracle Corporation)"
 )
 @Component
@@ -68,6 +68,7 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         SinhVienCreationResponse.SinhVienCreationResponseBuilder sinhVienCreationResponse = SinhVienCreationResponse.builder();
 
+        sinhVienCreationResponse.maSV( sinhVien.getMaSinhVien() );
         sinhVienCreationResponse.email( sinhVienUserEmail( sinhVien ) );
         sinhVienCreationResponse.lopId( map( sinhVien.getLop() ) );
         sinhVienCreationResponse.hoTen( sinhVien.getHoTen() );
@@ -86,6 +87,10 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         sinhVienResponse.email( sinhVienUserEmail( sinhVien ) );
         sinhVienResponse.tenLop( sinhVienLopTenLop( sinhVien ) );
+        sinhVienResponse.maSV( sinhVien.getMaSinhVien() );
+        if ( sinhVien.getDuDieuKien() != null ) {
+            sinhVienResponse.kichHoat( sinhVien.getDuDieuKien() );
+        }
         sinhVienResponse.hoTen( sinhVien.getHoTen() );
         sinhVienResponse.soDienThoai( sinhVien.getSoDienThoai() );
 
@@ -100,8 +105,10 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         SinhVienSupervisedResponse.SinhVienSupervisedResponseBuilder sinhVienSupervisedResponse = SinhVienSupervisedResponse.builder();
 
+        sinhVienSupervisedResponse.maSV( sv.getMaSinhVien() );
         sinhVienSupervisedResponse.tenLop( sinhVienLopTenLop( sv ) );
         sinhVienSupervisedResponse.tenDeTai( svDeTaiTenDeTai( sv ) );
+        sinhVienSupervisedResponse.cvUrl( sv.getDuongDanCv() );
         sinhVienSupervisedResponse.hoTen( sv.getHoTen() );
         sinhVienSupervisedResponse.soDienThoai( sv.getSoDienThoai() );
 
@@ -116,8 +123,10 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         SinhVienSupervisedResponse.SinhVienSupervisedResponseBuilder sinhVienSupervisedResponse = SinhVienSupervisedResponse.builder();
 
+        sinhVienSupervisedResponse.maSV( sv.getMaSinhVien() );
         sinhVienSupervisedResponse.tenLop( sinhVienLopTenLop( sv ) );
         sinhVienSupervisedResponse.tenDeTai( svDeTaiTenDeTai( sv ) );
+        sinhVienSupervisedResponse.cvUrl( sv.getDuongDanCv() );
         sinhVienSupervisedResponse.hoTen( sv.getHoTen() );
         sinhVienSupervisedResponse.soDienThoai( sv.getSoDienThoai() );
 
@@ -132,13 +141,14 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         ApprovalSinhVienResponse.ApprovalSinhVienResponseBuilder approvalSinhVienResponse = ApprovalSinhVienResponse.builder();
 
-        approvalSinhVienResponse.tenLop( sinhVienLopTenLop( sv ) );
-        approvalSinhVienResponse.tenDeTai( svDeTaiTenDeTai( sv ) );
-        approvalSinhVienResponse.trangThai( svDeTaiTrangThai( sv ) );
+        approvalSinhVienResponse.maSV( sv.getMaSinhVien() );
         Long id = svDeTaiId( sv );
         if ( id != null ) {
             approvalSinhVienResponse.idDeTai( String.valueOf( id ) );
         }
+        approvalSinhVienResponse.tenLop( sinhVienLopTenLop( sv ) );
+        approvalSinhVienResponse.tenDeTai( svDeTaiTenDeTai( sv ) );
+        approvalSinhVienResponse.trangThai( svDeTaiTrangThai( sv ) );
         approvalSinhVienResponse.tongQuanDeTaiUrl( svDeTaiNoiDungDeTaiUrl( sv ) );
         approvalSinhVienResponse.nhanXet( svDeTaiNhanXet( sv ) );
         approvalSinhVienResponse.hoTen( sv.getHoTen() );
@@ -155,10 +165,12 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         SinhVienInfoResponse.SinhVienInfoResponseBuilder sinhVienInfoResponse = SinhVienInfoResponse.builder();
 
+        sinhVienInfoResponse.maSV( sv.getMaSinhVien() );
         sinhVienInfoResponse.tenLop( sinhVienLopTenLop( sv ) );
         sinhVienInfoResponse.email( sinhVienUserEmail( sv ) );
         sinhVienInfoResponse.tenKhoa( svLopNganhKhoaTenKhoa( sv ) );
         sinhVienInfoResponse.tenNganh( svLopNganhTenNganh( sv ) );
+        sinhVienInfoResponse.cvUrl( sv.getDuongDanCv() );
         sinhVienInfoResponse.hoTen( sv.getHoTen() );
         sinhVienInfoResponse.soDienThoai( sv.getSoDienThoai() );
 
@@ -173,6 +185,7 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         GetSinhVienWithoutDeTaiResponse.GetSinhVienWithoutDeTaiResponseBuilder getSinhVienWithoutDeTaiResponse = GetSinhVienWithoutDeTaiResponse.builder();
 
+        getSinhVienWithoutDeTaiResponse.maSV( sv.getMaSinhVien() );
         getSinhVienWithoutDeTaiResponse.hoTen( sv.getHoTen() );
 
         return getSinhVienWithoutDeTaiResponse.build();
@@ -216,20 +229,20 @@ public class SinhVienMapperImpl implements SinhVienMapper {
         return deTai.getTenDeTai();
     }
 
-    private TrangThaiDeTai svDeTaiTrangThai(SinhVien sinhVien) {
-        DeTai deTai = sinhVien.getDeTai();
-        if ( deTai == null ) {
-            return null;
-        }
-        return deTai.getTrangThai();
-    }
-
     private Long svDeTaiId(SinhVien sinhVien) {
         DeTai deTai = sinhVien.getDeTai();
         if ( deTai == null ) {
             return null;
         }
         return deTai.getId();
+    }
+
+    private TrangThaiDeTai svDeTaiTrangThai(SinhVien sinhVien) {
+        DeTai deTai = sinhVien.getDeTai();
+        if ( deTai == null ) {
+            return null;
+        }
+        return deTai.getTrangThai();
     }
 
     private String svDeTaiNoiDungDeTaiUrl(SinhVien sinhVien) {

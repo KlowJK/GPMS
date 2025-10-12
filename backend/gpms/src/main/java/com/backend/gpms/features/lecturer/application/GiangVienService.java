@@ -2,6 +2,7 @@ package com.backend.gpms.features.lecturer.application;
 
 import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
+import com.backend.gpms.common.mapper.DeCuongMapper;
 import com.backend.gpms.common.mapper.GiangVienMapper;
 import com.backend.gpms.common.mapper.SinhVienMapper;
 import com.backend.gpms.common.util.TimeGatekeeper;
@@ -21,6 +22,11 @@ import com.backend.gpms.features.lecturer.dto.request.TroLyKhoaCreationRequest;
 import com.backend.gpms.features.lecturer.dto.response.*;
 import com.backend.gpms.features.lecturer.infra.GiangVienLoad;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.outline.domain.DeCuong;
+import com.backend.gpms.features.outline.domain.NhanXetDeCuong;
+import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
+import com.backend.gpms.features.outline.infra.DeCuongRepository;
+import com.backend.gpms.features.outline.infra.NhanXetDeCuongRepository;
 import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.student.infra.SinhVienRepository;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
@@ -63,6 +69,10 @@ public class GiangVienService {
     private final GiangVienMapper giangVienMapper;
     SinhVienMapper sinhVienMapper;
     private final TimeGatekeeper timeGatekeeper;
+    DeCuongRepository deCuongRepository;
+    DeCuongMapper deCuongMapper;
+    NhanXetDeCuongRepository deCuongLogRepository;
+
 
     public List<GiangVienLiteResponse> giangVienLiteResponseList() {
         String accountEmail = getCurrentUsername();
@@ -154,6 +164,21 @@ public class GiangVienService {
         return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
     }
 
+    public List<DeCuongNhanXetResponse> viewDeCuongLog(String maSinhVien) {
+
+        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVien(maSinhVien);
+        if (deCuongs.isEmpty()) throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
+
+        List<Long> ids = deCuongs.stream().map(DeCuong::getId).toList();
+        List<NhanXetDeCuong> allComments = deCuongLogRepository.findByDeCuong_IdInOrderByCreatedAtAsc(ids);
+        Map<Long, List<NhanXetDeCuong>> commentsByDeCuongId = allComments.stream().collect(Collectors.groupingBy(c -> c.getDeCuong().getId()));
+        List<DeCuongNhanXetResponse> responses = deCuongMapper.toDeCuongNhanXetResponse(deCuongs);
+        for (DeCuongNhanXetResponse res : responses) {
+            List<NhanXetDeCuong> cList = commentsByDeCuongId.getOrDefault(res.getId(), List.of());
+            res.setNhanXets(deCuongMapper.toNhanXetDeCuongResponse(cList));
+        }
+        return responses;
+    }
 
     public Set<GiangVienInfoResponse> getGiangVienByBoMonAndSoLuongDeTai(Long boMonId) {
         BoMon boMon = boMonRepository.findById(boMonId)

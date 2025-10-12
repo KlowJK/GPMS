@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-10-08T00:43:02+0700",
+    date = "2025-10-12T18:27:06+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.4 (Oracle Corporation)"
 )
 @Component
@@ -28,6 +28,7 @@ public class GiangVienMapperImpl implements GiangVienMapper {
 
         GiangVien.GiangVienBuilder giangVien = GiangVien.builder();
 
+        giangVien.boMon( giangVienCreateRequestToBoMon( request ) );
         giangVien.hoTen( request.getHoTen() );
         giangVien.maGiangVien( request.getMaGiangVien() );
         giangVien.soDienThoai( request.getSoDienThoai() );
@@ -47,6 +48,7 @@ public class GiangVienMapperImpl implements GiangVienMapper {
 
         GiangVienCreationResponse.GiangVienCreationResponseBuilder giangVienCreationResponse = GiangVienCreationResponse.builder();
 
+        giangVienCreationResponse.maGV( entity.getMaGiangVien() );
         giangVienCreationResponse.email( entityUserEmail( entity ) );
         giangVienCreationResponse.vaiTro( mapRoleDefault( entityUserVaiTro( entity ) ) );
         giangVienCreationResponse.boMonId( map( entity.getBoMon() ) );
@@ -66,6 +68,7 @@ public class GiangVienMapperImpl implements GiangVienMapper {
 
         GiangVienInfoResponse.GiangVienInfoResponseBuilder giangVienInfoResponse = GiangVienInfoResponse.builder();
 
+        giangVienInfoResponse.maGV( entity.getMaGiangVien() );
         giangVienInfoResponse.hoTen( entity.getHoTen() );
         giangVienInfoResponse.hocVi( entity.getHocVi() );
         giangVienInfoResponse.hocHam( entity.getHocHam() );
@@ -81,6 +84,7 @@ public class GiangVienMapperImpl implements GiangVienMapper {
 
         GiangVienLiteResponse.GiangVienLiteResponseBuilder giangVienLiteResponse = GiangVienLiteResponse.builder();
 
+        giangVienLiteResponse.boMonId( entityBoMonId( entity ) );
         giangVienLiteResponse.id( entity.getId() );
         giangVienLiteResponse.hoTen( entity.getHoTen() );
         giangVienLiteResponse.quotaInstruct( entity.getQuotaInstruct() );
@@ -105,6 +109,18 @@ public class GiangVienMapperImpl implements GiangVienMapper {
         giangVienResponse.hocHam( entity.getHocHam() );
 
         return giangVienResponse.build();
+    }
+
+    protected BoMon giangVienCreateRequestToBoMon(GiangVienCreateRequest giangVienCreateRequest) {
+        if ( giangVienCreateRequest == null ) {
+            return null;
+        }
+
+        BoMon boMon = new BoMon();
+
+        boMon.setId( giangVienCreateRequest.getIdBoMon() );
+
+        return boMon;
     }
 
     private String entityUserEmail(GiangVien giangVien) {
