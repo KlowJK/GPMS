@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'sinh_vien/sinh_vien.dart';
 import 'de_tai/duyet_de_tai.dart';
-import 'de_cuong/duyet_de_cuong.dart';
+// import 'de_cuong/duyet_de_cuong.dart';
 
 class DoAn extends StatelessWidget {
   const DoAn({super.key});
@@ -38,7 +38,7 @@ class DoAn extends StatelessWidget {
           children: [
             SinhVienTab(),
             DuyetDeTai(),
-            DuyetDeCuong(),
+            // DuyetDeCuong(),
           ],
         ),
       ),
