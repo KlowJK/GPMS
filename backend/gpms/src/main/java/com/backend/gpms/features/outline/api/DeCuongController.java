@@ -2,10 +2,12 @@ package com.backend.gpms.features.outline.api;
 
 import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.outline.application.DeCuongService;
+import com.backend.gpms.features.outline.domain.TrangThaiDeCuong;
 import com.backend.gpms.features.outline.dto.request.DeCuongUploadRequest;
 import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
 import com.backend.gpms.features.outline.dto.response.NhanXetDeCuongResponse;
+import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -35,17 +37,19 @@ import java.util.Map;
 public class DeCuongController {
     DeCuongService deCuongService;
 
-    @Operation(summary = "Lấy ra danh sách đề cương theo tài khoản đăng nhập, nếu tải khoản là gv hướng dẫn,phản biện,trưởng bộ môn có tham gia duyệt đề cương - Role giảng viên, trưởng bộ môn, trợ lý khoa")
+    @Operation(summary = "Lấy ra danh sách đề cương có trạng thái theo tài khoản đăng nhập, nếu tải khoản là gv hướng dẫn,phản biện,trưởng bộ môn có tham gia duyệt đề cương - Role giảng viên, trưởng bộ môn, trợ lý khoa")
     @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRUONG_BO_MON', 'ROLE_TRO_LY_KHOA')")
     @GetMapping
     public ApiResponse<Page<DeCuongResponse>> getAll(
+            @ParameterObject
+            @RequestParam(name = "status", required = false) TrangThaiDeCuong status,
             @ParameterObject
             @PageableDefault(page = 0,
                     size = 10,
                     sort = "updatedAt",
                     direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ApiResponse.success(deCuongService.getAllDeCuong(pageable));
+        return ApiResponse.success(deCuongService.getAllDeCuong(status,pageable));
     }
 
     @Operation(summary = "Nộp đề cương - Role sinh viên")
