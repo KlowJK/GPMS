@@ -105,6 +105,10 @@ public enum ErrorCode {
     DE_TAI_ALREADY_ACCEPTED(1044, "De tai already accepted", HttpStatus.BAD_REQUEST),
     NOT_IN_DOT_BAO_VE(1045, "Not in dot bao ve", HttpStatus.BAD_REQUEST),
     OLD_PASSWORD(1046, "This is old password", HttpStatus.FORBIDDEN),
+    NOI_DUNG_REQUIRED(1047, "Noi dung cannot be empty", HttpStatus.BAD_REQUEST),
+    NHAN_XET_REQUIRED(1048, "Nhan xet cannot be empty", HttpStatus.BAD_REQUEST),
+    NHAT_KY_NOT_FOUND(1049, "Nhat ky not found", HttpStatus.NOT_FOUND),
+    INVALID_ENUM_VALUE(1050, "Invalid enum value", HttpStatus.BAD_REQUEST)
     ;
 
 
