@@ -4,11 +4,14 @@ import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.department.domain.BoMon;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
 import com.backend.gpms.features.student.domain.SinhVien;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.util.List;
 
 @Getter @Setter
 @Builder
@@ -45,6 +48,7 @@ public class DeTai extends BaseEntity {
     @JoinColumn(name="id_bo_mon", nullable=false)
     private BoMon boMon;
 
-
+    @OneToMany(mappedBy = "deTai", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<NhatKyTienTrinh> nhatKyTienTrinhs;
 
 }
