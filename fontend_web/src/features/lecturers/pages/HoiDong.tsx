@@ -83,13 +83,13 @@ function Inner() {
               </tbody>
             </table>
 
-            <div className="p-4 border-t flex items-center justify-center">
+            {/* <div className="p-4 border-t flex items-center justify-center">
               <div className="flex items-center gap-3">
                 <button disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))} className="px-3 py-1 border rounded">«</button>
                 <span className="px-3 py-1">Trang {(((data as any)?.pageable?.pageNumber ?? (data as any)?.number ?? page) as number) + 1} / {(data as any)?.totalPages ?? 1}</span>
                 <button disabled={!!(data as any)?.last} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border rounded">»</button>
               </div>
-            </div>
+            </div> */}
           </>
         )}
       </div>

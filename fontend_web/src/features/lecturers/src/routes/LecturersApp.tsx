@@ -147,10 +147,10 @@ function Sidebar({
         })}
       </nav>
 
-      <div className="mt-auto">
+      {/* <div className="mt-auto">
         <div className="w-[219px] bg-[#2F7CD3] rounded-[12px] px-4 py-3 text-white font-medium">Phản biện</div>
         <div className="mt-3 p-2 text-xs text-white/80">© Khoa CNTT</div>
-      </div>
+      </div> */}
     </aside>
   );
 

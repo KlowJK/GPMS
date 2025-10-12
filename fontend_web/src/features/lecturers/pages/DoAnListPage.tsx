@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react'
 import { useReviewsViewModel } from '../viewmodels/useReviewsViewModel'
 import { Eye } from 'lucide-react'
+import StudentDetail from '../components/StudentDetail'
+import { useState } from 'react'
 
 export default function DoAnListPage() {
   return <Inner />
@@ -8,6 +10,7 @@ export default function DoAnListPage() {
 
 function Inner() {
   const vm = useReviewsViewModel()
+  const [selectedMaSV, setSelectedMaSV] = useState<string | null>(null)
 
   // Show only approved topics
   useEffect(() => {
@@ -53,7 +56,7 @@ function Inner() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 flex items-center justify-center">
-                        <button title="Xem" onClick={() => vm.openPdf(r.tongQuanDeTaiUrl)} className="p-2 bg-slate-50 text-sky-600 rounded-full flex items-center justify-center"><Eye size={16} /></button>
+                        <button title="Xem" onClick={() => setSelectedMaSV(r.maSV)} className="p-2 bg-slate-50 text-sky-600 rounded-full flex items-center justify-center"><Eye size={16} /></button>
                       </div>
                     </div>
                   </td>
@@ -75,6 +78,7 @@ function Inner() {
           </div>
         </div> */}
       </div>
+      <StudentDetail open={!!selectedMaSV} maSV={selectedMaSV ?? undefined} onClose={() => setSelectedMaSV(null)} />
     </div>
   )
 }
