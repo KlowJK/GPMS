@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchReviewList, rejectReview, approveDeTai } from '../services/api'
+import { fetchReviewList, rejectDeTai, approveDeTai } from '../services/api'
 import type { XetDuyetItem, PageXetDuyet } from '../models/danh_sach_duyet'
 
 export function useReviewsViewModel(initialPage = 0, initialSize = 10) {
@@ -23,8 +23,8 @@ export function useReviewsViewModel(initialPage = 0, initialSize = 10) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lecturers-reviews'] as any }),
   })
 
-  const rejectMutation = useMutation<any, Error, string>({
-    mutationFn: (idDeTai: string) => rejectReview(idDeTai),
+  const rejectMutation = useMutation<any, Error, { id: string; nhanXet: string }>({
+    mutationFn: ({ id, nhanXet }) => rejectDeTai(id, nhanXet),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lecturers-reviews'] as any }),
   })
 
@@ -50,7 +50,8 @@ export function useReviewsViewModel(initialPage = 0, initialSize = 10) {
         onSettled: () => setApprovingId(null),
       })
     },
-    reject: (id: string) => rejectMutation.mutate(id),
+    reject: (id: string) => rejectMutation.mutate({ id, nhanXet: '' }),
+    rejectWithReason: (id: string, nhanXet: string) => rejectMutation.mutate({ id, nhanXet }),
     approvingId,
     openPdf,
   }

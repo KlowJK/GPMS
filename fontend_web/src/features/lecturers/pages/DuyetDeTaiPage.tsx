@@ -23,8 +23,19 @@ function Inner() {
   }
 
   const onRejectConfirm = () => {
+    // kept for old signature; not used now
+  }
+
+  const onRejectWithReason = (nhanXet: string) => {
     if (!rejectingId) return
-    vm.reject(rejectingId)
+    // call viewmodel method that accepts reason
+    if ((vm as any).rejectWithReason) {
+      ;(vm as any).rejectWithReason(rejectingId, nhanXet)
+      // show a simple alert toast (replace with app toast lib if available)
+      try { window.alert('Từ chối thành công') } catch {}
+    } else {
+      vm.reject(rejectingId)
+    }
     setRejectingId(null)
   }
 
@@ -53,7 +64,7 @@ function Inner() {
         </div>
       </div>
 
-  <ModalXacNhan open={!!rejectingId} title="Xác nhận từ chối" message="Bạn có chắc muốn từ chối đề tài này?" onConfirm={onRejectConfirm} onCancel={() => setRejectingId(null)} />
+  <ModalXacNhan open={!!rejectingId} title="Xác nhận từ chối" message="Bạn có chắc muốn từ chối đề tài này?" onConfirm={onRejectWithReason} onCancel={() => setRejectingId(null)} />
     </div>
   )
 }
