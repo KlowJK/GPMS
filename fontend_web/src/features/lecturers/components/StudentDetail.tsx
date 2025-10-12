@@ -1,6 +1,8 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { axios } from '@shared/libs/axios'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { approveProposal, rejectProposal, fetchStudentProposals } from '../services/api'
 
 export default function StudentDetail({ open, maSV, onClose }: { open: boolean; maSV?: string | null; onClose: () => void }) {
   const query = useQuery<any, Error>({
@@ -13,9 +15,51 @@ export default function StudentDetail({ open, maSV, onClose }: { open: boolean; 
     enabled: !!maSV,
   })
 
-  if (!open) return null
+  // proposals list for the student (separate API)
+  const proposalsQuery = useQuery<any[], Error>({
+    queryKey: ['sinh-vien-proposals', maSV],
+    queryFn: () => fetchStudentProposals(String(maSV)),
+    enabled: !!maSV,
+  })
+
 
   const data = query.data
+  const displayProposals = proposalsQuery.data ?? []
+  // số lần nộp = số phiên bản (phienBan) nếu có, fallback về số items
+  const versionSet = new Set(displayProposals.map((p: any) => (p?.phienBan != null ? String(p.phienBan) : null)).filter(Boolean))
+  const versionCount = versionSet.size > 0 ? versionSet.size : displayProposals.length
+
+  // helpers to check status more precisely
+  const normalizeStatusKey = (raw: any) => String(raw ?? '').toUpperCase().replace(/\s+|_|-|\./g, '')
+  const isRejected = (raw: any) => {
+    const k = normalizeStatusKey(raw)
+    return k.includes('TUCHOI') || k === 'TUCHOI' || k.includes('TUCH')
+  }
+  const isPending = (raw: any) => {
+    const k = normalizeStatusKey(raw)
+    // ensure not rejected
+    if (isRejected(k)) return false
+    return k === 'CHO' || k.includes('CHOXET') || k.includes('CHODUYET') || k.includes('CHODUYET')
+  }
+  const isApproved = (raw: any) => {
+    const k = normalizeStatusKey(raw)
+    return k.includes('DADUYET') || k === 'DADUYET' || k === 'DADUYET'
+  }
+
+  const qc = useQueryClient()
+  const [loadingId, setLoadingId] = React.useState<string | number | null>(null)
+  const approveMut = useMutation<any, Error, string | number>({
+    mutationFn: id => approveProposal(id),
+    onMutate: (id) => setLoadingId(id),
+    onSettled: () => { setLoadingId(null); qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] }); qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] }) },
+  })
+  const rejectMut = useMutation<any, Error, { id: string | number; nhanXet?: string }>({
+    mutationFn: ({ id, nhanXet }) => rejectProposal(id, nhanXet),
+    onMutate: ({ id }) => setLoadingId(id),
+    onSettled: () => { setLoadingId(null); qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] }); qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] }) },
+  })
+
+  if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
@@ -65,20 +109,29 @@ export default function StudentDetail({ open, maSV, onClose }: { open: boolean; 
               </div>
 
               {/* Submissions */}
+              <div className="mb-3 font-medium">Đề cương — Số lần nộp: {versionCount}</div>
+
               <div className="space-y-4">
-                {(data.deCuongNopList || []).map((sub: any, idx: number) => (
+                {displayProposals.map((sub: any, idx: number) => (
                   <div key={idx} className="border rounded flex">
                     <div className="w-2 bg-blue-600" />
                     <div className="p-4 flex-1">
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-medium">{sub.title ?? `Nộp đề cương lần ${idx + 1}`}</div>
-                          <div className="text-xs text-slate-500">Ngày nộp: {sub.ngayNop ?? ''}</div>
+                          <div className="font-medium">{sub.tenDeTai ?? sub.title ?? `Nộp đề cương lần ${idx + 1}`}</div>
+                          <div className="text-xs text-slate-500">Ngày nộp: {sub.ngayNop ?? ''} {sub.phienBan != null ? `· Phiên bản: ${sub.phienBan}` : ''}</div>
                         </div>
                         <div className="text-right">
-                          <div className={`inline-block px-3 py-1 rounded-full text-xs ${sub.trangThai === 'DA_DUYET' ? 'bg-green-100 text-green-800' : sub.trangThai === 'TU_CHOI' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`}>
-                            {sub.trangThai === 'DA_DUYET' ? 'đã duyệt' : sub.trangThai === 'TU_CHOI' ? 'Từ chối' : 'chờ xét' }
-                          </div>
+                          {isPending(sub.trangThai) ? (
+                            <div className="flex flex-col items-end gap-2">
+                              <button disabled={loadingId === sub.id} onClick={() => approveMut.mutate(sub.id)} className="px-3 py-1 rounded-full bg-green-500 text-white text-sm">Duyệt</button>
+                              <button disabled={loadingId === sub.id} onClick={() => rejectMut.mutate({ id: sub.id })} className="px-3 py-1 rounded-full bg-red-500 text-white text-sm">Từ chối</button>
+                            </div>
+                          ) : (
+                            <div className={`inline-block px-3 py-1 rounded-full text-xs ${isApproved(sub.trangThai) ? 'bg-green-100 text-green-800' : isRejected(sub.trangThai) ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                              {isApproved(sub.trangThai) ? 'đã duyệt' : isRejected(sub.trangThai) ? 'Từ chối' : 'chờ xét' }
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -89,6 +142,22 @@ export default function StudentDetail({ open, maSV, onClose }: { open: boolean; 
                           <div className="text-sm text-slate-500">Không có file</div>
                         )}
                       </div>
+
+                      {/* Nếu bị từ chối, hiển thị lý do (nhanXets hoặc nhanXet) */}
+                      {isRejected(sub.trangThai) && (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded text-sm text-red-700">
+                          <div className="font-medium text-sm">Lý do từ chối</div>
+                          {Array.isArray(sub.nhanXets) && sub.nhanXets.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-1">
+                              {sub.nhanXets.map((nx: any, i: number) => (
+                                <li key={i}>{nx.nhanXet ?? nx}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="mt-1">{sub.nhanXet ?? 'Không có lý do cụ thể'}</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
