@@ -12,6 +12,7 @@ import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
 import com.backend.gpms.features.outline.domain.DeCuong;
 import com.backend.gpms.features.outline.domain.NhanXetDeCuong;
 import com.backend.gpms.features.outline.domain.TrangThaiDeCuong;
+import com.backend.gpms.features.outline.domain.TrangThaiDuyetDon;
 import com.backend.gpms.features.outline.dto.request.DeCuongUploadRequest;
 import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
@@ -196,24 +197,43 @@ public class DeCuongService {
 
 
 
-    public Page<DeCuongResponse> getAllDeCuong(Pageable pageable) {
-        // 1) Lấy danh sách dot đang mở NOP_DE_CUONG hôm nay
-        Long activeDotId = timeGatekeeper.getCurrentDotBaoVe().getId(); // ném NOT_IN_DOT_BAO_VE nếu không có
+    public Page<DeCuongResponse> getAllDeCuong(TrangThaiDeCuong status ,Pageable pageable) {
+        Long activeDotId = timeGatekeeper.getCurrentDotBaoVe().getId();
         List<Long> activeDotIds = java.util.List.of(activeDotId);
 
-        // 2) Phân quyền: GV chỉ xem SV mình hướng dẫn
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         boolean isGV = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_GIANG_VIEN")
                         || a.getAuthority().equals("ROLE_TRUONG_BO_MON") || a.getAuthority().equals("ROLE_TRO_LY_KHOA"));
 
-        Page<DeCuong> page = isGV
-                ? deCuongRepository
-                .findByGiangVienHuongDan_User_EmailIgnoreCaseOrGiangVienPhanBien_User_EmailIgnoreCaseOrTruongBoMon_User_EmailIgnoreCaseAndDeTai_DotBaoVe_IdIn(email,email,email, activeDotIds, pageable)
-                : deCuongRepository
-                .findByDeTai_DotBaoVe_IdIn(activeDotIds, pageable);
+        TrangThaiDuyetDon statusFilter;
+        if(status == null) {
+            statusFilter = null;
+        } else if (status == TrangThaiDeCuong.CHO_DUYET) {
+            statusFilter = TrangThaiDuyetDon.CHO_DUYET;
+        } else if(status == TrangThaiDeCuong.DA_DUYET) {
+            statusFilter = TrangThaiDuyetDon.DA_DUYET;
+        }else if(status == TrangThaiDeCuong.TU_CHOI) {
+            statusFilter = TrangThaiDuyetDon.TU_CHOI;
+        } else {
+            throw new ApplicationException(ErrorCode.INVALID_ENUM_VALUE);
+        }
 
+        Page<DeCuong> page;
+        if (status == null) {
+            page = isGV
+                ? deCuongRepository
+                    .findByGiangVienHuongDan_User_EmailIgnoreCaseOrGiangVienPhanBien_User_EmailIgnoreCaseOrTruongBoMon_User_EmailIgnoreCaseAndDeTai_DotBaoVe_IdInOrderByCreatedAtDesc(email, email, email, activeDotIds, pageable)
+                : deCuongRepository
+                    .findByDeTai_DotBaoVe_IdIn(activeDotIds, pageable);
+        } else {
+            page = isGV
+                ? deCuongRepository
+                    .findOutlineWithAnyStatus(email, email, email, activeDotIds, status, statusFilter, statusFilter, pageable)
+                : deCuongRepository
+                    .findByDeTai_DotBaoVe_IdIn(activeDotIds, pageable);
+        }
         return page.map(mapper::toResponse);
     }
 
