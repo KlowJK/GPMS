@@ -27,9 +27,9 @@ export default function BangDuyetDeTai({ rows, isLoading, onApprove, onReject, o
             <td className="px-6 py-4">{r.tenLop}</td>
             <td className="px-6 py-4">{r.tenDeTai}</td>
             <td className="px-6 py-4">
-              {r.trangThai === 'CHO_XET_DUYET' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">chờ xét duyệt</span>)}
-              {r.trangThai === 'DA_DUYET' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-green-100 text-green-800">đã duyệt</span>)}
-              {r.trangThai === 'TU_CHOI' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-red-100 text-red-800">từ chối</span>)}
+              {r.trangThai === 'CHO_XET_DUYET' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Chờ xét duyệt</span>)}
+              {r.trangThai === 'DA_DUYET' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-green-100 text-green-800">Đã duyệt</span>)}
+              {r.trangThai === 'TU_CHOI' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-red-100 text-red-800">Từ chối</span>)}
             </td>
             <td className="px-6 py-4">
               <div className="flex items-center gap-3">
