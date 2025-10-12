@@ -6,6 +6,7 @@ import com.backend.gpms.features.lecturer.dto.request.GiangVienCreationRequest;
 import com.backend.gpms.features.lecturer.dto.request.GiangVienUpdateRequest;
 import com.backend.gpms.features.lecturer.dto.request.TroLyKhoaCreationRequest;
 import com.backend.gpms.features.lecturer.dto.response.*;
+import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.topic.application.DeTaiService;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.dto.request.DeTaiApprovalRequest;
@@ -100,6 +101,13 @@ public class GiangVienController {
 
         return ApiResponse.success(giangVienService.getDeTaiSinhVienApproval(status, pageable));
     }
+
+    @Operation(summary = "List đề cương của sinh viên đã nộp - Role sinh viên")
+    @GetMapping("/sinh-vien/log")
+    public ApiResponse<List<DeCuongNhanXetResponse>> viewDeCuongLog(@RequestParam String maSinhVien) {
+        return ApiResponse.success( giangVienService.viewDeCuongLog(maSinhVien));
+    }
+
 
     @Operation(summary = "Lấy giảng viên theo bộ môn")
     @GetMapping("/{boMonId}")
