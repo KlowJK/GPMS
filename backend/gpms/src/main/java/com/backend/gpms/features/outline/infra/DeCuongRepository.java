@@ -75,4 +75,6 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
         @Param("tbmDuyet") TrangThaiDuyetDon tbmDuyet,
         Pageable pageable
     );
+
+    List<DeCuong> findByDeTai_SinhVien_MaSinhVien(String maSinhVien);
 }

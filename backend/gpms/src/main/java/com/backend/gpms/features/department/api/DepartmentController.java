@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,7 +25,7 @@ import java.util.List;
 @Tag(name = "Department", description = "API for managing departments, faculties, classes, and majors")
 @RestController
 @RequestMapping(
-        value = "/api/department"
+        value = "/api/public"
 )
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -37,6 +38,7 @@ public class DepartmentController {
 
     @GetMapping("/bo-mon")
     public ApiResponse<Page<BoMonResponse>> getAllBoMon(
+            @ParameterObject
             @PageableDefault(
                     page = 0,
                     size = 10,
