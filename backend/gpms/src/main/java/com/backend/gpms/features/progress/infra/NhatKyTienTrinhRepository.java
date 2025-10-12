@@ -17,8 +17,10 @@ public interface NhatKyTienTrinhRepository extends JpaRepository<NhatKyTienTrinh
     List<NhatKyTienTrinh> findByGiangVienHuongDan_IdOrderByCreatedAt(Long aLong);
 
     Page<NhatKyTienTrinh> findByGiangVienHuongDan_IdAndTrangThaiNhatKyOrderByCreatedAt(Long aLong, TrangThaiDeTai trangThaiNhatKy, Pageable pageable);
+    Page<NhatKyTienTrinh> findByGiangVienHuongDan_IdOrderByCreatedAt(Long aLong, Pageable pageable);
 
-    List<NhatKyTienTrinh> findByDeTai_IdOrderByCreatedAt(Long deTaiId);
+    List<NhatKyTienTrinh> findByDeTai_IdOrderByCreatedAtDesc(Long deTaiId);
 
     Page<NhatKyTienTrinh> findByDeTai_IdOrderByCreatedAt(Long deTaiId, Pageable pageable);
+
 }

@@ -13,6 +13,7 @@ import com.backend.gpms.features.progress.infra.NhatKyTienTrinhRepository;
 import com.backend.gpms.features.storage.application.CloudinaryStorageService;
 import com.backend.gpms.features.storage.application.StorageService;
 
+import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -47,7 +48,7 @@ public class NhatKyTienTrinhService {
 
     private DeTaiRepository deTaiRepository;
 
-    private NhatKyTienTrinhMapper mapper;
+    private NhatKyTienTrinhMapper nhatKyTienTrinhMapper;
 
     private CloudinaryStorageService cloudinaryService;
 
@@ -98,9 +99,13 @@ public class NhatKyTienTrinhService {
     }
 
     // Lấy danh sách tuần dựa trên ngày duyệt đến ngày kết thúc
-    public List<TuanResponse> getTuanList(Long deTaiId) {
-        DeTai deTai = deTaiRepository.findById(deTaiId)
-                .orElseThrow(() -> new RuntimeException("DeTai not found"));
+    public List<TuanResponse> getTuanList() {
+
+
+        String email = getCurrentUsername();
+        DeTai deTai = deTaiRepository
+                .findBySinhVien_User_EmailIgnoreCase(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
         LocalDateTime ngayDuyet = getNgayDuyetDeTai(deTai);
         LocalDateTime ngayKetThuc = deTai.getDotBaoVe().getNgayKetThuc().atStartOfDay();
 
@@ -131,21 +136,22 @@ public class NhatKyTienTrinhService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
 
         Long idDeTai=deTai.getId();
-        List<NhatKyTienTrinh> entities = nhatKyRepository.findByDeTai_IdOrderByCreatedAt(idDeTai);
-        return mapper.toResponseList(entities);
+        List<NhatKyTienTrinh> entities = nhatKyRepository.findByDeTai_IdOrderByCreatedAtDesc(idDeTai);
+        return nhatKyTienTrinhMapper.toResponseList(entities);
     }
 
-    public Page<NhatKyTienTrinhResponse> getNhatKyPage(Pageable pageable) {
+    public Page<NhatKyTienTrinhResponse> getNhatKyPage(TrangThaiDeTai status, Pageable pageable) {
         String email = getCurrentUsername();
         Long gvhdId = giangVienRepository.findByUser_Email(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_A_GVHD))
                 .getId();
 
-        Page<NhatKyTienTrinh> entities = nhatKyRepository.findByGiangVienHuongDan_IdAndTrangThaiNhatKyOrderByCreatedAt(gvhdId, TrangThaiDeTai.CHO_DUYET,pageable);
-        return mapper.toResponsePage(entities);
+        Page<NhatKyTienTrinh> page = (status == null)
+                ? nhatKyRepository.findByGiangVienHuongDan_IdOrderByCreatedAt(gvhdId,pageable)
+                : nhatKyRepository.findByGiangVienHuongDan_IdAndTrangThaiNhatKyOrderByCreatedAt(gvhdId, status,pageable);
+        return page.map(nhatKyTienTrinhMapper::toNhatKyTienTrinhResponse) ;
     }
 
-    // Nộp nhật ký, tự tính tuần
     public NhatKyTienTrinhResponse nopNhatKy(NhatKyTienTrinhRequest request)  {
         String email = getCurrentUsername();
 
@@ -170,19 +176,32 @@ public class NhatKyTienTrinhService {
             entity.setDuongDanFile(url);
         }
 
-        return mapper.toResponse(nhatKyRepository.save(entity));
+        return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse(nhatKyRepository.save(entity));
     }
 
-    public NhatKyTienTrinhResponse duyetNhatKy(Long id, DuyetNhatKyRequest request) {
+    public NhatKyTienTrinhResponse duyetNhatKy(DuyetNhatKyRequest request) {
 
-        NhatKyTienTrinh entity = nhatKyRepository.findById(id)
+        NhatKyTienTrinh entity = nhatKyRepository.findById(request.getId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NHAT_KY_NOT_FOUND));
 
+        if (entity.getTrangThaiNhatKy() != TrangThaiDeTai.CHO_DUYET) {
+            throw new ApplicationException(ErrorCode.NHAT_KY_ALREADY_REVIEWED);
+        }
+
+        DeTai deTai = deTaiRepository
+                .findByNhatKyTienTrinhs_Id(request.getId())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+
+        LocalDateTime ngayNop = LocalDateTime.now();
+
+        TuanInfo tuanInfo = calculateTuanInfo(deTai, ngayNop);
+
+        entity.setTuan(tuanInfo.tuan);
+        entity.setNgayBatDau(tuanInfo.ngayBatDau);
+        entity.setNgayKetThuc(tuanInfo.ngayKetThuc);
         entity.setTrangThaiNhatKy(TrangThaiDeTai.DA_DUYET);
         entity.setNhanXet(request.getNhanXet());
-        NhatKyTienTrinh saved = nhatKyRepository.save(entity);
-
-        return mapper.toResponse(saved);
+        return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse( nhatKyRepository.save(entity));
     }
 
 

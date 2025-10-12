@@ -108,7 +108,9 @@ public enum ErrorCode {
     NOI_DUNG_REQUIRED(1047, "Noi dung cannot be empty", HttpStatus.BAD_REQUEST),
     NHAN_XET_REQUIRED(1048, "Nhan xet cannot be empty", HttpStatus.BAD_REQUEST),
     NHAT_KY_NOT_FOUND(1049, "Nhat ky not found", HttpStatus.NOT_FOUND),
-    INVALID_ENUM_VALUE(1050, "Invalid enum value", HttpStatus.BAD_REQUEST)
+    INVALID_ENUM_VALUE(1050, "Invalid enum value", HttpStatus.BAD_REQUEST),
+    NHAT_KY_ALREADY_REVIEWED(1051, "Nhat ky already reviewed", HttpStatus.BAD_REQUEST),
+    NHAT_KY_ID_REQUIRED(1052, "Nhat ky ID is required", HttpStatus.BAD_REQUEST)
     ;
 
 
