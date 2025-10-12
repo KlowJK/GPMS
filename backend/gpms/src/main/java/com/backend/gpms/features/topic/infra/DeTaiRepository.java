@@ -1,9 +1,11 @@
 package  com.backend.gpms.features.topic.infra;
 
 import com.backend.gpms.features.lecturer.infra.GiangVienLoad;
+import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
 import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,5 +34,5 @@ public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
     Optional<DeTai> findByTenDeTaiIgnoreCaseAndSinhVien_MaSinhVienIgnoreCase(String tenDeTai, String sinhVienThucHienMaSV);
     List<DeTai> findBySinhVien_MaSinhVienIgnoreCaseAndDotBaoVe_IdAndTrangThai(String maSv, Long dotId, TrangThaiDeTai trangThai);
 
-
+    Optional<DeTai> findByNhatKyTienTrinhs_Id(Long nhatKyId);
 }
