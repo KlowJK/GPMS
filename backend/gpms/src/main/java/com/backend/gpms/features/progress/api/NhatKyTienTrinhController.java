@@ -1,13 +1,13 @@
 package com.backend.gpms.features.progress.api;
 
 import com.backend.gpms.common.util.ApiResponse;
-import com.backend.gpms.features.lecturer.dto.response.SinhVienSupervisedResponse;
+
 import com.backend.gpms.features.progress.application.NhatKyTienTrinhService;
+import com.backend.gpms.features.progress.domain.TrangThaiNhatKy;
 import com.backend.gpms.features.progress.dto.request.DuyetNhatKyRequest;
 import com.backend.gpms.features.progress.dto.request.NhatKyTienTrinhRequest;
 import com.backend.gpms.features.progress.dto.response.NhatKyTienTrinhResponse;
 import com.backend.gpms.features.progress.dto.response.TuanResponse;
-import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,16 +18,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 
 @Tag(name = "NhatKyTienTrinh")
 @RestController
 @RequestMapping("/api/public")
 @AllArgsConstructor
+
 public class NhatKyTienTrinhController {
 
    
@@ -36,22 +37,25 @@ public class NhatKyTienTrinhController {
     @Operation(summary = "Lấy danh sách tuần tính theo ngày đề tài được duyệt đến ngày kết thúc đợt - Role Sinh Viên")
     @PreAuthorize("hasAuthority('ROLE_SINH_VIEN')")
     @GetMapping("/tuans")
-    public ApiResponse<List<TuanResponse>> getTuanList() {
-        return ApiResponse.success(service.getTuanList());
+    public ApiResponse<List<TuanResponse>> getTuanList(
+            @ParameterObject
+            @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
+        return ApiResponse.success(service.getTuanList(includeAll));
     }
 
-    @Operation(summary = "Lấy danh sách nhật ký tiến trình của mình - Role Sinh Viên")
+    @Operation(summary = "Lấy danh sách nhật ký tiến trình của mình, nếu true, lấy tất cả nhật ký; nếu false, chỉ lấy nhật ký của sinh viên từ tuần đầu tiên đến hiện tại (mặc định false)- Role Sinh Viên")
     @PreAuthorize("hasAuthority('ROLE_SINH_VIEN')")
     @GetMapping
-    public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyList() {
-        return ApiResponse.success(service.getNhatKyList());
+    public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyList(
+            @ParameterObject
+            @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
+        return ApiResponse.success(service.getNhatKyList(includeAll));
     }
 
     @Operation(summary = "Nộp nhật ký tiến trình(Nội dung kèm file) - Role Sinh Viên")
     @PreAuthorize("hasAuthority('ROLE_SINH_VIEN')")
-    @PostMapping("/{deTaiId}")
+    @PutMapping(value = "/{deTaiId}/nop-nhat-ky", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<NhatKyTienTrinhResponse> nopNhatKy(
-            @ParameterObject
             @ModelAttribute @Valid NhatKyTienTrinhRequest request){
         return ApiResponse.success(service.nopNhatKy(request));
     }
@@ -67,7 +71,7 @@ public class NhatKyTienTrinhController {
     @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
     @GetMapping("/my-supervised-students")
     public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
-            @RequestParam(name = "status", required = false) TrangThaiDeTai status,
+            @RequestParam(name = "status", required = false) TrangThaiNhatKy status,
             @ParameterObject
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.ASC)
             Pageable pageable) {
