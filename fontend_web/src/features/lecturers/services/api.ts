@@ -137,6 +137,66 @@ export async function rejectProposal(proposalId: string | number, nhanXet?: stri
 }
 
 /**
+ * Reject a proposal (đề cương) by id (and optional version/phienBan).
+ * Endpoint: PUT /api/de-cuong/{id}/tu-choi?reason={reason}
+ * Body: optionally { phienBan: number }
+ * Returns: resp.data.result
+ */
+export async function rejectDeCuong(id: string | number, phienBan?: number | string, reason?: string) {
+  const q = reason ? `?reason=${encodeURIComponent(String(reason))}` : ''
+  const url = `/api/de-cuong/${encodeURIComponent(String(id))}/tu-choi${q}`
+  const payload: any = {}
+  if (phienBan !== undefined) payload.phienBan = phienBan
+  try {
+    const resp = await axios.put(url, payload, { headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
+/**
+ * Approve a proposal (đề cương) by id and optional version/phienBan.
+ * Endpoint: PUT /api/de-cuong/{id}/duyet?reason={reason}
+ * Body: optionally { phienBan: number }
+ * Returns: resp.data.result
+ */
+export async function approveDeCuong(id: string | number, phienBan?: number | string, reason?: string) {
+  const q = reason ? `?reason=${encodeURIComponent(String(reason))}` : ''
+  const url = `/api/de-cuong/${encodeURIComponent(String(id))}/duyet${q}`
+  const payload: any = {}
+  if (phienBan !== undefined) payload.phienBan = phienBan
+  try {
+    const resp = await axios.put(url, payload, { headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
+/**
  * Fetch student's proposal submissions (đề cương) by student code
  * GET /api/giang-vien/sinh-vien/log?maSinhVien={maSinhVien}
  * Returns an array of proposals with normalized `trangThai` and some convenience fields
