@@ -38,7 +38,6 @@ public class NhatKyTienTrinhController {
     @PreAuthorize("hasAuthority('ROLE_SINH_VIEN')")
     @GetMapping("/tuans")
     public ApiResponse<List<TuanResponse>> getTuanList(
-            @ParameterObject
             @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
         return ApiResponse.success(service.getTuanList(includeAll));
     }
@@ -47,7 +46,6 @@ public class NhatKyTienTrinhController {
     @PreAuthorize("hasAuthority('ROLE_SINH_VIEN')")
     @GetMapping
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyList(
-            @ParameterObject
             @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
         return ApiResponse.success(service.getNhatKyList(includeAll));
     }
@@ -72,7 +70,7 @@ public class NhatKyTienTrinhController {
     @GetMapping("/my-supervised-students")
     public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
             @RequestParam(name = "status", required = false) TrangThaiNhatKy status,
-            @ParameterObject
+
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.ASC)
             Pageable pageable) {
 
@@ -80,8 +78,25 @@ public class NhatKyTienTrinhController {
     }
 
 
+    @Operation(summary = "Nếu includeAll =false ấy tuần tự động tính theo ngày hiện tại, còn lại tất cả, tuần được tính theo ngày đề tài được duyệt đến ngày kết thúc đợt - Role giảng viên")
+    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @GetMapping("/tuans-by-lecturer")
+    public ApiResponse<List<TuanResponse>> getTuanListByGVHD(
+            @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
+        return ApiResponse.success(service.getTuanListByGVHD(includeAll));
+    }
 
+    @Operation(summary = "Lấy danh sách tất cả sinh viên thuộc tuần hiện tại hoặc tất cả sinh viên nếu includeAll=true - Role giảng viên")
+    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @GetMapping("/all-nhat-ky")
+    public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
+            @RequestParam(name = "status", required = false) String status,
+            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.ASC)
+            Pageable pageable) {
 
+        return ApiResponse.success(service.getNhatKyTienTrinhPage(status,pageable));
+
+    }
 
 
 

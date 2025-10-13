@@ -30,4 +30,7 @@ public interface NhatKyTienTrinhRepository extends JpaRepository<NhatKyTienTrinh
 
     Optional<NhatKyTienTrinh> findByDeTai_IdAndTuan(Long deTaiId, String tuan);
 
+
+    Page<NhatKyTienTrinh> findByDeTai_IdAndNgayBatDauBetween(Long deTaiId, LocalDateTime start, LocalDateTime end, Pageable pageable);
+
 }

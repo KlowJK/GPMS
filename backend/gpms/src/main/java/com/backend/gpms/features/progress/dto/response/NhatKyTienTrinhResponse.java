@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 public class NhatKyTienTrinhResponse {
      Long id;
      String tuan;
+     String deTai;
+     String maSinhVien;
+     String lop;
+     Long idDeTai;
+     String hoTen;
      LocalDateTime ngayBatDau;
      LocalDateTime ngayKetThuc;
      String trangThaiNhatKy;

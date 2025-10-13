@@ -22,6 +22,7 @@ import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,7 +34,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -42,15 +45,15 @@ import java.util.List;
 public class NhatKyTienTrinhService {
 
     private static final Logger log = LoggerFactory.getLogger(NhatKyTienTrinhService.class);
-    private NhatKyTienTrinhRepository nhatKyRepository;
+     NhatKyTienTrinhRepository nhatKyRepository;
 
-    private DeTaiRepository deTaiRepository;
+   DeTaiRepository deTaiRepository;
 
-    private NhatKyTienTrinhMapper nhatKyTienTrinhMapper;
+     NhatKyTienTrinhMapper nhatKyTienTrinhMapper;
 
-    private CloudinaryStorageService cloudinaryService;
+   CloudinaryStorageService cloudinaryService;
 
-    private final GiangVienRepository giangVienRepository;
+     final GiangVienRepository giangVienRepository;
 
     LocalDateTime currentDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
@@ -98,6 +101,7 @@ public class NhatKyTienTrinhService {
         LocalDateTime ngayKetThuc;
     }
 
+
     public List<TuanResponse> getTuanList(boolean all) {
         String email = getCurrentUsername();
         DeTai deTai = deTaiRepository
@@ -129,6 +133,116 @@ public class NhatKyTienTrinhService {
         }
         return tuanList;
     }
+
+    public List<TuanResponse> getTuanListByGVHD(boolean includeAll) {
+        String email = getCurrentUsername();
+        Long gvhdId = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_A_GVHD))
+                .getId();
+
+        List<DeTai> deTais = deTaiRepository.findByGiangVienHuongDan_IdAndTrangThai(gvhdId, TrangThaiDeTai.DA_DUYET, Pageable.unpaged()).getContent();
+
+        List<TuanResponse> tuanList = new ArrayList<>();
+        for (DeTai deTai : deTais) {
+            LocalDateTime ngayDuyet = getNgayDuyetDeTai(deTai);
+            LocalDateTime ngayKetThuc = deTai.getDotBaoVe().getNgayKetThuc().atStartOfDay();
+
+            long totalWeeks = ChronoUnit.WEEKS.between(ngayDuyet.toLocalDate(), ngayKetThuc.toLocalDate()) + 1;
+
+            for (int i = 1; i <= totalWeeks; i++) {
+                String tuan = "Tuần " + i;
+                LocalDateTime start = ngayDuyet.plusWeeks(i - 1).with(DayOfWeek.MONDAY).toLocalDate().atStartOfDay();
+                LocalDateTime end = start.plusDays(6).withHour(23).withMinute(59).withSecond(59);
+                if (end.isAfter(ngayKetThuc)) {
+                    end = ngayKetThuc;
+                }
+
+                // Chỉ thêm tuần nếu ngày bắt đầu của tuần đó chưa qua ngày hiện tại
+                if (includeAll || start.isBefore(currentDate) && end.isAfter(currentDate)) {
+                    TuanResponse response = new TuanResponse();
+                    response.setTuan(tuan);
+                    response.setNgayBatDau(start);
+                    response.setNgayKetThuc(end);
+                    tuanList.add(response);
+                }
+            }
+        }
+        return tuanList;
+    }
+
+    public Page<NhatKyTienTrinhResponse> getNhatKyTienTrinhPage(String tuanInput, Pageable pageable) {
+        String email = getCurrentUsername();
+        List<DeTai> deTais = deTaiRepository.findByGiangVienHuongDan_User_EmailIgnoreCase(email);
+
+        if (deTais.isEmpty()) {
+            throw new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND);
+        }
+
+        // Xử lý trường hợp tuanInput là null, mặc định lấy tất cả
+        if (tuanInput == null) {
+            tuanInput = "all";
+        }
+
+        // Lấy tất cả nhật ký tiến trình từ các đề tài
+        List<NhatKyTienTrinh> allNhatKys = new ArrayList<>();
+        for (DeTai deTai : deTais) {
+            Long idDeTai = deTai.getId();
+            LocalDateTime ngayDuyet = getNgayDuyetDeTai(deTai);
+            LocalDateTime ngayKetThuc = deTai.getDotBaoVe().getNgayKetThuc().atStartOfDay();
+
+            // Lấy danh sách tuần cho đề tài hiện tại
+            List<TuanResponse> tuanList = getTuanList(idDeTai);
+
+            // Tìm tuần tương ứng với tuanInput
+            TuanResponse selectedTuan = null;
+            if ("all".equalsIgnoreCase(tuanInput)) {
+                selectedTuan = null; // Sử dụng null để lấy tất cả
+            } else {
+                for (TuanResponse tuan : tuanList) {
+                    if (tuan.getTuan().equalsIgnoreCase(tuanInput)) {
+                        selectedTuan = tuan;
+                        break;
+                    }
+                }
+                if (selectedTuan == null) {
+                    throw new ApplicationException(ErrorCode.INVALID_WEEK_NUMBER);
+                }
+            }
+
+            LocalDateTime startDate = selectedTuan != null ? selectedTuan.getNgayBatDau().minusDays(1) : ngayDuyet;
+            LocalDateTime endDate = selectedTuan != null ? selectedTuan.getNgayKetThuc().minusDays(1) : ngayKetThuc;
+
+            // Lấy danh sách nhật ký tiến trình theo tuần cho đề tài hiện tại
+            Page<NhatKyTienTrinh> nhatKyPage = nhatKyRepository.findByDeTai_IdAndNgayBatDauBetween(
+                    idDeTai,
+                    startDate,
+                    endDate,
+                    pageable
+            );
+
+            allNhatKys.addAll(nhatKyPage.getContent());
+        }
+
+        // Phân trang lại danh sách kết hợp
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allNhatKys.size());
+        List<NhatKyTienTrinh> pagedNhatKys;
+        if (start >= allNhatKys.size()) {
+            pagedNhatKys = Collections.emptyList();
+        } else if (end > allNhatKys.size()) {
+            pagedNhatKys = allNhatKys.subList(start, allNhatKys.size());
+        } else {
+            pagedNhatKys = allNhatKys.subList(start, end);
+        }
+        int totalPages = (int) Math.ceil((double) allNhatKys.size() / pageable.getPageSize());
+
+        return new PageImpl<>(
+                pagedNhatKys.stream().map(nhatKyTienTrinhMapper::toNhatKyTienTrinhResponse).collect(Collectors.toList()),
+                pageable,
+                allNhatKys.size()
+        );
+    }
+
 
     // Lấy danh sách tuần dựa trên ngày duyệt đến ngày kết thúc
     public List<TuanResponse> getTuanList(Long deTaiId) {
@@ -229,3 +343,4 @@ public class NhatKyTienTrinhService {
         }
     }
 }
+
