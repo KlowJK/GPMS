@@ -21,14 +21,14 @@ public class NhatKyTienTrinh extends BaseEntity {
 
     @Column(name="tuan", nullable=false) private String tuan;
 
-    @Column(name="noi_dung", nullable=false, columnDefinition="text") private String noiDung;
+    @Column(name="noi_dung", nullable=true, columnDefinition="text") private String noiDung;
 
     @Column(name="duong_dan_file", nullable=false) private String duongDanFile;
 
     @Enumerated(EnumType.STRING)
-    @Column(name="trang_thai_nhat_ky", nullable=false, columnDefinition="tt_duyet_don")
+    @Column(name="trang_thai_nhat_ky", nullable=false, columnDefinition="trang_thai_nhat_ky")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private TrangThaiDeTai trangThaiNhatKy;
+    private TrangThaiNhatKy trangThaiNhatKy;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name="id_giang_vien_huong_dan") private GiangVien giangVienHuongDan;

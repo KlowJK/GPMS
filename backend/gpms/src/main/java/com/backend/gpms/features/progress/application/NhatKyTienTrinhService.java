@@ -5,15 +5,13 @@ import com.backend.gpms.common.mapper.NhatKyTienTrinhMapper;
 import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
 import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
+import com.backend.gpms.features.progress.domain.TrangThaiNhatKy;
 import com.backend.gpms.features.progress.dto.request.DuyetNhatKyRequest;
 import com.backend.gpms.features.progress.dto.request.NhatKyTienTrinhRequest;
 import com.backend.gpms.features.progress.dto.response.NhatKyTienTrinhResponse;
 import com.backend.gpms.features.progress.dto.response.TuanResponse;
 import com.backend.gpms.features.progress.infra.NhatKyTienTrinhRepository;
 import com.backend.gpms.features.storage.application.CloudinaryStorageService;
-import com.backend.gpms.features.storage.application.StorageService;
-
-import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -31,7 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 
-import java.io.IOException;
+
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -53,6 +51,8 @@ public class NhatKyTienTrinhService {
     private CloudinaryStorageService cloudinaryService;
 
     private final GiangVienRepository giangVienRepository;
+
+    LocalDateTime currentDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
 
     private LocalDateTime getNgayDuyetDeTai(DeTai deTai) {
@@ -98,14 +98,44 @@ public class NhatKyTienTrinhService {
         LocalDateTime ngayKetThuc;
     }
 
-    // Lấy danh sách tuần dựa trên ngày duyệt đến ngày kết thúc
-    public List<TuanResponse> getTuanList() {
-
-
+    public List<TuanResponse> getTuanList(boolean all) {
         String email = getCurrentUsername();
         DeTai deTai = deTaiRepository
                 .findBySinhVien_User_EmailIgnoreCase(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+
+        LocalDateTime ngayDuyet = getNgayDuyetDeTai(deTai);
+        LocalDateTime ngayKetThuc = deTai.getDotBaoVe().getNgayKetThuc().atStartOfDay();
+
+        long totalWeeks = ChronoUnit.WEEKS.between(ngayDuyet.toLocalDate(), ngayKetThuc.toLocalDate()) + 1;
+
+        List<TuanResponse> tuanList = new ArrayList<>();
+        for (int i = 1; i <= totalWeeks; i++) {
+            String tuan = "Tuần " + i;
+            LocalDateTime start = ngayDuyet.plusWeeks(i - 1).with(DayOfWeek.MONDAY).toLocalDate().atStartOfDay();
+            LocalDateTime end = start.plusDays(6).withHour(23).withMinute(59).withSecond(59);
+            if (end.isAfter(ngayKetThuc)) {
+                end = ngayKetThuc;
+            }
+
+            // Chỉ thêm tuần nếu all = true hoặc ngayBatDau < currentDate
+            if (all || start.isBefore(currentDate)) {
+                TuanResponse response = new TuanResponse();
+                response.setTuan(tuan);
+                response.setNgayBatDau(start);
+                response.setNgayKetThuc(end);
+                tuanList.add(response);
+            }
+        }
+        return tuanList;
+    }
+
+    // Lấy danh sách tuần dựa trên ngày duyệt đến ngày kết thúc
+    public List<TuanResponse> getTuanList(Long deTaiId) {
+
+        DeTai deTai = deTaiRepository.findById(deTaiId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+
         LocalDateTime ngayDuyet = getNgayDuyetDeTai(deTai);
         LocalDateTime ngayKetThuc = deTai.getDotBaoVe().getNgayKetThuc().atStartOfDay();
 
@@ -129,18 +159,21 @@ public class NhatKyTienTrinhService {
     }
 
     // Lấy list nhật ký
-    public List<NhatKyTienTrinhResponse> getNhatKyList() {
+    public List<NhatKyTienTrinhResponse> getNhatKyList(boolean all) {
         String email = getCurrentUsername();
         DeTai deTai = deTaiRepository
                 .findBySinhVien_User_EmailIgnoreCase(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
 
         Long idDeTai=deTai.getId();
-        List<NhatKyTienTrinh> entities = nhatKyRepository.findByDeTai_IdOrderByCreatedAtDesc(idDeTai);
+
+        List<NhatKyTienTrinh> entities = (all) ?
+                nhatKyRepository.findByDeTai_IdOrderByCreatedAtDesc(idDeTai) :
+                nhatKyRepository.findByDeTai_IdAndNgayBatDauBeforeOrderByCreatedAtDesc(idDeTai, currentDate);
         return nhatKyTienTrinhMapper.toResponseList(entities);
     }
 
-    public Page<NhatKyTienTrinhResponse> getNhatKyPage(TrangThaiDeTai status, Pageable pageable) {
+    public Page<NhatKyTienTrinhResponse> getNhatKyPage(TrangThaiNhatKy status, Pageable pageable) {
         String email = getCurrentUsername();
         Long gvhdId = giangVienRepository.findByUser_Email(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_A_GVHD))
@@ -153,29 +186,17 @@ public class NhatKyTienTrinhService {
     }
 
     public NhatKyTienTrinhResponse nopNhatKy(NhatKyTienTrinhRequest request)  {
-        String email = getCurrentUsername();
 
-        DeTai deTai = deTaiRepository
-                .findBySinhVien_User_EmailIgnoreCase(email)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+        NhatKyTienTrinh entity = nhatKyRepository.findById(request.getIdNhatKy())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NHAT_KY_NOT_FOUND));
 
-        LocalDateTime ngayNop = LocalDateTime.now();
-
-        TuanInfo tuanInfo = calculateTuanInfo(deTai, ngayNop);
-        NhatKyTienTrinh entity = new  NhatKyTienTrinh();
-        entity.setDeTai(deTai);
         entity.setNoiDung(request.getNoiDung());
-        entity.setTuan(tuanInfo.tuan);
-        entity.setNgayBatDau(tuanInfo.ngayBatDau);
-        entity.setNgayKetThuc(tuanInfo.ngayKetThuc);
-        entity.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
-        entity.setTrangThaiNhatKy(TrangThaiDeTai.CHO_DUYET);
+        entity.setTrangThaiNhatKy(TrangThaiNhatKy.DA_NOP);
 
         if (request.getDuongDanFile() != null && !request.getDuongDanFile().isEmpty()) {
             String url = upload(request.getDuongDanFile());
             entity.setDuongDanFile(url);
         }
-
         return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse(nhatKyRepository.save(entity));
     }
 
@@ -184,22 +205,11 @@ public class NhatKyTienTrinhService {
         NhatKyTienTrinh entity = nhatKyRepository.findById(request.getId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NHAT_KY_NOT_FOUND));
 
-        if (entity.getTrangThaiNhatKy() != TrangThaiDeTai.CHO_DUYET) {
+        if (entity.getTrangThaiNhatKy() != TrangThaiNhatKy.DA_NOP) {
             throw new ApplicationException(ErrorCode.NHAT_KY_ALREADY_REVIEWED);
         }
 
-        DeTai deTai = deTaiRepository
-                .findByNhatKyTienTrinhs_Id(request.getId())
-                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
-
-        LocalDateTime ngayNop = LocalDateTime.now();
-
-        TuanInfo tuanInfo = calculateTuanInfo(deTai, ngayNop);
-
-        entity.setTuan(tuanInfo.tuan);
-        entity.setNgayBatDau(tuanInfo.ngayBatDau);
-        entity.setNgayKetThuc(tuanInfo.ngayKetThuc);
-        entity.setTrangThaiNhatKy(TrangThaiDeTai.DA_DUYET);
+        entity.setTrangThaiNhatKy(TrangThaiNhatKy.HOAN_THANH);
         entity.setNhanXet(request.getNhanXet());
         return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse( nhatKyRepository.save(entity));
     }
