@@ -3,7 +3,9 @@ package com.backend.gpms.features.storage.application;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,8 +13,11 @@ import org.springframework.beans.factory.annotation.Value;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Random;
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class CloudinaryStorageService implements StorageService {
 
     private final Cloudinary cloudinary;
@@ -23,51 +28,35 @@ public class CloudinaryStorageService implements StorageService {
     @Override
     public String upload(MultipartFile file) {
         try {
-            Map<?, ?> res = cloudinary.uploader().upload(
-                    file.getBytes(),                               // <-- dùng byte[]
-                    ObjectUtils.asMap(
-                            "resource_type", "auto",
-                            "folder", defaultFolder,
-                            "use_filename", true,
-                            "unique_filename", true
-                    )
-            );
-            return (String) res.get("secure_url");
-        } catch (Exception e) {
-            throw new RuntimeException("Cloudinary upload failed: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public UploadResult upload(MultipartFile file, String folder, String publicIdHint) {
-        try {
-            String ext = FilenameUtils.getExtension(file.getOriginalFilename());
-            String baseName = FilenameUtils.getBaseName(file.getOriginalFilename());
-            String safeBase = baseName.replaceAll("[^a-zA-Z0-9_-]+","-");
-            String publicId = (publicIdHint != null && !publicIdHint.isBlank())
-                    ? publicIdHint
-                    : (safeBase + "-" + System.currentTimeMillis());
+            String originalFilename = FilenameUtils.getBaseName(file.getOriginalFilename());
+            String safePublicId = originalFilename.replaceAll("[^a-zA-Z0-9_-]+", "-");
+            String randomString = RandomStringUtils.randomAlphanumeric(5);
+            String prefixedPublicId = "TLU_" + randomString + "_" + safePublicId;
 
             Map<String, Object> params = ObjectUtils.asMap(
-                    "folder", (folder == null || folder.isBlank()) ? defaultFolder : folder,
-                    "public_id", publicId,
-                    "resource_type", "auto",
+                    "resource_type", "auto", // Tự động nhận diện PDF, hình ảnh, v.v.
+                    "folder", defaultFolder,
+                    "public_id", prefixedPublicId,
                     "use_filename", true,
                     "unique_filename", false,
                     "overwrite", true
             );
 
-            var res = cloudinary.uploader().upload(file.getBytes(), params);
-            return new UploadResult(
-                    (String) res.get("public_id"),
-                    (String) res.get("secure_url"),
-                    (String) res.get("resource_type"),
-                    ((Number) res.get("bytes")).longValue()
-            );
-        } catch (IOException e) {
-            throw new RuntimeException("Upload Cloudinary thất bại", e);
+            Map<?, ?> res = cloudinary.uploader().upload(file.getBytes(), params);
+            String secureUrl = (String) res.get("secure_url");
+
+            // Nếu là PDF, thêm transformation f_pdf để xem trực tiếp
+            String extension = FilenameUtils.getExtension(file.getOriginalFilename()).toLowerCase();
+            if ("pdf".equals(extension)) {
+                secureUrl = secureUrl.replace("/image/upload/", "/image/upload/f_pdf/");
+            }
+
+            return secureUrl;
+        } catch (Exception e) {
+            throw new RuntimeException("Cloudinary upload failed: " + e.getMessage(), e);
         }
     }
+
 
     @Override
     public void delete(String publicId) {
@@ -95,5 +84,15 @@ public class CloudinaryStorageService implements StorageService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String generateRandomString(int length) {
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        return sb.toString();
     }
 }
