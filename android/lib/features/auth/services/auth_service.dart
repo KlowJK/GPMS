@@ -1,3 +1,4 @@
+// language: dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -52,13 +53,13 @@ class AuthService {
     try {
       final response = await http
           .post(
-            uri,
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({'email': email, 'matKhau': password}),
-          )
+        uri,
+        headers: const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email, 'matKhau': password}),
+      )
           .timeout(const Duration(seconds: 15));
 
       // Debug response
@@ -69,59 +70,72 @@ class AuthService {
       }
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = UserEntity.fromJson(data);
+        final decoded = jsonDecode(response.body);
+        final result = decoded is Map<String, dynamic> ? decoded['result'] : null;
+        if (result == null || result is! Map<String, dynamic>) {
+          if (kDebugMode) print('❌ Unexpected response structure: missing result');
+          throw Exception('Invalid server response.');
+        }
+
+        final accessToken = result['accessToken']?.toString() ?? '';
+        final tokenType = result['tokenType']?.toString() ?? '';
+        final expiresAtRaw = result['expiresAt'];
+        final expiresAt = expiresAtRaw != null ? expiresAtRaw.toString() : '';
+        final userMap = result['user'] as Map<String, dynamic>?;
+
+        if (accessToken.isEmpty || userMap == null) {
+          if (kDebugMode) print('❌ Missing token or user in response.result');
+          throw Exception('Invalid login response.');
+        }
+
+        // Build UserEntity using server user data + tokens
+        final user = UserEntity(
+          token: accessToken,
+          typeToken: tokenType,
+          expiresAt: expiresAt,
+          id: userMap['id'] is int
+              ? userMap['id'] as int
+              : int.tryParse(userMap['id']?.toString() ?? '') ?? 0,
+          fullName: userMap['fullName']?.toString(),
+          email: userMap['email']?.toString() ?? '',
+          role: userMap['role']?.toString() ?? '',
+          duongDanAvt: userMap['duongDanAvt']?.toString(),
+          teacherId: userMap['teacherId'] is int
+              ? userMap['teacherId'] as int
+              : (userMap['teacherId'] != null
+              ? int.tryParse(userMap['teacherId'].toString())
+              : null),
+          studentId: userMap['studentId'] is int
+              ? userMap['studentId'] as int
+              : (userMap['studentId'] != null
+              ? int.tryParse(userMap['studentId'].toString())
+              : null),
+        );
+
         final prefs = await SharedPreferences.getInstance();
         await _clearAuthKeys(prefs);
-        // Lưu dữ liệu mới
+
         await prefs.setString('token', user.token);
         await prefs.setString('typeToken', user.typeToken);
         await prefs.setString('expiresAt', user.expiresAt);
         await prefs.setInt('id', user.id);
-        if (user.studentId != null) {
-          await prefs.setInt('studentId', user.studentId!);
-        }
+        if (user.studentId != null) await prefs.setInt('studentId', user.studentId!);
         await prefs.setString('email', user.email);
         await prefs.setString('role', user.role);
-        if (user.duongDanAvt != null) {
-          await prefs.setString('duongDanAvt', user.duongDanAvt!);
-        }
-        if (user.teacherId != null) {
-          await prefs.setInt('teacherId', user.teacherId!);
-        }
-        if (user.fullName != null) {
-          await prefs.setString('fullName', user.fullName!);
-        }
-        // Kiểm tra lại token vừa lưu
+        if (user.duongDanAvt != null) await prefs.setString('duongDanAvt', user.duongDanAvt!);
+        if (user.teacherId != null) await prefs.setInt('teacherId', user.teacherId!);
+        if (user.fullName != null) await prefs.setString('fullName', user.fullName!);
+
         final savedToken = prefs.getString('token');
         if (savedToken == null || savedToken.isEmpty) {
-          if (kDebugMode) {
-            print('❌ Token was not saved correctly after login!');
-          }
+          if (kDebugMode) print('❌ Token was not saved correctly after login!');
           throw Exception('Lỗi lưu token sau khi đăng nhập.');
         }
 
-        // Debug verify
         if (kDebugMode) {
           print('✅ LOGIN SUCCESSFUL');
           print('🔑 Token received: ${user.token}');
-          print('🔑 Token length: ${user.token.length}');
-          print(
-            '💾 Token saved to SharedPreferences: ${prefs.getString('token')}',
-          );
-          print('👤 User details saved:');
-          for (final key in _authKeys) {
-            print('   - $key: ${prefs.get(key)}');
-          }
-
-          final savedToken = prefs.getString('token');
-          if (savedToken == user.token) {
-            print('✅ Token verification: MATCHED');
-          } else {
-            print('❌ Token verification: MISMATCH');
-            print('   Original: ${user.token}');
-            print('   Saved: $savedToken');
-          }
+          print('💾 Token saved to SharedPreferences: ${prefs.getString('token')}');
         }
 
         return user;
