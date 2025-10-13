@@ -110,7 +110,9 @@ public enum ErrorCode {
     NHAT_KY_NOT_FOUND(1049, "Nhat ky not found", HttpStatus.NOT_FOUND),
     INVALID_ENUM_VALUE(1050, "Invalid enum value", HttpStatus.BAD_REQUEST),
     NHAT_KY_ALREADY_REVIEWED(1051, "Nhat ky already reviewed", HttpStatus.BAD_REQUEST),
-    NHAT_KY_ID_REQUIRED(1052, "Nhat ky ID is required", HttpStatus.BAD_REQUEST)
+    NHAT_KY_ID_REQUIRED(1052, "Nhat ky ID is required", HttpStatus.BAD_REQUEST),
+    NO_WEEKS_AVAILABLE(1053, "No weeks available for creating new Nhat ky", HttpStatus.BAD_REQUEST),
+    DE_TAI_NOT_APPROVED_BY_GVHD(1054, "De tai not yet approved by GVHD", HttpStatus.BAD_REQUEST),
     ;
 
 
