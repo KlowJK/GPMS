@@ -119,7 +119,7 @@ public class NhatKyTienTrinhService {
             }
 
             // Chỉ thêm tuần nếu all = true hoặc ngayBatDau < currentDate
-            if (all || start.isBefore(currentDate)) {
+            if (all || start.isBefore(currentDate) && end.isAfter(currentDate)) {
                 TuanResponse response = new TuanResponse();
                 response.setTuan(tuan);
                 response.setNgayBatDau(start);
