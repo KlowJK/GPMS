@@ -1,88 +1,115 @@
 import 'package:flutter/material.dart';
 
-/// Trạng thái đề cương
 enum DeCuongStatus { pending, approved, rejected }
 
-/// Map chuỗi API -> enum
-DeCuongStatus deCuongStatusFromString(String? s) {
+DeCuongStatus mapDeCuongStatus(String? s) {
   switch (s) {
     case 'DA_DUYET':
       return DeCuongStatus.approved;
     case 'TU_CHOI':
       return DeCuongStatus.rejected;
-    case 'CHO_DUYET':
     default:
       return DeCuongStatus.pending;
   }
 }
 
-/// Hiển thị chữ theo trạng thái (dùng trong UI)
 String deCuongStatusText(DeCuongStatus s) {
   switch (s) {
-    case DeCuongStatus.pending:
-      return 'Đang chờ duyệt';
     case DeCuongStatus.approved:
       return 'Đã duyệt';
     case DeCuongStatus.rejected:
-      return 'Từ chối';
+      return 'Đã từ chối';
+    case DeCuongStatus.pending:
+    default:
+      return 'Đang chờ duyệt';
   }
 }
 
-/// Màu chữ theo trạng thái (dùng trong UI)
 Color deCuongStatusColor(DeCuongStatus s) {
   switch (s) {
-    case DeCuongStatus.pending:
-      return const Color(0xFFC9B325);
     case DeCuongStatus.approved:
       return const Color(0xFF16A34A);
     case DeCuongStatus.rejected:
       return const Color(0xFFDC2626);
+    case DeCuongStatus.pending:
+    default:
+      return const Color(0xFFC9B325);
   }
 }
 
-/// Model item cho danh sách Đề cương
 class DeCuongItem {
   final int id;
-  final int? soLanNop;
-  final DateTime? ngayNop;
   final String? fileName;
+  final DateTime? ngayNop;
   final DeCuongStatus status;
   final String? nhanXet;
 
-  // Thông tin SV minh hoạ/tuỳ API có trả
+  // Thông tin SV (tuỳ API có/không)
   final int? sinhVienId;
   final String? sinhVienTen;
   final String? maSV;
 
+  // Số lần nộp (API có thể là lanNop / soLanNop)
+  final int? lanNop;
+
   DeCuongItem({
     required this.id,
     required this.status,
-    this.soLanNop,
-    this.ngayNop,
     this.fileName,
+    this.ngayNop,
     this.nhanXet,
     this.sinhVienId,
     this.sinhVienTen,
     this.maSV,
+    this.lanNop,
   });
 
-  factory DeCuongItem.fromJson(Map<String, dynamic> j) {
-    // hỗ trợ nhiều key tên khác nhau tuỳ backend
-    final file =
-    (j['fileName'] ?? j['tenFile'] ?? j['file'] ?? j['file_name']) as String?;
+  DeCuongItem copyWith({
+    int? id,
+    String? fileName,
+    DateTime? ngayNop,
+    DeCuongStatus? status,
+    String? nhanXet,
+    int? sinhVienId,
+    String? sinhVienTen,
+    String? maSV,
+    int? lanNop,
+  }) {
+    return DeCuongItem(
+      id: id ?? this.id,
+      fileName: fileName ?? this.fileName,
+      ngayNop: ngayNop ?? this.ngayNop,
+      status: status ?? this.status,
+      nhanXet: nhanXet ?? this.nhanXet,
+      sinhVienId: sinhVienId ?? this.sinhVienId,
+      sinhVienTen: sinhVienTen ?? this.sinhVienTen,
+      maSV: maSV ?? this.maSV,
+      lanNop: lanNop ?? this.lanNop,
+    );
+  }
 
-    final ngay = j['ngayNop']?.toString();
+  factory DeCuongItem.fromJson(Map<String, dynamic> j) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      try {
+        return DateTime.parse(v.toString());
+      } catch (_) {
+        return null;
+      }
+    }
 
     return DeCuongItem(
       id: (j['id'] as num).toInt(),
-      soLanNop: (j['soLanNop'] as num?)?.toInt(),
-      ngayNop: ngay == null ? null : DateTime.tryParse(ngay),
-      fileName: file,
-      status: deCuongStatusFromString(j['trangThai']?.toString()),
+      fileName: j['fileName'] ?? j['tenFile'] ?? j['file'],
+      ngayNop: parseDate(j['ngayNop']),
+      status: mapDeCuongStatus(j['trangThai']?.toString()),
       nhanXet: j['nhanXet'] as String?,
-      sinhVienId: (j['sinhVienId'] as num?)?.toInt(),
+      sinhVienId: j['sinhVienId'] is num ? (j['sinhVienId'] as num).toInt() : null,
       sinhVienTen: j['sinhVienTen'] as String?,
-      maSV: j['maSV']?.toString(),
+      maSV: j['maSV'] as String?,
+      lanNop: j['lanNop'] is num
+          ? (j['lanNop'] as num).toInt()
+          : (j['soLanNop'] is num ? (j['soLanNop'] as num).toInt() : null),
     );
   }
 }

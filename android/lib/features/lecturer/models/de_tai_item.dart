@@ -1,11 +1,18 @@
 enum TopicStatus { pending, approved, rejected }
 
-TopicStatus mapTrangThai(String s) {
+TopicStatus mapTrangThai(String? s) {
   switch (s) {
     case 'DA_DUYET': return TopicStatus.approved;
     case 'TU_CHOI':  return TopicStatus.rejected;
     default:         return TopicStatus.pending;
   }
+}
+
+int _toInt(dynamic v) {
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? 0;
+  return 0;
 }
 
 class DeTaiItem {
@@ -27,10 +34,23 @@ class DeTaiItem {
     this.overviewFileName,
   });
 
+  DeTaiItem copyWith({
+    TopicStatus? status,
+    String? comment,
+  }) => DeTaiItem(
+    id: id,
+    title: title,
+    status: status ?? this.status,
+    comment: comment ?? this.comment,
+    studentName: studentName,
+    studentId: studentId,
+    overviewFileName: overviewFileName,
+  );
+
   factory DeTaiItem.fromJson(Map<String, dynamic> j) => DeTaiItem(
-    id: (j['id'] as num).toInt(),
+    id: _toInt(j['id']),
     title: (j['tenDeTai'] ?? '') as String,
-    status: mapTrangThai((j['trangThai'] ?? 'CHO_DUYET') as String),
+    status: mapTrangThai(j['trangThai'] as String?),
     comment: j['nhanXet'] as String?,
     studentId: j['sinhVienId']?.toString(),
     studentName: j['sinhVienTen'] as String?,

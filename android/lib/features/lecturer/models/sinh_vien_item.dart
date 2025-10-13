@@ -1,28 +1,29 @@
 class SinhVienItem {
-  final String maSV;
+  final int id;
   final String hoTen;
-  final String? tenLop;
+  final String maSV;
+  final String tenLop;
   final String? soDienThoai;
-  final String? tenDeTai;
   final String? cvUrl;
+  final String? tenDeTai;
 
   SinhVienItem({
-    required this.maSV,
+    required this.id,
     required this.hoTen,
-    this.tenLop,
+    required this.maSV,
+    required this.tenLop,
     this.soDienThoai,
-    this.tenDeTai,
     this.cvUrl,
+    this.tenDeTai,
   });
 
-  factory SinhVienItem.fromJson(Map<String, dynamic> j) {
-    return SinhVienItem(
-      maSV: (j['maSV'] ?? j['maSinhVien'] ?? j['studentCode'] ?? '').toString(),
-      hoTen: (j['hoTen'] ?? j['ten'] ?? j['fullName'] ?? '').toString(),
-      tenLop: j['tenLop']?.toString(),
-      soDienThoai: j['soDienThoai']?.toString(),
-      tenDeTai: j['tenDeTai']?.toString(),
-      cvUrl: j['cvUrl']?.toString(),
-    );
-  }
+  factory SinhVienItem.fromJson(Map<String, dynamic> j) => SinhVienItem(
+    id: (j['id'] ?? j['sinhVienId'] ?? 0 as num).toInt(),
+    hoTen: (j['hoTen'] ?? j['fullName'] ?? 'Sinh viên') as String,
+    maSV: (j['maSV'] ?? j['studentCode'] ?? '—') as String,
+    tenLop: (j['tenLop'] ?? j['lop'] ?? '—') as String,
+    soDienThoai: j['soDienThoai'] as String?,
+    cvUrl: j['cvUrl'] as String?,
+    tenDeTai: j['tenDeTai'] as String?,
+  );
 }

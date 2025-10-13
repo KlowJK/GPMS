@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'sinh_vien/sinh_vien.dart';
+
+import 'sinh_vien/sinh_vien.dart';        // => chứa class SinhVienScreen
 import 'de_tai/duyet_de_tai.dart';
 import 'de_cuong/duyet_de_cuong.dart';
 
@@ -18,19 +19,18 @@ class DoAn extends StatelessWidget {
           foregroundColor: Colors.white,
           centerTitle: true,
           elevation: 0,
-          automaticallyImplyLeading: false, // ⬅️ Ẩn mũi tên back
+          automaticallyImplyLeading: false, // ẩn mũi tên back
           title: const Text('Đồ án', style: TextStyle(fontWeight: FontWeight.w700)),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(44),
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: const _TopTabs(),
-            ),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(44),
+            child: _TopTabs(),
           ),
         ),
-        body: const TabBarView(
-          children: [
+
+        // ❌ KHÔNG dùng const ở đây
+        body: TabBarView(
+          children: const [
+            // đổi SinhVienTab -> SinhVienScreen
             SinhVienTab(),
             DuyetDeTai(),
             DuyetDeCuong(),
@@ -48,22 +48,27 @@ class _TopTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     const blue = Color(0xFF2F7CD3);
 
-    return TabBar(
-      labelColor: blue,
-      unselectedLabelColor: Color(0xFF888888),
-      labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      indicatorSize: TabBarIndicatorSize.label,
-      indicator: const UnderlineTabIndicator(
-        borderSide: BorderSide(color: blue, width: 2),
-        insets: EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: TabBar(
+        labelColor: blue,
+        unselectedLabelColor: const Color(0xFF888888),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        indicatorSize: TabBarIndicatorSize.label,
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(color: blue, width: 2),
+          insets: EdgeInsets.symmetric(horizontal: 16),
+        ),
+        // Nếu Flutter cũ, thay bằng MaterialStatePropertyAll
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
+        tabs: const [
+          Tab(text: 'Sinh viên'),
+          Tab(text: 'Duyệt Đề tài'),
+          Tab(text: 'Duyệt Đề cương'),
+        ],
       ),
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-      splashFactory: NoSplash.splashFactory,
-      tabs: const [
-        Tab(text: 'Sinh viên'),
-        Tab(text: 'Duyệt Đề tài'),
-        Tab(text: 'Duyệt Đề cương'),
-      ],
     );
   }
 }
