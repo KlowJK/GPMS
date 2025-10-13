@@ -7,6 +7,11 @@ import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.defense.domain.ThoiGianThucHien;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.progress.application.NhatKyTienTrinhService;
+import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
+import com.backend.gpms.features.progress.domain.TrangThaiNhatKy;
+import com.backend.gpms.features.progress.dto.response.TuanResponse;
+import com.backend.gpms.features.progress.infra.NhatKyTienTrinhRepository;
 import com.backend.gpms.features.storage.application.CloudinaryStorageService;
 import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.student.infra.SinhVienRepository;
@@ -33,6 +38,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -47,6 +55,9 @@ public class DeTaiService {
     CloudinaryStorageService cloudinaryService;
     DeTaiMapper deTaiMapper;
     TimeGatekeeper timeGatekeeper;
+    NhatKyTienTrinhService nhatKyTienTrinhService;
+
+    private NhatKyTienTrinhRepository nhatKyRepository;
 
     public DeTaiResponse approveByGiangVien(Long deTaiId, String nhanXet) {
         DeTaiApprovalRequest req = new DeTaiApprovalRequest(true, nhanXet);
@@ -140,13 +151,13 @@ public class DeTaiService {
         return page.map(deTaiMapper::toDeTaiResponse);
     };
 
-    public DeTaiResponse approveDeTai(Long deTaiId, DeTaiApprovalRequest request){
+    public DeTaiResponse approveDeTai(Long deTaiId, DeTaiApprovalRequest request) {
         // 1) load đề tài
         DeTai detai = deTaiRepository.findById(deTaiId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
 
         String email = getCurrentUsername();
-        GiangVien gv = giangVienRepository.findByUser_Email((email))
+        GiangVien gv = giangVienRepository.findByUser_Email(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_GVHD_OF_DE_TAI));
         Long gvhdId = gv.getId();
 
@@ -169,9 +180,44 @@ public class DeTaiService {
             throw new ApplicationException(ErrorCode.TRANG_THAI_INVALID);
         }
         detai.setNhanXet(request.getNhanXet());
-        return deTaiMapper.toDeTaiResponse(deTaiRepository.save(detai));
-    };
 
+        // Lưu đề tài trước để cập nhật updatedAt
+        detai = deTaiRepository.save(detai);
+
+        detai = deTaiRepository.findById(deTaiId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+
+        // 5) Tự động tạo và thêm list nhật ký nếu duyệt thành công (DA_DUYET)
+        if (detai.getTrangThai() == TrangThaiDeTai.DA_DUYET) {
+            // Lấy danh sách tuần từ NhatKyTienTrinhService
+            List<TuanResponse> tuanList = nhatKyTienTrinhService.getTuanList(deTaiId);
+            if (tuanList == null || tuanList.isEmpty()) {
+                throw new ApplicationException(ErrorCode.NO_WEEKS_AVAILABLE);
+            }
+            List<NhatKyTienTrinh> nhatKyList = new ArrayList<>();
+            for (TuanResponse tuanResponse : tuanList) {
+                NhatKyTienTrinh nhatKy = new NhatKyTienTrinh();
+                nhatKy.setDeTai(detai);
+                nhatKy.setTuan(tuanResponse.getTuan());
+                nhatKy.setNgayBatDau(tuanResponse.getNgayBatDau());
+                nhatKy.setNgayKetThuc(tuanResponse.getNgayKetThuc());
+                nhatKy.setGiangVienHuongDan(detai.getGiangVienHuongDan());
+                nhatKy.setTrangThaiNhatKy(TrangThaiNhatKy.CHUA_NOP);
+
+                // Kiểm tra trùng lặp
+                if (nhatKyRepository.findByDeTai_IdAndTuan(detai.getId(), tuanResponse.getTuan()).isPresent()) {
+                    continue;
+                }
+
+                nhatKyList.add(nhatKy);
+            }
+
+            // Lưu toàn bộ danh sách nhật ký
+            nhatKyRepository.saveAll(nhatKyList);
+        }
+
+        return deTaiMapper.toDeTaiResponse(detai);
+    }
 
     private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

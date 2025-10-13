@@ -27,6 +27,7 @@ import com.backend.gpms.features.outline.domain.NhanXetDeCuong;
 import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.infra.DeCuongRepository;
 import com.backend.gpms.features.outline.infra.NhanXetDeCuongRepository;
+import com.backend.gpms.features.progress.application.NhatKyTienTrinhService;
 import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.student.infra.SinhVienRepository;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
@@ -59,19 +60,20 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional
 public class GiangVienService {
 
-    private final SinhVienRepository sinhVienRepository;
-    private final BoMonRepository boMonRepository;
-    private final GiangVienRepository giangVienRepository;
-    private final DeTaiRepository deTaiRepository;
-    private final NganhRepository nganhRepository;
-    private final UserRepository taiKhoanRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final GiangVienMapper giangVienMapper;
+    BoMonRepository boMonRepository;
+    GiangVienRepository giangVienRepository;
+    DeTaiRepository deTaiRepository;
+    NganhRepository nganhRepository;
+    UserRepository taiKhoanRepository;
+    PasswordEncoder passwordEncoder;
+    GiangVienMapper giangVienMapper;
+    SinhVienRepository sinhVienRepository;
     SinhVienMapper sinhVienMapper;
-    private final TimeGatekeeper timeGatekeeper;
+    TimeGatekeeper timeGatekeeper;
     DeCuongRepository deCuongRepository;
     DeCuongMapper deCuongMapper;
     NhanXetDeCuongRepository deCuongLogRepository;
+    NhatKyTienTrinhService nhatKyTienTrinhService;
 
 
     public List<GiangVienLiteResponse> giangVienLiteResponseList() {
