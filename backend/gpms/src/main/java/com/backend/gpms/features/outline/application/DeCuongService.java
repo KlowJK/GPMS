@@ -1,6 +1,5 @@
 package com.backend.gpms.features.outline.application;
 
-
 import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.mapper.DeCuongMapper;
@@ -38,6 +37,9 @@ import java.time.ZoneId;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,61 +60,111 @@ public class DeCuongService {
 
 
     public DeCuongResponse submitDeCuong(DeCuongUploadRequest request) {
-        // 1) Lấy email hiện hành
         final String email = currentUsername();
 
-        // 2) Tìm DeTai thuộc về SV hiện hành (ràng buộc UNIQUE theo DB)
         DeTai deTai = deTaiRepository
                 .findBySinhVien_User_EmailIgnoreCase(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
 
-        // 3) Kiểm tra trạng thái đề tài
         if (deTai.getTrangThai() != TrangThaiDeTai.DA_DUYET) {
             throw new ApplicationException(ErrorCode.DE_TAI_NOT_ACCEPTED);
         }
-
-        // 4) Phải có đợt bảo vệ
         if (deTai.getDotBaoVe() == null) {
             throw new ApplicationException(ErrorCode.NO_ACTIVE_SUBMISSION_WINDOW);
         }
 
-        // 5) Kiểm tra chỉ được nộp trong mốc NỘP_ĐỀ_CƯƠNG
         timeGatekeeper.assertWithinWindow(CongViec.NOP_DE_CUONG, deTai.getDotBaoVe());
 
-        // 6) Lấy/chuẩn hóa URL
         final String finalUrl = toClickableUrl(request.getFileUrl());
         if (finalUrl == null || finalUrl.isBlank()) {
             throw new ApplicationException(ErrorCode.FILE_URL_EMPTY);
         }
 
-        // 7) Tạo mới/cập nhật DeCuong theo SV hiện hành
-        DeCuong dc = deCuongRepository
-                .findFirstByDeTai_SinhVien_User_EmailIgnoreCaseOrderByCreatedAtDesc(email)
-                .map(existing -> {
-                    if (existing.getTrangThaiDeCuong() == TrangThaiDeCuong.DA_DUYET) {
-                        throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
-                    }
-                    DeCuong createdVersion = new DeCuong();
-                    createdVersion.setDeTai(deTai);
-                    createdVersion.setDuongDanFile(finalUrl);
-                    createdVersion.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
-                    createdVersion.setPhienBan(existing.getPhienBan() + 1);
-                    createdVersion.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
-                    return createdVersion;
-                })
-                .orElseGet(() -> {
-                    DeCuong created = new DeCuong();
-                    created.setDeTai(deTai);
-                    created.setDuongDanFile(finalUrl);
-                    created.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
-                    created.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
-                    created.setPhienBan(1);
-                    return created;
-                });
+        // Lấy phiên bản mới nhất
+        Optional<DeCuong> latestOpt =
+                deCuongRepository.findFirstByDeTai_SinhVien_User_EmailIgnoreCaseOrderByCreatedAtDesc(email);
 
-        // 8) Lưu DB & trả về response
-        return mapper.toResponse(deCuongRepository.save(dc));
+        // Helper: tạo phiên bản mới dựa trên phiên bản cũ (nếu có)
+        Function<DeCuong, DeCuong> newVersionFrom = (prev) -> {
+            DeCuong n = new DeCuong();
+            n.setDeTai(deTai);
+            n.setDuongDanFile(finalUrl);
+            n.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
+            n.setPhienBan(prev == null ? 1 : prev.getPhienBan() + 1);
+
+            // GVPB: lấy từ prev nếu có, nếu chưa thì rơi về DeTai (nếu đã phân công)
+            var gvpb = (prev != null && prev.getGiangVienPhanBien() != null)
+                    ? prev.getGiangVienPhanBien()
+                    : null; // cần có field này ở DeTai
+            n.setGiangVienPhanBien(gvpb);
+
+            // TBM: lấy từ bộ môn của đề tài (null-safe)
+            var boMon = deTai.getBoMon();
+            if (boMon == null || boMon.getTruongBoMon() == null) {
+                throw new ApplicationException(ErrorCode.BO_MON_OR_TBM_NOT_ASSIGNED);
+            }
+            n.setTruongBoMon(boMon.getTruongBoMon());
+
+            return n;
+        };
+
+
+        DeCuong newVer;
+
+        if (latestOpt.isEmpty()) {
+            // Chưa từng nộp → bắt đầu ở bước GVHD
+            newVer = newVersionFrom.apply(null);
+            newVer.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
+            newVer.setGvPhanBienDuyet(null);
+            newVer.setTbmDuyet(null);
+        } else {
+            DeCuong prev = latestOpt.get();
+
+            // Nếu đã duyệt hoàn tất (GVHD duyệt + GVPB duyệt + TBM duyệt) → chặn nộp
+            boolean fullyApproved =
+                    prev.getTrangThaiDeCuong() == TrangThaiDeCuong.DA_DUYET
+                            && prev.getGvPhanBienDuyet() == TrangThaiDuyetDon.DA_DUYET
+                            && prev.getTbmDuyet() == TrangThaiDuyetDon.DA_DUYET;
+
+            if (fullyApproved) {
+                throw new ApplicationException(ErrorCode.DE_CUONG_FULLY_APPROVED);
+            }
+
+            newVer = newVersionFrom.apply(prev);
+
+            if (prev.getTrangThaiDeCuong() == TrangThaiDeCuong.TU_CHOI
+                    || prev.getTrangThaiDeCuong() == TrangThaiDeCuong.CHO_DUYET) {
+                // Bị từ chối (GVHD) hoặc đang chờ GVHD mà SV muốn nộp lại → quay về bước GVHD
+                newVer.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
+                newVer.setGvPhanBienDuyet(null);
+                newVer.setTbmDuyet(null);
+            } else if (prev.getTrangThaiDeCuong() == TrangThaiDeCuong.DA_DUYET) {
+                // Qua được GVHD rồi
+                if (prev.getGvPhanBienDuyet() == TrangThaiDuyetDon.DA_DUYET) {
+                    // Qua được GVPB rồi → tới TBM
+                    if (prev.getTbmDuyet() == TrangThaiDuyetDon.DA_DUYET) {
+                        // Trường hợp này đã fullyApproved ở trên; tới đây là còn TU_CHOI/CHO_DUYET hoặc null
+                    }
+                    newVer.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);       // giữ kết quả GVHD
+                    newVer.setGvPhanBienDuyet(TrangThaiDuyetDon.DA_DUYET);       // giữ kết quả GVPB
+                    newVer.setTbmDuyet(TrangThaiDuyetDon.CHO_DUYET);             // yêu cầu TBM duyệt lại
+                } else {
+                    // Chưa qua GVPB (null/CHO_DUYET/TU_CHOI) → đưa về chờ GVPB
+                    newVer.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);       // giữ kết quả GVHD
+                    newVer.setGvPhanBienDuyet(TrangThaiDuyetDon.CHO_DUYET);      // yêu cầu GVPB duyệt lại
+                    newVer.setTbmDuyet(null);                                    // TBM sẽ tới sau
+                }
+            } else {
+                // Phòng hờ trạng thái lạ → quay về bước GVHD
+                newVer.setTrangThaiDeCuong(TrangThaiDeCuong.CHO_DUYET);
+                newVer.setGvPhanBienDuyet(null);
+                newVer.setTbmDuyet(null);
+            }
+        }
+
+        return mapper.toResponse(deCuongRepository.save(newVer));
     }
+
 
 
 
@@ -135,65 +187,123 @@ public class DeCuongService {
 
 
     public DeCuongResponse reviewDeCuong(Long deCuongId, boolean approve, String reason) {
-        String email = currentUsername();
-        GiangVien gv = giangVienRepository.findByUser_EmailIgnoreCase(email)
+        final String email = currentUsername();
+
+        final GiangVien gv = giangVienRepository.findByUser_EmailIgnoreCase(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.ACCESS_DENIED));
 
-        DeCuong dc = deCuongRepository.findById(deCuongId)
+        final DeCuong dc = deCuongRepository.findById(deCuongId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND));
 
-        DeTai deTai = dc.getDeTai();
+        final DeTai deTai = dc.getDeTai();
         if (deTai == null || deTai.getDotBaoVe() == null) {
             throw new ApplicationException(ErrorCode.NO_ACTIVE_SUBMISSION_WINDOW);
         }
 
-        // Lấy đợt bảo vệ hiện hành (nếu không có -> NOT_IN_DOT_BAO_VE)
-        var currentDot = timeGatekeeper.getCurrentDotBaoVe();
-
-        // Đảm bảo đề tài thuộc đúng đợt hiện hành
-        if (!currentDot.getId().equals(deTai.getDotBaoVe().getId())) {
+        final var currentDot = timeGatekeeper.getCurrentDotBaoVe();
+        if (currentDot == null || !Objects.equals(currentDot.getId(), deTai.getDotBaoVe().getId())) {
             throw new ApplicationException(ErrorCode.NOT_IN_DOT_BAO_VE);
         }
 
-        // Chỉ GVHD
-        if (deTai.getGiangVienHuongDan() == null || !deTai.getGiangVienHuongDan().getId().equals(gv.getId())) {
+        // Chuẩn hóa reason
+        final String normalizedReason = reason == null ? "" : reason.trim();
+
+        // Helper ghi log
+        Runnable logApprove = () -> {
+            var log = new NhanXetDeCuong();
+            log.setDeCuong(dc);
+            log.setNhanXet(normalizedReason);
+            log.setGiangVien(gv);
+            deCuongLogRepository.save(log);
+        };
+
+        // Xác định vai trò theo mối quan hệ trong đề cương (null-safe)
+        final Long gvId = gv.getId();
+        final Long gvhdId = dc.getGiangVienHuongDan() != null ? dc.getGiangVienHuongDan().getId() : null;
+        final Long gvpbId = dc.getGiangVienPhanBien() != null ? dc.getGiangVienPhanBien().getId() : null;
+        final Long tbmId  = dc.getTruongBoMon() != null ? dc.getTruongBoMon().getId() : null;
+
+        boolean acted = false;
+
+        // 1) GVHD duyệt trạng thái đề cương
+        if (Objects.equals(gvId, gvhdId)) {
+            if (dc.getTrangThaiDeCuong() == TrangThaiDeCuong.DA_DUYET)
+                throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
+            if (dc.getTrangThaiDeCuong() == TrangThaiDeCuong.TU_CHOI)
+                throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_REJECTED);
+            if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.CHO_DUYET)
+                throw new ApplicationException(ErrorCode.OUTLINE_NOT_PENDING);
+
+            if (approve) {
+                dc.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);
+                dc.setGvPhanBienDuyet(TrangThaiDuyetDon.CHO_DUYET);
+                logApprove.run();
+            } else {
+                if (normalizedReason.isBlank())
+                    throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
+                logApprove.run();
+                dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
+            }
+            acted = true;
+        }
+
+        // 2) GVPB duyệt cờ phản biện (chỉ sau khi GVHD đã duyệt)
+        else if (Objects.equals(gvId, gvpbId)) {
+            if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.DA_DUYET)
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_ALREADY_APPROVED_BY_GVHD);
+
+            if(dc.getGvPhanBienDuyet()==TrangThaiDuyetDon.DA_DUYET)
+                throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
+
+            if (approve) {
+                dc.setGvPhanBienDuyet(TrangThaiDuyetDon.DA_DUYET);
+                dc.setTbmDuyet(TrangThaiDuyetDon.CHO_DUYET);
+                logApprove.run();
+            } else {
+                if (normalizedReason.isBlank())
+                    throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
+                logApprove.run();
+                dc.setGvPhanBienDuyet(TrangThaiDuyetDon.TU_CHOI);
+
+                // Nếu nghiệp vụ muốn tổng thể bị từ chối, mở comment dòng sau:
+                // dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
+            }
+            acted = true;
+        }
+
+        // 3) TBM duyệt cờ trưởng bộ môn (sau khi GVPB đã duyệt)
+        else if (Objects.equals(gvId, tbmId)) {
+            if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.DA_DUYET)
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_ALREADY_APPROVED_BY_GVHD);
+            if (dc.getGvPhanBienDuyet() != TrangThaiDuyetDon.DA_DUYET)
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_ALREADY_APPROVED_BY_GVPB);
+            if(dc.getTbmDuyet()==TrangThaiDuyetDon.DA_DUYET)
+                throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
+
+            if (approve) {
+                dc.setTbmDuyet(TrangThaiDuyetDon.DA_DUYET);
+                logApprove.run();
+            } else {
+                if (normalizedReason.isBlank())
+                    throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
+                logApprove.run();
+                dc.setTbmDuyet(TrangThaiDuyetDon.TU_CHOI);
+
+                // Nếu muốn tổng thể bị từ chối:
+                // dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
+            }
+            acted = true;
+        }
+
+        if (!acted) {
             throw new ApplicationException(ErrorCode.ACCESS_DENIED);
         }
 
-        if (dc.getTrangThaiDeCuong() == TrangThaiDeCuong.DA_DUYET) {
-            throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
-        }
-        if (dc.getTrangThaiDeCuong() == TrangThaiDeCuong.TU_CHOI) {
-            // Đã bị từ chối thì SV phải nộp lại (PENDING) rồi mới xét tiếp
-            throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_REJECTED);
-        }
-        if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.CHO_DUYET) {
-            throw new ApplicationException(ErrorCode.OUTLINE_NOT_PENDING);
-        }
-
-        if (approve) {
-            dc.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);
-            var log = new NhanXetDeCuong();
-            log.setDeCuong(dc);
-            log.setNhanXet(reason.trim());
-            log.setGiangVien(gv);
-            deCuongLogRepository.save(log);
-        } else {
-            if (reason == null || reason.isBlank()) {
-                throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
-            }
-            // Ghi log nhận xét từ chối
-            var log = new NhanXetDeCuong();
-            log.setDeCuong(dc);
-            log.setNhanXet(reason.trim());
-            log.setGiangVien(gv);
-            deCuongLogRepository.save(log);
-
-            dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
-        }
-
-        return mapper.toResponse(deCuongRepository.save(dc));
+        // Luôn save và trả response ở một chỗ
+        DeCuong saved = deCuongRepository.save(dc);
+        return mapper.toResponse(saved);
     }
+
 
 
 

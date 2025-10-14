@@ -42,7 +42,7 @@ public class DonHoanDoAn extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name="trang_thai", nullable=false, columnDefinition="tt_duyet_don")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private TrangThaiDeTai trangThai;
+    TrangThaiDeTai trangThai;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_sinh_vien", nullable = false)

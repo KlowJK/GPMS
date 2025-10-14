@@ -183,7 +183,9 @@ class AuthService {
         if (token == null || token.isEmpty) {
           print('❌ Token is null or empty!');
         } else {
-          print('   - Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+          print(
+            '   - Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
+          );
         }
         print('   - All SharedPreferences keys: ${prefs.getKeys()}');
       }

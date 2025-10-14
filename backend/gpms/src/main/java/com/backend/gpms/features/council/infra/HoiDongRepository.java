@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface HoiDongRepository extends JpaRepository<HoiDong, Long> {
@@ -46,9 +47,17 @@ public interface HoiDongRepository extends JpaRepository<HoiDong, Long> {
 
     Page<HoiDong> findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(DotBaoVe dotBaoVe, String tenHoiDongBaoVe, Pageable pageable);
 
+    List<HoiDong> findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(DotBaoVe dotBaoVe, String tenHoiDongBaoVe);
+
     Page<HoiDong> findHoiDongByDotBaoVe(DotBaoVe dotBaoVe, Pageable pageable);
+
+    List<HoiDong> findHoiDongByDotBaoVe(DotBaoVe dotBaoVe);
 
     Page<HoiDong> findByDotBaoVeAndDeTaiSet_Id(DotBaoVe dotBaoVe, Long deTaiId, Pageable pageable);
 
+    List<HoiDong> findByDotBaoVeAndDeTaiSet_Id(DotBaoVe dotBaoVe, Long deTaiId);
+
     Page<HoiDong>findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(DotBaoVe dotBaoVe,Long giangVienId, Pageable pageable);
+
+    List<HoiDong> findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(DotBaoVe dotBaoVe,Long giangVienId);
 }
