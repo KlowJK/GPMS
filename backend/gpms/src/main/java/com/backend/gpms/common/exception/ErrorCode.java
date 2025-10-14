@@ -113,6 +113,15 @@ public enum ErrorCode {
     NHAT_KY_ID_REQUIRED(1052, "Nhat ky ID is required", HttpStatus.BAD_REQUEST),
     NO_WEEKS_AVAILABLE(1053, "No weeks available for creating new Nhat ky", HttpStatus.BAD_REQUEST),
     DE_TAI_NOT_APPROVED_BY_GVHD(1054, "De tai not yet approved by GVHD", HttpStatus.BAD_REQUEST),
+    DE_CUONG_NOT_ALREADY_APPROVED_BY_GVHD(1055, "De cuong not yet approved by GVHD", HttpStatus.BAD_REQUEST),
+    DE_CUONG_NOT_ALREADY_APPROVED_BY_TRUONG_BM(1056, "De cuong not yet approved by Truong BM", HttpStatus.BAD_REQUEST),
+    DE_CUONG_NOT_ALREADY_APPROVED_BY_GVPB(1057, "De cuong not yet approved by Tro Ly Khoa", HttpStatus.BAD_REQUEST),
+    DE_CUONG_FULLY_APPROVED(1058, "De cuong has been fully approved", HttpStatus.BAD_REQUEST),
+    BO_MON_OR_TBM_NOT_ASSIGNED(1059, "Bo mon or Truong BM not assigned for this Sinh vien", HttpStatus.BAD_REQUEST),
+    INVALID_WEEK_NUMBER(1060, "Invalid week number", HttpStatus.BAD_REQUEST),
+    INVALID_WEEK_FORMAT(1061, "Invalid week format", HttpStatus.BAD_REQUEST)
+
+
     ;
 
 

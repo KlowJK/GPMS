@@ -11,9 +11,9 @@ import lombok.experimental.FieldDefaults;
 public class DuyetNhatKyRequest {
 
     @NotNull(message = "NHAT_KY_ID_REQUIRED")
-     Long id;
+    Long id;
     @NotNull(message = "NHAN_XET_REQUIRED")
-     String nhanXet;
+    String nhanXet;
 
 }
 
