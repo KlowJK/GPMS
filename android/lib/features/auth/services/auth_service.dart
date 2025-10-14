@@ -32,14 +32,14 @@ class AuthService {
     'studentId',
   ];
 
-  /// Helper xoá toàn bộ key auth
+  /// Helper to clear all auth keys
   static Future<void> _clearAuthKeys(SharedPreferences prefs) async {
     for (final key in _authKeys) {
       await prefs.remove(key);
     }
   }
 
-  /// Login và trả về UserEntity
+  /// Login and return UserEntity
   static Future<UserEntity> login(String email, String password) async {
     final uri = Uri.parse('$baseUrl/api/auth/login');
 
@@ -70,10 +70,28 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final user = UserEntity.fromJson(data);
+        final result = data['result'];
+        if (result == null) {
+          throw Exception('Invalid response format: missing result field');
+        }
+
+        // Construct UserEntity from the response
+        final user = UserEntity(
+          token: result['accessToken'] ?? '',
+          typeToken: result['tokenType'] ?? '',
+          expiresAt: result['expiresAt']?.toString() ?? '',
+          id: result['user']['id'] ?? 0,
+          fullName: result['user']['fullName'],
+          email: result['user']['email'] ?? '',
+          role: result['user']['role'] ?? '',
+          duongDanAvt: result['user']['duongDanAvt'],
+          teacherId: result['user']['teacherId'],
+          studentId: result['user']['studentId'],
+        );
+
         final prefs = await SharedPreferences.getInstance();
         await _clearAuthKeys(prefs);
-        // Lưu dữ liệu mới
+        // Save new data
         await prefs.setString('token', user.token);
         await prefs.setString('typeToken', user.typeToken);
         await prefs.setString('expiresAt', user.expiresAt);
@@ -92,7 +110,7 @@ class AuthService {
         if (user.fullName != null) {
           await prefs.setString('fullName', user.fullName!);
         }
-        // Kiểm tra lại token vừa lưu
+        // Verify saved token
         final savedToken = prefs.getString('token');
         if (savedToken == null || savedToken.isEmpty) {
           if (kDebugMode) {
@@ -126,14 +144,14 @@ class AuthService {
 
         return user;
       } else {
-        // Xử lý lỗi
+        // Handle error
         String errorMessage = 'Login failed (${response.statusCode})';
         try {
           final errorData = jsonDecode(response.body);
           if (errorData is Map<String, dynamic>) {
             errorMessage = errorData['message']?.toString() ?? errorMessage;
-            if (errorData.containsKey('error')) {
-              errorMessage += ' - ${errorData['error']}';
+            if (errorData.containsKey('code')) {
+              errorMessage += ' (Code: ${errorData['code']})';
             }
           }
         } catch (e) {
@@ -157,7 +175,7 @@ class AuthService {
     }
   }
 
-  /// Lấy token từ SharedPreferences
+  /// Get token from SharedPreferences
   static Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -187,7 +205,7 @@ class AuthService {
     }
   }
 
-  /// Lấy user hiện tại từ SharedPreferences
+  /// Get current user from SharedPreferences
   static Future<UserEntity?> getCurrentUser() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -244,7 +262,7 @@ class AuthService {
     }
   }
 
-  /// Logout với debug
+  /// Logout with debug
   static Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -252,21 +270,16 @@ class AuthService {
       if (kDebugMode) {
         print('🚪 Logging out - Clearing SharedPreferences');
         print('   - Current token: ${prefs.getString('token')}');
-        // ❌ Sửa: trước đây log nhầm 'avatar'
-        // ✅ Đúng phải là 'profile_avatar_base64'
         print(
           '   - Current avatar: ${prefs.getString('profile_avatar_base64')}',
         );
       }
 
-      // ❌ Sửa: trước đây gọi remove từng key
-      // ✅ Nay dùng helper _clearAuthKeys
       await _clearAuthKeys(prefs);
 
       if (kDebugMode) {
         print('✅ Logout successful - Auth keys cleared');
         print('   - Token after clear: ${prefs.getString('token')}');
-        // Avatar giữ nguyên (không xoá)
         print(
           '   - Avatar still exists: ${prefs.getString('profile_avatar_base64')}',
         );
@@ -279,7 +292,7 @@ class AuthService {
     }
   }
 
-  /// Kiểm tra token trong prefs có khớp với UserEntity không
+  /// Verify token consistency in SharedPreferences
   static Future<bool> verifyTokenConsistency() async {
     try {
       final prefs = await SharedPreferences.getInstance();
