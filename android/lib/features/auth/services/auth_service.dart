@@ -33,14 +33,14 @@ class AuthService {
     'studentId',
   ];
 
-  /// Helper xoá toàn bộ key auth
+  /// Helper to clear all auth keys
   static Future<void> _clearAuthKeys(SharedPreferences prefs) async {
     for (final key in _authKeys) {
       await prefs.remove(key);
     }
   }
 
-  /// Login và trả về UserEntity
+  /// Login and return UserEntity
   static Future<UserEntity> login(String email, String password) async {
     final uri = Uri.parse('$baseUrl/api/auth/login');
 
@@ -70,51 +70,30 @@ class AuthService {
       }
 
       if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        final result = decoded is Map<String, dynamic> ? decoded['result'] : null;
-        if (result == null || result is! Map<String, dynamic>) {
-          if (kDebugMode) print('❌ Unexpected response structure: missing result');
-          throw Exception('Invalid server response.');
+        final data = jsonDecode(response.body);
+        final result = data['result'];
+        if (result == null) {
+          throw Exception('Invalid response format: missing result field');
         }
 
-        final accessToken = result['accessToken']?.toString() ?? '';
-        final tokenType = result['tokenType']?.toString() ?? '';
-        final expiresAtRaw = result['expiresAt'];
-        final expiresAt = expiresAtRaw != null ? expiresAtRaw.toString() : '';
-        final userMap = result['user'] as Map<String, dynamic>?;
-
-        if (accessToken.isEmpty || userMap == null) {
-          if (kDebugMode) print('❌ Missing token or user in response.result');
-          throw Exception('Invalid login response.');
-        }
-
-        // Build UserEntity using server user data + tokens
+        // Construct UserEntity from the response
         final user = UserEntity(
-          token: accessToken,
-          typeToken: tokenType,
-          expiresAt: expiresAt,
-          id: userMap['id'] is int
-              ? userMap['id'] as int
-              : int.tryParse(userMap['id']?.toString() ?? '') ?? 0,
-          fullName: userMap['fullName']?.toString(),
-          email: userMap['email']?.toString() ?? '',
-          role: userMap['role']?.toString() ?? '',
-          duongDanAvt: userMap['duongDanAvt']?.toString(),
-          teacherId: userMap['teacherId'] is int
-              ? userMap['teacherId'] as int
-              : (userMap['teacherId'] != null
-              ? int.tryParse(userMap['teacherId'].toString())
-              : null),
-          studentId: userMap['studentId'] is int
-              ? userMap['studentId'] as int
-              : (userMap['studentId'] != null
-              ? int.tryParse(userMap['studentId'].toString())
-              : null),
+          token: result['accessToken'] ?? '',
+          typeToken: result['tokenType'] ?? '',
+          expiresAt: result['expiresAt']?.toString() ?? '',
+          id: result['user']['id'] ?? 0,
+          fullName: result['user']['fullName'],
+          email: result['user']['email'] ?? '',
+          role: result['user']['role'] ?? '',
+          duongDanAvt: result['user']['duongDanAvt'],
+          teacherId: result['user']['teacherId'],
+          studentId: result['user']['studentId'],
         );
 
         final prefs = await SharedPreferences.getInstance();
         await _clearAuthKeys(prefs);
 
+        // Save new data
         await prefs.setString('token', user.token);
         await prefs.setString('typeToken', user.typeToken);
         await prefs.setString('expiresAt', user.expiresAt);
@@ -122,9 +101,17 @@ class AuthService {
         if (user.studentId != null) await prefs.setInt('studentId', user.studentId!);
         await prefs.setString('email', user.email);
         await prefs.setString('role', user.role);
-        if (user.duongDanAvt != null) await prefs.setString('duongDanAvt', user.duongDanAvt!);
-        if (user.teacherId != null) await prefs.setInt('teacherId', user.teacherId!);
-        if (user.fullName != null) await prefs.setString('fullName', user.fullName!);
+
+        if (user.duongDanAvt != null) {
+          await prefs.setString('duongDanAvt', user.duongDanAvt!);
+        }
+        if (user.teacherId != null) {
+          await prefs.setInt('teacherId', user.teacherId!);
+        }
+        if (user.fullName != null) {
+          await prefs.setString('fullName', user.fullName!);
+        }
+        // Verify saved token
 
         final savedToken = prefs.getString('token');
         if (savedToken == null || savedToken.isEmpty) {
@@ -140,14 +127,14 @@ class AuthService {
 
         return user;
       } else {
-        // Xử lý lỗi
+        // Handle error
         String errorMessage = 'Login failed (${response.statusCode})';
         try {
           final errorData = jsonDecode(response.body);
           if (errorData is Map<String, dynamic>) {
             errorMessage = errorData['message']?.toString() ?? errorMessage;
-            if (errorData.containsKey('error')) {
-              errorMessage += ' - ${errorData['error']}';
+            if (errorData.containsKey('code')) {
+              errorMessage += ' (Code: ${errorData['code']})';
             }
           }
         } catch (e) {
@@ -171,7 +158,7 @@ class AuthService {
     }
   }
 
-  /// Lấy token từ SharedPreferences
+  /// Get token from SharedPreferences
   static Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -201,7 +188,7 @@ class AuthService {
     }
   }
 
-  /// Lấy user hiện tại từ SharedPreferences
+  /// Get current user from SharedPreferences
   static Future<UserEntity?> getCurrentUser() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -258,7 +245,7 @@ class AuthService {
     }
   }
 
-  /// Logout với debug
+  /// Logout with debug
   static Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -266,21 +253,16 @@ class AuthService {
       if (kDebugMode) {
         print('🚪 Logging out - Clearing SharedPreferences');
         print('   - Current token: ${prefs.getString('token')}');
-        // ❌ Sửa: trước đây log nhầm 'avatar'
-        // ✅ Đúng phải là 'profile_avatar_base64'
         print(
           '   - Current avatar: ${prefs.getString('profile_avatar_base64')}',
         );
       }
 
-      // ❌ Sửa: trước đây gọi remove từng key
-      // ✅ Nay dùng helper _clearAuthKeys
       await _clearAuthKeys(prefs);
 
       if (kDebugMode) {
         print('✅ Logout successful - Auth keys cleared');
         print('   - Token after clear: ${prefs.getString('token')}');
-        // Avatar giữ nguyên (không xoá)
         print(
           '   - Avatar still exists: ${prefs.getString('profile_avatar_base64')}',
         );
@@ -293,7 +275,7 @@ class AuthService {
     }
   }
 
-  /// Kiểm tra token trong prefs có khớp với UserEntity không
+  /// Verify token consistency in SharedPreferences
   static Future<bool> verifyTokenConsistency() async {
     try {
       final prefs = await SharedPreferences.getInstance();
