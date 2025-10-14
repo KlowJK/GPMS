@@ -9,7 +9,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
-import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -24,11 +23,21 @@ public interface NhatKyTienTrinhMapper {
     @Mapping(target = "duongDanFile", source = "duongDanFile", qualifiedByName = "mapMultipartFileToString")
     NhatKyTienTrinh toEntity(NhatKyTienTrinhRequest request);
 
-
+    @Mapping(source = "nhatKyTienTrinh.deTai.sinhVien.maSinhVien", target = "maSinhVien")
+    @Mapping(source = "nhatKyTienTrinh.deTai.sinhVien.hoTen", target = "hoTen")
+    @Mapping(source = "nhatKyTienTrinh.deTai.sinhVien.lop.tenLop", target = "lop")
+    @Mapping(source = "nhatKyTienTrinh.deTai.id", target = "idDeTai")
+    @Mapping(source = "nhatKyTienTrinh.deTai.tenDeTai", target = "deTai")
     List<NhatKyTienTrinhResponse> toResponseList(List<NhatKyTienTrinh> entities);
 
 
+    @Mapping(source = "nhatKyTienTrinh.deTai.sinhVien.maSinhVien", target = "maSinhVien")
+    @Mapping(source = "nhatKyTienTrinh.deTai.sinhVien.hoTen", target = "hoTen")
+    @Mapping(source = "nhatKyTienTrinh.deTai.sinhVien.lop.tenLop", target = "lop")
+    @Mapping(source = "nhatKyTienTrinh.deTai.id", target = "idDeTai")
+    @Mapping(source = "nhatKyTienTrinh.deTai.tenDeTai", target = "deTai")
     NhatKyTienTrinhResponse toNhatKyTienTrinhResponse(NhatKyTienTrinh nhatKyTienTrinh);
+
 
     @Named("mapMultipartFileToString")
     default String mapMultipartFileToString(MultipartFile file) {

@@ -3,41 +3,49 @@ package com.backend.gpms.features.auth.domain;
 
 import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.notification.domain.ThongBaoDen;
 import com.backend.gpms.features.student.domain.SinhVien;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @Entity @Table(name="tai_khoan")
 public class User extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
     @Column(nullable = false, unique = true)
-    private String email;
+    String email;
 
     @Column(name = "mat_khau", nullable = false)
-    private String matKhau;
+    String matKhau;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "vai_tro", nullable = false, columnDefinition = "vai_tro_tk")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)   // <— quan trọng cho PostgreSQL enum
-    private Role vaiTro;
+    Role vaiTro;
 
     @Column(name = "kich_hoat", nullable = false)
-    private Boolean trangThaiKichHoat = true;
+    Boolean trangThaiKichHoat = true;
 
     @OneToOne(mappedBy = "user")
     SinhVien sinhVien;
     @OneToOne(mappedBy = "user")
     GiangVien giangVien;
+
+
+    @OneToMany(mappedBy = "user")
+    List<ThongBaoDen> thongBaoDens;
 }

@@ -49,7 +49,7 @@ public class AuthController {
 
     @PostMapping("/change-password")
     public ApiResponse<Void> changePassword(@AuthenticationPrincipal User principal,
-                                               @RequestBody @Valid ChangePasswordRequest req) {
+                                            @RequestBody @Valid ChangePasswordRequest req) {
         service.changePassword(principal.getUsername(), req);
         return ApiResponse.success(null);
     }

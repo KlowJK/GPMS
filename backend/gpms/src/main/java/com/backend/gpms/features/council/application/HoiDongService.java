@@ -86,6 +86,29 @@ public class HoiDongService{
         return page.map(hoiDongMapper::toListItem);
     }
 
+    public List<HoiDongResponse> getHoiDongsDangDienRa(String keyword,Long idDetai,Long idGiangVien) {
+        boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
+        boolean hasIdDetai = idDetai != null && idDetai >0;
+        boolean hasIdGiangVien = idGiangVien != null && idGiangVien >0;
+
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+
+        List<HoiDong> list;
+        if (hasKeyword) {
+            list = hoiDongRepository.findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(dotBaoVe, keyword);
+        }else
+        if (hasIdDetai) {
+            list = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDetai);
+        } else
+        if (hasIdGiangVien) {
+            list = hoiDongRepository.findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(dotBaoVe,idGiangVien);
+        } else {
+            list = hoiDongRepository.findHoiDongByDotBaoVe(dotBaoVe);
+        }
+
+        return list.stream().map(hoiDongMapper::toListItem).collect(java.util.stream.Collectors.toList());
+    }
+
 
     public ThanhVienHoiDongResponse getHoiDongDetail(Long hoiDongId) {
         HoiDong hd = hoiDongRepository.fetchDetail(hoiDongId)

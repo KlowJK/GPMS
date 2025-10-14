@@ -13,7 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 public class NhatKyTienTrinhRequest {
     @NotNull(message = "NHAT_KY_ID_REQUIRED")
     Long idNhatKy;
+
     @NotNull(message = "NOI_DUNG_REQUIRED")
     String noiDung;
+
     MultipartFile duongDanFile;
 }
