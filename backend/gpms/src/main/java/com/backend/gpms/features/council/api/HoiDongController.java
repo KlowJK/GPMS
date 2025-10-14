@@ -22,6 +22,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Tag(name = "Hội đồng", description = "API quản lý hội đồng")
 @RestController
 @RequestMapping("/api/hoi-dong")
@@ -44,6 +46,19 @@ public class HoiDongController {
             @PageableDefault(page = 0, size = 10, sort = "thoiGianBatDau", direction = Sort.Direction.DESC)
             Pageable pageable) {
         return ApiResponse.success(hoiDongService.getHoiDongsDangDienRa(keyword,idDeTai,idGiangVien, pageable));
+    }
+
+    @Operation(summary = "App - Lấy danh sách hội đồng đang diễn ra - lấy hội đồng SV-> chỉ truyền id đề tài của sinh viên, giảng viên -> id giảng viên, lấy hội đồng theo tên -> keyword, lấy tất cả hội đồng đang diễn ra -> không truyền gì")
+    @GetMapping("/list")
+    public ApiResponse<List<HoiDongResponse>> getHoiDongDangDienRa(
+            @RequestParam(required = false)
+            String keyword,
+            @RequestParam(required = false)
+            Long idDeTai,
+            @RequestParam(required = false)
+            Long idGiangVien
+            ) {
+        return ApiResponse.success(hoiDongService.getHoiDongsDangDienRa(keyword,idDeTai,idGiangVien));
     }
 
     @Operation(summary = "Lấy chi tiết hội đồng theo idHoiDong - Có list thành viên hội đồng gv,sv")

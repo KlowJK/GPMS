@@ -4,17 +4,25 @@ import com.backend.gpms.features.lecturer.domain.GiangVien;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
 @Entity
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @Table(name="nhan_xet_de_cuong", indexes = @Index(name="idx_nxdc_dc", columnList="id_de_cuong"))
 public class NhanXetDeCuong extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
+
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name="id_de_cuong", nullable=false) private DeCuong deCuong;
-    @Column(name="nhan_xet", nullable=false, columnDefinition="text") private String nhanXet;
+    @JoinColumn(name="id_de_cuong", nullable=false)
+    DeCuong deCuong;
+
+    @Column(name="nhan_xet", nullable=false, columnDefinition="text")
+    String nhanXet;
+
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name="id_giang_vien", nullable=false) private GiangVien giangVien;
+    @JoinColumn(name="id_giang_vien", nullable=false)
+    GiangVien giangVien;
 }

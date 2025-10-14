@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class NhatKyTienTrinhResponse {
      Long id;
-     String tuan;
+     int tuan;
      String deTai;
      String maSinhVien;
      String lop;

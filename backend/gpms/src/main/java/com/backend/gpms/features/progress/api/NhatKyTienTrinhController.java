@@ -65,18 +65,25 @@ public class NhatKyTienTrinhController {
         return ApiResponse.success(service.duyetNhatKy( request));
     }
 
-    @Operation(summary = "Lấy danh sách nhật ký sinh viên được giảng viên hướng dẫn - Role giảng viên")
+    @Operation(summary = "Lấy page nhật ký sinh viên được giảng viên hướng dẫn - Role giảng viên")
     @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
     @GetMapping("/my-supervised-students")
     public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
             @RequestParam(name = "status", required = false) TrangThaiNhatKy status,
-
+            @ParameterObject
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.ASC)
             Pageable pageable) {
 
         return ApiResponse.success(service.getNhatKyPage(status,pageable));
     }
-
+    @Operation(summary = "App - Lấy danh sách nhật ký sinh viên được giảng viên hướng dẫn - Role giảng viên")
+    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @GetMapping("/my-supervised-students/list")
+    public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyPage(
+            @RequestParam(name = "status", required = false) TrangThaiNhatKy status
+          ) {
+        return ApiResponse.success(service.getNhatKyList(status));
+    }
 
     @Operation(summary = "Nếu includeAll =false ấy tuần tự động tính theo ngày hiện tại, còn lại tất cả, tuần được tính theo ngày đề tài được duyệt đến ngày kết thúc đợt - Role giảng viên")
     @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
@@ -86,11 +93,12 @@ public class NhatKyTienTrinhController {
         return ApiResponse.success(service.getTuanListByGVHD(includeAll));
     }
 
-    @Operation(summary = "Lấy danh sách tất cả sinh viên thuộc tuần hiện tại hoặc tất cả sinh viên nếu includeAll=true - Role giảng viên")
+    @Operation(summary = "Lấy page sinh viên thuộc tuần hiện tại hoặc tất cả sinh viên nếu includeAll=true - Role giảng viên")
     @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
     @GetMapping("/all-nhat-ky")
     public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
-            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "tuan",defaultValue = "0", required = false) int status,
+            @ParameterObject
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.ASC)
             Pageable pageable) {
 
@@ -98,6 +106,15 @@ public class NhatKyTienTrinhController {
 
     }
 
+    @Operation(summary = "Lấy list sinh viên thuộc tuần hiện tại hoặc tất cả sinh viên nếu includeAll=true - Role giảng viên")
+    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @GetMapping("/all-nhat-ky/list")
+    public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyPage(
+            @RequestParam(name = "tuan", defaultValue = "0",required = false) int status
+           ) {
 
+        return ApiResponse.success(service.getNhatKyTienTrinhList(status));
+
+    }
 
 }
