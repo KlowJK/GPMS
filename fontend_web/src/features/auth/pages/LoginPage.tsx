@@ -24,10 +24,27 @@ export default function LoginPage() {
             const res = await axios.post('/api/auth/login', payload, {
                 headers: { 'Content-Type': 'application/json' },
             })
+            // clear previous error
             setError(null)
-            const accessToken = res.data?.accessToken
-            const user = res.data?.user
-            if (!accessToken) throw new Error('Token not returned from server')
+
+            // debug log
+            // eslint-disable-next-line no-console
+            console.debug('[login] server response:', res)
+
+            // normalize response: some backends wrap payload in `result`
+            const raw = res.data ?? {}
+            const data = raw.result ?? raw
+
+            // try common token locations
+            const possibleToken = (data.accessToken ?? data.token ?? data.access_token ?? data.data?.accessToken) as string | undefined
+            const headerAuth = (res.headers && (res.headers.authorization || res.headers.Authorization)) as string | undefined
+            const accessToken = possibleToken || headerAuth?.replace(/^Bearer\s+/i, '')
+            const user = data.user ?? data
+
+            if (!accessToken) {
+                const serverBody = typeof data === 'string' ? data : JSON.stringify(data)
+                throw new Error(`Token not returned from server. Response body: ${serverBody}`)
+            }
 
             // store token and user
             setToken(accessToken)
@@ -49,6 +66,7 @@ export default function LoginPage() {
                 'Đăng nhập thất bại'
             // show error in UI and log details for debugging
             setError(typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg))
+            // eslint-disable-next-line no-console
             console.error('Login error response:', axiosErr?.response?.status, axiosErr?.response?.data, err)
         } finally {
             setLoading(false)
