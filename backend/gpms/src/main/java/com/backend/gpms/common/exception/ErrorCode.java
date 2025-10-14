@@ -119,8 +119,20 @@ public enum ErrorCode {
     DE_CUONG_FULLY_APPROVED(1058, "De cuong has been fully approved", HttpStatus.BAD_REQUEST),
     BO_MON_OR_TBM_NOT_ASSIGNED(1059, "Bo mon or Truong BM not assigned for this Sinh vien", HttpStatus.BAD_REQUEST),
     INVALID_WEEK_NUMBER(1060, "Invalid week number", HttpStatus.BAD_REQUEST),
-    INVALID_WEEK_FORMAT(1061, "Invalid week format", HttpStatus.BAD_REQUEST)
-
+    INVALID_WEEK_FORMAT(1061, "Invalid week format", HttpStatus.BAD_REQUEST),
+    DUONG_DAN_REQUIRED(1062, "Duong dan file cannot be empty", HttpStatus.BAD_REQUEST),
+    DE_CUONG_NOT_APPROVED(1063, "De cuong not yet approved", HttpStatus.BAD_REQUEST),
+    NOP_BAO_CAO_TIME_INVALID(1064, "Not in thoi gian nop bao cao", HttpStatus.BAD_REQUEST),
+    BAO_CAO_ALREADY_APPROVED(1065, "Bao cao already approved", HttpStatus.BAD_REQUEST),
+    BAO_CAO_NOT_REJECTED(1066, "Bao cao is not rejected", HttpStatus.BAD_REQUEST),
+    BAO_CAO_NOT_FOUND(1067, "Bao cao not found", HttpStatus.NOT_FOUND),
+    FORBIDDEN(1068, "You don't have permission to access this resource", HttpStatus.FORBIDDEN),
+    ID_BAO_CAO_REQUIRED(1069, "ID bao cao is required", HttpStatus.BAD_REQUEST),
+    REVIEW_REQUIRED_FOR_REJECTION(1070, "Review is required when rejecting the report", HttpStatus.BAD_REQUEST),
+    INVALID_BAO_CAO_ID(1071, "Invalid bao cao ID", HttpStatus.BAD_REQUEST),
+    SCORE_REQUIRED_FOR_APPROVAL(1072, "Score is required when approving the report", HttpStatus.BAD_REQUEST),
+    INVALID_SCORE_RANGE(1073, "Score must be between 0 and 10", HttpStatus.BAD_REQUEST),
+    BAO_CAO_ALREADY_REJECTED(1074, "Bao cao already rejected", HttpStatus.BAD_REQUEST)
 
     ;
 

@@ -115,9 +115,19 @@ public class GiangVienService {
                     int quota = Optional.ofNullable(gv.getQuotaInstruct()).orElse(0);
                     int remaining = (int) (quota - current);
                     if (remaining <= 0) return null;
+                    StringBuilder buffer = new StringBuilder();
+                    if (gv.getHocHam() != null && gv.getHocVi() != null) {
+                        buffer.append(gv.getHocHam()).append(gv.getHocVi()).append(" ");
+                    } else if (gv.getHocHam() != null) {
+                        buffer.append(gv.getHocHam()).append(" ");
+                    } else if (gv.getHocVi() != null) {
+                        buffer.append(gv.getHocVi()).append(" ");
+                    }
+                    buffer.append(gv.getHoTen());
+                    String hoTen = buffer.toString();
                     return GiangVienLiteResponse.builder()
                             .id(gv.getId())
-                            .hoTen(gv.getHoTen())
+                            .hoTen(hoTen)
                             .boMonId(gv.getBoMon() != null ? gv.getBoMon().getId() : null)
                             .quotaInstruct(quota)
                             .currentInstruct(current)
@@ -129,13 +139,13 @@ public class GiangVienService {
                         .thenComparing(GiangVienLiteResponse::getHoTen))
                 .toList();
     }
+
+
     private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         try { return auth.getName(); }
         catch (Exception e) { throw new ApplicationException(ErrorCode.UNAUTHENTICATED); }
     }
-
-
 
 
     public Page<SinhVienSupervisedResponse> getMySinhVienSupervised(Pageable pageable) {
