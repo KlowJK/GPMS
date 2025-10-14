@@ -168,7 +168,7 @@ public class DeTaiService {
 
         // 3) chỉ cho duyệt khi đang PENDING
         if (detai.getTrangThai() != TrangThaiDeTai.CHO_DUYET) {
-            throw new ApplicationException(ErrorCode.DE_TAI_NOT_IN_PENDING_STATUS);
+            throw new ApplicationException(ErrorCode.DE_TAI_NOT_PENDING);
         }
 
         // 4) chuyển trạng thái + lưu nhận xét

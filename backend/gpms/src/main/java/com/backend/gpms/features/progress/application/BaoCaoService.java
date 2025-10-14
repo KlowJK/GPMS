@@ -82,7 +82,7 @@ public class BaoCaoService {
 
         // Kiểm tra trạng thái đề tài
         if (deTai.getTrangThai() != TrangThaiDeTai.DA_DUYET) {
-            throw new ApplicationException(ErrorCode.DE_TAI_NOT_APPROVED);
+            throw new ApplicationException(ErrorCode.DE_TAI_NOT_ACCEPTED);
         }
 
         // Tìm đề cương mới nhất

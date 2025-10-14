@@ -1,5 +1,7 @@
 package com.backend.gpms.common.security;
 
+import com.backend.gpms.common.exception.ApplicationException;
+import com.backend.gpms.common.exception.ErrorCode;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -51,8 +53,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                             SecurityContextHolder.getContext().setAuthentication(authToken);
                         }
                     }
-                } catch (UsernameNotFoundException | JwtException ignored) {
-                    // Token sai/expired hoặc user không tồn tại -> bỏ qua, để EntryPoint xử lý khi cần
+                } catch (JwtException e) {
+                    throw new ApplicationException(ErrorCode.INVALID_TOKEN);
+                } catch (UsernameNotFoundException e) {
+                    throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
                 }
             }
         }

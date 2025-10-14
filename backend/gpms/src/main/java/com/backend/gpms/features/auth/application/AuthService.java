@@ -1,5 +1,7 @@
 package com.backend.gpms.features.auth.application;
 
+import com.backend.gpms.common.exception.ApplicationException;
+import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.security.JwtUtils;
 import com.backend.gpms.features.auth.domain.PasswordResetToken;
 import com.backend.gpms.features.auth.domain.User;
@@ -19,6 +21,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,52 +62,73 @@ public class AuthService {
       private String resetBaseUrl;
 
     public AuthResponse login(LoginRequest req) {
-        Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getMatKhau()));
-
-        var principal = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
-        var domainUser = usersRepo.findByEmail(principal.getUsername()).orElseThrow();
-
-        List<String> roles = principal.getAuthorities().stream()
-                .map(a -> a.getAuthority()).toList();
-
-        Long studentId = null, teacherId = null;
-        String fullName = null, duongDanAvt = null;
-
-        var svOpt = studentRepo.findByUserId(domainUser.getId());
-        if (svOpt.isPresent()) {
-            var sv = svOpt.get();
-            studentId = sv.getId();
-            fullName  = sv.getHoTen();
-            duongDanAvt = sv.getDuongDanAvt();
+        // Kiểm tra email tồn tại trước
+        if (!usersRepo.existsByEmail(req.getEmail())) {
+            log.warn("Login failed: Email not found - {}", req.getEmail());
+            throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
 
-        var gvOpt = lecturerRepo.findByUserId(domainUser.getId());
-        if (gvOpt.isPresent()) {
-            var gv = gvOpt.get();
-            teacherId = gv.getId();
-            if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
-                fullName = gv.getHoTen(); // ưu tiên tên GV nếu có
+        try {
+            Authentication auth = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getMatKhau()));
 
+            var principal = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+            var domainUser = usersRepo.findByEmail(principal.getUsername()).orElseThrow(() ->
+                    new ApplicationException(ErrorCode.USER_NOT_FOUND));
+
+            List<String> roles = principal.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .toList();
+
+            Long studentId = null, teacherId = null;
+            String fullName = null, duongDanAvt = null;
+
+            var svOpt = studentRepo.findByUserId(domainUser.getId());
+            if (svOpt.isPresent()) {
+                var sv = svOpt.get();
+                studentId = sv.getId();
+                fullName = sv.getHoTen();
+                duongDanAvt = sv.getDuongDanAvt();
             }
-            duongDanAvt = gv.getDuongDanAvt();
+
+            var gvOpt = lecturerRepo.findByUserId(domainUser.getId());
+            if (gvOpt.isPresent()) {
+                var gv = gvOpt.get();
+                teacherId = gv.getId();
+                if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
+                    fullName = gv.getHoTen(); // Ưu tiên tên GV nếu có
+                }
+                duongDanAvt = gv.getDuongDanAvt();
+            }
+
+            String token = jwt.generate(domainUser.getEmail(), Map.of("roles", roles));
+            long expiresAt = jwt.getExpiryEpochMillis(token);
+
+            var userResp = UserResponse.of(
+                    domainUser.getId(),
+                    fullName,
+                    domainUser.getEmail(),
+                    domainUser.getVaiTro(),
+                    duongDanAvt,
+                    domainUser.getTrangThaiKichHoat(),
+                    teacherId,
+                    studentId
+            );
+
+            return AuthResponse.of(token, expiresAt, userResp);
+        } catch (BadCredentialsException e) {
+            log.warn("Login failed: Wrong password for email - {}", req.getEmail());
+            throw new ApplicationException(ErrorCode.WRONG_PASSWORD);
+        } catch (DisabledException e) {
+            log.warn("Login failed: Account disabled for email - {}", req.getEmail());
+            throw new ApplicationException(ErrorCode.INACTIVATED_ACCOUNT);
+        } catch (AuthenticationException e) {
+            log.error("Login failed: Authentication error for email - {}", req.getEmail(), e);
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
+        } catch (Exception e) {
+            log.error("Unexpected error during login for email: {}", req.getEmail(), e);
+            throw new ApplicationException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
-
-        String token = jwt.generate(domainUser.getEmail(), Map.of("roles", roles));
-        long expiresAt = jwt.getExpiryEpochMillis(token);
-
-        var userResp = UserResponse.of(
-                domainUser.getId(),
-                fullName,
-                domainUser.getEmail(),
-                domainUser.getVaiTro(),
-                duongDanAvt,
-                domainUser.getTrangThaiKichHoat(),
-                teacherId,
-                studentId
-        );
-
-        return AuthResponse.of(token, expiresAt, userResp);
     }
 
 
