@@ -1,92 +1,33 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:GPMS/features/lecturer/services/de_tai_service.dart';
+import 'package:GPMS/features/lecturer/models/de_tai_item.dart';
 
 class DuyetDeTai extends StatefulWidget {
-  const DuyetDeTai({super.key, this.onChanged});
-  /// Gọi để parent (tab Sinh viên) reload sau khi duyệt/từ chối
-  final VoidCallback? onChanged;
-
+  const DuyetDeTai({super.key});
   @override
-  State<DuyetDeTai> createState() => DuyetDeTaiState();
+  State<DuyetDeTai> createState() => _DuyetDeTaiState();
 }
 
-class DuyetDeTaiState extends State<DuyetDeTai> {
-  final List<TopicApprovalItem> _items = [];
-  final _scroll = ScrollController();
-
+class _DuyetDeTaiState extends State<DuyetDeTai> {
+  final _items = <DeTaiItem>[];
   bool _loading = false;
   String? _error;
-
-  /// Phân trang “ảo”: mỗi lần load sẽ gọi 3 trạng thái theo cùng page
-  int _page = 0;
-  final int _size = 10;
-  bool _lastPage = false;
 
   @override
   void initState() {
     super.initState();
-    _load(reset: true);
-    _scroll.addListener(_onScrollBottom);
+    _load();
   }
 
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _onScrollBottom() {
-    if (_loading || _lastPage) return;
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 160) {
-      _load();
-    }
-  }
-
-  Future<void> _load({bool reset = false}) async {
+  Future<void> _load() async {
     if (_loading) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-      if (reset) {
-        _page = 0;
-        _lastPage = false;
-        _items.clear();
-      }
-    });
-
+    setState(() { _loading = true; _error = null; });
     try {
-      // Gọi 3 trạng thái và gộp
-      final results = await Future.wait([
-        DeTaiService.fetchPage(trangThai: 'CHO_DUYET', page: _page, size: _size),
-        DeTaiService.fetchPage(trangThai: 'DA_DUYET', page: _page, size: _size),
-        DeTaiService.fetchPage(trangThai: 'TU_CHOI', page: _page, size: _size),
-      ]);
-
-      final merged = <TopicApprovalItem>[];
-      var allLast = true;
-
-      for (final data in results) {
-        final page = data['result'] as Map<String, dynamic>;
-        final content = (page['content'] as List? ?? []);
-        final isLast = (page['last'] as bool?) ?? true;
-        allLast = allLast && isLast;
-
-        merged.addAll(content.map((e) =>
-            TopicApprovalItem.fromDeTaiResponse(Map<String, dynamic>.from(e as Map))));
-      }
-
-      // Ưu tiên CHỜ DUYỆT -> ĐÃ DUYỆT -> TỪ CHỐI
-      int weight(TopicStatus s) => s == TopicStatus.pending
-          ? 0
-          : (s == TopicStatus.approved ? 1 : 2);
-      merged.sort((a, b) => weight(a.status).compareTo(weight(b.status)));
-
-      setState(() {
-        _items.addAll(merged);
-        _lastPage = allLast;
-        _page++;
-      });
+      final list = await DeTaiService.fetchApprovalList();
+      setState(() { _items..clear()..addAll(list); });
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -94,36 +35,31 @@ class DuyetDeTaiState extends State<DuyetDeTai> {
     }
   }
 
-  Future<void> _approveOrReject({
-    required int id,
-    required bool approve,
+  Future<void> _onAction({
     required int index,
+    required bool approve,
   }) async {
-    final note = await showCommentSheet(context);
-    if (note == null || (!approve && note.trim().isEmpty)) return;
+    final it = _items[index];
+    final note = await _showCommentDialog(context);
+    if (note == null || note.trim().isEmpty) return;
 
     try {
-      final res = await DeTaiService.approveDeTai(
-        deTaiId: id,
-        approved: approve,
-        nhanXet: note.trim(),
-      );
-      final result = res['result'] as Map<String, dynamic>;
-      final updated = TopicApprovalItem.fromDeTaiResponse(result);
-
-      setState(() => _items[index] = updated);
-
-      // Báo cho parent reload tab Sinh viên
-      widget.onChanged?.call();
-
+      DeTaiItem updated;
+      if (approve) {
+        updated = await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim());
+      } else {
+        updated = await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
+      }
+      setState(() => _items[index] = updated); // giữ item trong list
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(approve ? 'Đã duyệt đề tài' : 'Đã từ chối đề tài')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật: $e')),
+      );
     }
   }
 
@@ -131,109 +67,43 @@ class DuyetDeTaiState extends State<DuyetDeTai> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Thanh tiêu đề phụ + nút refresh
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              Text(
-                'Danh sách đề tài',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
+              const Text('Danh sách đề tài'),
               const Spacer(),
-              IconButton(
-                tooltip: 'Tải lại',
-                onPressed: () => _load(reset: true),
-                icon: const Icon(Icons.refresh),
-              ),
+              IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
             ],
           ),
         ),
-
         Expanded(
           child: _error != null
-              ? Center(child: Text('Lỗi: $_error'))
+              ? _ErrorView(message: _error!, onRetry: _load)
               : RefreshIndicator(
-            onRefresh: () => _load(reset: true),
-            child: ListView.separated(
-              controller: _scroll,
-              padding: const EdgeInsets.all(16),
-              itemCount: _items.length + (_loading ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) {
-                if (_loading && i == _items.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                final it = _items[i];
-                return _TopicCard(
-                  item: it,
-                  onApprove: it.status == TopicStatus.pending
-                      ? () => _approveOrReject(
-                      id: it.id, approve: true, index: i)
-                      : null,
-                  onReject: it.status == TopicStatus.pending
-                      ? () => _approveOrReject(
-                      id: it.id, approve: false, index: i)
-                      : null,
-                );
-              },
-            ),
+            onRefresh: _load,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : (_items.isEmpty
+                ? const _EmptyView(text: 'Không có đề tài.')
+                : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              separatorBuilder: (_, __) =>
+              const SizedBox(height: 12),
+              itemCount: _items.length,
+              itemBuilder: (_, i) => _TopicCard(
+                item: _items[i],
+                onApprove: _items[i].status == TopicStatus.pending
+                    ? () => _onAction(index: i, approve: true)
+                    : null,
+                onReject: _items[i].status == TopicStatus.pending
+                    ? () => _onAction(index: i, approve: false)
+                    : null,
+              ),
+            )),
           ),
         ),
       ],
-    );
-  }
-}
-
-enum TopicStatus { pending, approved, rejected }
-TopicStatus mapTrangThai(String s) {
-  switch (s) {
-    case 'DA_DUYET':
-      return TopicStatus.approved;
-    case 'TU_CHOI':
-      return TopicStatus.rejected;
-    case 'CHO_DUYET':
-    default:
-      return TopicStatus.pending;
-  }
-}
-
-class TopicApprovalItem {
-  final int id;
-  final String? studentName; // hiện backend chưa trả -> null
-  final String? studentId;
-  final String title;
-  final String? overviewFileName;
-  final TopicStatus status;
-  final String? comment;
-
-  TopicApprovalItem({
-    required this.id,
-    required this.title,
-    required this.status,
-    this.studentName,
-    this.studentId,
-    this.overviewFileName,
-    this.comment,
-  });
-
-  factory TopicApprovalItem.fromDeTaiResponse(Map<String, dynamic> json) {
-    return TopicApprovalItem(
-      id: (json['id'] as num).toInt(),
-      title: (json['tenDeTai'] ?? '') as String,
-      status: mapTrangThai((json['trangThai'] ?? 'CHO_DUYET') as String),
-      comment: json['nhanXet'] as String?,
-      studentId: (json['sinhVienId']?.toString()),
-      studentName: null,
-      overviewFileName: json['tongQuanFilename'] as String?,
     );
   }
 }
@@ -245,140 +115,162 @@ class _TopicCard extends StatelessWidget {
     this.onReject,
   });
 
-  final TopicApprovalItem item;
+  final DeTaiItem item;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
 
-  Color _statusColor(TopicStatus s) {
-    switch (s) {
-      case TopicStatus.pending:
-        return const Color(0xFFC9B325);
-      case TopicStatus.approved:
-        return const Color(0xFF16A34A);
-      case TopicStatus.rejected:
-        return const Color(0xFFDC2626);
-    }
-  }
-
-  String _statusText(TopicStatus s) {
-    switch (s) {
-      case TopicStatus.pending:
-        return 'Đang chờ duyệt';
-      case TopicStatus.approved:
-        return 'Đã duyệt';
-      case TopicStatus.rejected:
-        return 'Từ chối';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final pending = item.status == TopicStatus.pending;
+
     return Card(
       elevation: 1,
       color: const Color(0xFFE4F6FF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(child: Icon(Icons.person)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.studentName ?? 'Sinh viên',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                    if ((item.studentId ?? '').isNotEmpty)
+                      Text(item.studentId!,
+                          style: Theme.of(context).textTheme.bodySmall),
+                    Row(
+                      children: [
+                        Text('CV: ', style: Theme.of(context).textTheme.bodyMedium),
+                        Flexible(
+                          child: InkWell(
+                            onTap: _maybeOpen(item.overviewFileName),
+                            child: Text(
+                              item.overviewFileName ?? '—',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: (item.overviewFileName ?? '')
+                                    .startsWith('http')
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                                decoration: (item.overviewFileName ?? '')
+                                    .startsWith('http')
+                                    ? TextDecoration.underline
+                                    : TextDecoration.none,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Text('Đề tài: ${item.title}',
+              style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 6),
+
+          Row(
+            children: [
+              const Text('Trạng thái: ',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                switch (item.status) {
+                  TopicStatus.approved => 'Đã duyệt',
+                  TopicStatus.rejected => 'Đã từ chối',
+                  TopicStatus.pending => 'Đang chờ duyệt',
+                },
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: switch (item.status) {
+                    TopicStatus.approved => const Color(0xFF16A34A),
+                    TopicStatus.rejected => const Color(0xFFDC2626),
+                    TopicStatus.pending => const Color(0xFFC9B325),
+                  },
+                ),
+              ),
+            ],
+          ),
+          if ((item.comment ?? '').isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('Nhận xét: ${item.comment}'),
+          ],
+
+          if (pending) ...[
+            const SizedBox(height: 12),
             Row(
               children: [
-                const CircleAvatar(child: Icon(Icons.person)),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      backgroundColor: const Color(0xFFDC2626),
+                    ),
+                    onPressed: onReject,
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Từ chối'),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      Text('Sinh viên', style: Theme.of(context).textTheme.titleMedium),
-                      if (item.studentId != null)
-                        Text(
-                          item.studentId!,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey[600]),
-                        ),
-                    ],
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      backgroundColor: const Color(0xFF16A34A),
+                    ),
+                    onPressed: onApprove,
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Duyệt'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Đề tài: ${item.title}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Text('Tổng quan đề tài: ',
-                    style: Theme.of(context).textTheme.bodyMedium),
-                Flexible(
-                  child: Text(
-                    item.overviewFileName ?? '—',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Text('Trạng thái: ', style: Theme.of(context).textTheme.bodyMedium),
-                Text(
-                  _statusText(item.status),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: _statusColor(item.status),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            if ((item.comment ?? '').isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text('Nhận xét: ${item.comment}',
-                  style: Theme.of(context).textTheme.bodyMedium),
-            ],
-            const SizedBox(height: 12),
-            if (item.status == TopicStatus.pending)
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: onReject,
-                      icon: const Icon(Icons.close),
-                      label: const Text('Từ chối'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D4ED8),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: onApprove,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Duyệt'),
-                    ),
-                  ),
-                ],
-              ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  VoidCallback? _maybeOpen(String? url) {
+    if (url == null || url.isEmpty || !url.startsWith('http')) return null;
+    return () async {
+      final uri = Uri.tryParse(url);
+      if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+    };
+  }
+}
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.info_outline,
+                size: 36, color: Theme.of(context).disabledColor),
+            const SizedBox(height: 8),
+            Text(text, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -386,45 +278,58 @@ class _TopicCard extends StatelessWidget {
   }
 }
 
-/// BottomSheet nhập nhận xét (giữ nguyên bản bạn đang dùng)
-Future<String?> showCommentSheet(BuildContext context) async {
-  final controller = TextEditingController();
-  return showModalBottomSheet<String>(
-    context: context,
-    useSafeArea: true,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) {
-      final bottom = MediaQuery.of(context).viewInsets.bottom;
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Nhận xét', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              minLines: 6,
-              maxLines: 10,
-              decoration: InputDecoration(
-                hintText: 'Đưa ra nhận xét ...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: () {
-                final t = controller.text.trim();
-                if (t.isEmpty) return;
-                Navigator.pop(context, t);
-              },
-              child: const Text('Xác nhận'),
-            ),
-          ],
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 16),
+        Icon(Icons.error_outline,
+            color: Theme.of(context).colorScheme.error, size: 32),
+        const SizedBox(height: 8),
+        Text('Lỗi: $message', style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Thử lại'),
         ),
+      ],
+    );
+  }
+}
+
+/// Popup nhận xét ở GIỮA màn hình
+Future<String?> _showCommentDialog(BuildContext context) async {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Nhận xét'),
+        content: TextField(
+          controller: controller,
+          minLines: 5,
+          maxLines: 10,
+          decoration:
+          const InputDecoration(hintText: 'Nhập nhận xét bắt buộc...'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () {
+              final t = controller.text.trim();
+              if (t.isEmpty) return;
+              Navigator.pop(ctx, t);
+            },
+            child: const Text('Xác nhận'),
+          ),
+        ],
       );
     },
   );
