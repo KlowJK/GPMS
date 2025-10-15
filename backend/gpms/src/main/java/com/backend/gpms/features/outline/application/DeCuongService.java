@@ -190,7 +190,7 @@ public class DeCuongService {
         final String email = currentUsername();
 
         final GiangVien gv = giangVienRepository.findByUser_EmailIgnoreCase(email)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.ACCESS_DENIED));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
 
         final DeCuong dc = deCuongRepository.findById(deCuongId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND));
@@ -232,7 +232,7 @@ public class DeCuongService {
             if (dc.getTrangThaiDeCuong() == TrangThaiDeCuong.TU_CHOI)
                 throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_REJECTED);
             if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.CHO_DUYET)
-                throw new ApplicationException(ErrorCode.OUTLINE_NOT_PENDING);
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_PENDING);
 
             if (approve) {
                 dc.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);
@@ -250,7 +250,7 @@ public class DeCuongService {
         // 2) GVPB duyệt cờ phản biện (chỉ sau khi GVHD đã duyệt)
         else if (Objects.equals(gvId, gvpbId)) {
             if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.DA_DUYET)
-                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_ALREADY_APPROVED_BY_GVHD);
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_APPROVED_BY_GVHD);
 
             if(dc.getGvPhanBienDuyet()==TrangThaiDuyetDon.DA_DUYET)
                 throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
@@ -274,9 +274,9 @@ public class DeCuongService {
         // 3) TBM duyệt cờ trưởng bộ môn (sau khi GVPB đã duyệt)
         else if (Objects.equals(gvId, tbmId)) {
             if (dc.getTrangThaiDeCuong() != TrangThaiDeCuong.DA_DUYET)
-                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_ALREADY_APPROVED_BY_GVHD);
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_APPROVED_BY_GVHD);
             if (dc.getGvPhanBienDuyet() != TrangThaiDuyetDon.DA_DUYET)
-                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_ALREADY_APPROVED_BY_GVPB);
+                throw new ApplicationException(ErrorCode.DE_CUONG_NOT_APPROVED_BY_GVPB);
             if(dc.getTbmDuyet()==TrangThaiDuyetDon.DA_DUYET)
                 throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_APPROVED);
 
@@ -296,7 +296,7 @@ public class DeCuongService {
         }
 
         if (!acted) {
-            throw new ApplicationException(ErrorCode.ACCESS_DENIED);
+            throw new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND);
         }
 
         // Luôn save và trả response ở một chỗ
@@ -490,9 +490,9 @@ public class DeCuongService {
     private Long currentTBMBoMonId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         GiangVien gv = giangVienRepository.findByUser_EmailIgnoreCase(email)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.ACCESS_DENIED));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
         if (gv.getBoMon() == null) {
-            throw new ApplicationException(ErrorCode.ACCESS_DENIED);
+            throw new ApplicationException(ErrorCode.BO_MON_OR_TBM_NOT_ASSIGNED);
         }
         return gv.getBoMon().getId();
     }

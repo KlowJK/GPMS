@@ -26,7 +26,7 @@ import java.util.List;
 
 @Tag(name = "NhatKyTienTrinh")
 @RestController
-@RequestMapping("/api/public")
+@RequestMapping("/api/nhat-ky-tien-trinh")
 @AllArgsConstructor
 
 public class NhatKyTienTrinhController {
@@ -47,7 +47,7 @@ public class NhatKyTienTrinhController {
     @GetMapping
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyList(
             @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
-        return ApiResponse.success(service.getNhatKyList(includeAll));
+        return ApiResponse.success(service.getNhatKyListBySinhVien(includeAll));
     }
 
     @Operation(summary = "Nộp nhật ký tiến trình(Nội dung kèm file) - Role Sinh Viên")
@@ -117,4 +117,13 @@ public class NhatKyTienTrinhController {
 
     }
 
+    @Operation(summary = "Lấy list nhật ký của sinh viên thuộc tuần hiện tại - Role giảng viên")
+    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @GetMapping("/{id}")
+    public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyListByGiangVien(
+            @RequestParam(name = "idDeTai", defaultValue = "0",required = false) long idDeTai
+    ) {
+        return ApiResponse.success(service.getNhatKyListByGiangVien(idDeTai));
+
+    }
 }

@@ -1,5 +1,7 @@
 package com.backend.gpms.common.security;
 
+import com.backend.gpms.common.exception.ApplicationException;
+import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.features.auth.infra.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,7 +19,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         var u = userRepo.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản"));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
         var authorities = Set.of(new SimpleGrantedAuthority("ROLE_" + u.getVaiTro().name()));
 
