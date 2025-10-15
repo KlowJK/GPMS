@@ -27,6 +27,15 @@ class _DuyetDeCuongState extends State<DuyetDeCuong> {
     setState(() { _loading = true; _error = null; });
     try {
       final list = await DeCuongService.list();
+
+      // SẮP XẾP: pending trước, sau đó tới approved, rejected (không lọc)
+      list.sort((a, b) {
+        int w(DeCuongStatus s) =>
+            s == DeCuongStatus.pending ? 0 : (s == DeCuongStatus.approved ? 1 : 2);
+        final c = w(a.status).compareTo(w(b.status));
+        return c != 0 ? c : (b.ngayNop ?? DateTime(0)).compareTo(a.ngayNop ?? DateTime(0));
+      });
+
       setState(() { _items..clear()..addAll(list); });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -88,17 +97,14 @@ class _DuyetDeCuongState extends State<DuyetDeCuong> {
                 ? const _EmptyView(text: 'Không có đề cương.')
                 : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              separatorBuilder: (_, __) =>
-              const SizedBox(height: 12),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemCount: _items.length,
               itemBuilder: (_, i) => _DeCuongCard(
                 item: _items[i],
-                onApprove: _items[i].status ==
-                    DeCuongStatus.pending
+                onApprove: _items[i].status == DeCuongStatus.pending
                     ? () => _onAction(index: i, approve: true)
                     : null,
-                onReject: _items[i].status ==
-                    DeCuongStatus.pending
+                onReject: _items[i].status == DeCuongStatus.pending
                     ? () => _onAction(index: i, approve: false)
                     : null,
               ),
@@ -140,7 +146,7 @@ class _DeCuongCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // SV (nếu có)
+            // SV
             Row(
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
@@ -159,41 +165,46 @@ class _DeCuongCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            Row(
-              children: [
-                Text('Ngày nộp: ', style: Theme.of(context).textTheme.bodyMedium),
-                Text(_fmt(item.ngayNop)),
-              ],
-            ),
-            const SizedBox(height: 4),
+            if (item.ngayNop != null) ...[
+              Row(
+                children: [
+                  Text('Ngày nộp: ', style: Theme.of(context).textTheme.bodyMedium),
+                  Text(_fmt(item.ngayNop)),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
 
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('File: ', style: Theme.of(context).textTheme.bodyMedium),
-                Expanded(
-                  child: InkWell(
-                    onTap: _maybeOpen(item.fileName),
-                    child: Text(
-                      item.fileName ?? '—',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: (item.fileName ?? '').startsWith('http')
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        decoration: (item.fileName ?? '').startsWith('http')
-                            ? TextDecoration.underline
-                            : TextDecoration.none,
-                        fontWeight: FontWeight.w600,
+            if ((item.fileName ?? '').isNotEmpty) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('File: ', style: Theme.of(context).textTheme.bodyMedium),
+                  Expanded(
+                    child: InkWell(
+                      onTap: _maybeOpen(item.fileName),
+                      child: Text(
+                        item.fileName ?? '—',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: (item.fileName ?? '').startsWith('http')
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                          decoration: (item.fileName ?? '').startsWith('http')
+                              ? TextDecoration.underline
+                              : TextDecoration.none,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
 
+            // Trạng thái (hiển thị cho mọi trạng thái)
             Row(
               children: [
                 Text('Trạng thái: ', style: Theme.of(context).textTheme.bodyMedium),
@@ -212,33 +223,40 @@ class _DeCuongCard extends StatelessWidget {
               Text('Nhận xét: ${item.nhanXet}'),
             ],
 
+            // Nút chỉ hiện khi đang chờ duyệt
             if (pending) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        backgroundColor: const Color(0xFFDC2626),
+                  SizedBox(
+                    height: 28,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444), // đỏ
+                        foregroundColor: Colors.white,
+                        shape: const StadiumBorder(),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        elevation: 0,
                       ),
                       onPressed: onReject,
-                      icon: const Icon(Icons.close, size: 18),
-                      label: const Text('Từ chối'),
+                      child: const Text('Từ chối'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        backgroundColor: const Color(0xFF16A34A),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 28,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF22C55E), // xanh lá
+                        foregroundColor: Colors.white,
+                        shape: const StadiumBorder(),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        elevation: 0,
                       ),
                       onPressed: onApprove,
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text('Duyệt'),
+                      child: const Text('Duyệt'),
                     ),
                   ),
                 ],
@@ -271,8 +289,7 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.info_outline,
-                size: 36, color: Theme.of(context).disabledColor),
+            Icon(Icons.info_outline, size: 36, color: Theme.of(context).disabledColor),
             const SizedBox(height: 8),
             Text(text, textAlign: TextAlign.center),
           ],
@@ -293,8 +310,7 @@ class _ErrorView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         const SizedBox(height: 16),
-        Icon(Icons.error_outline,
-            color: Theme.of(context).colorScheme.error, size: 32),
+        Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 32),
         const SizedBox(height: 8),
         Text('Lỗi: $message', style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 12),
@@ -308,33 +324,52 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Popup nhận xét ở GIỮA màn hình
+/// Popup nhận xét
 Future<String?> _showCommentDialog(BuildContext context) async {
-  final controller = TextEditingController();
+  final c = TextEditingController();
   return showDialog<String>(
     context: context,
-    builder: (ctx) {
-      return AlertDialog(
-        title: const Text('Nhận xét'),
-        content: TextField(
-          controller: controller,
-          minLines: 5,
-          maxLines: 10,
-          decoration:
-          const InputDecoration(hintText: 'Nhập nhận xét bắt buộc...'),
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Center(
+        child: Text('Nhận xét', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+      ),
+      content: SizedBox(
+        width: 420,
+        child: TextField(
+          controller: c,
+          maxLines: 8,
+          decoration: InputDecoration(
+            hintText: 'Đưa ra nhận xét ...',
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.all(12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0x33000000)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0xFF2F7CD3), width: 1.2),
+            ),
+          ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          FilledButton(
-            onPressed: () {
-              final t = controller.text.trim();
-              if (t.isEmpty) return;
-              Navigator.pop(ctx, t);
-            },
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        SizedBox(
+          width: 140,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF2F7CD3),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+            onPressed: () => Navigator.pop(ctx, c.text.trim()),
             child: const Text('Xác nhận'),
           ),
-        ],
-      );
-    },
+        ),
+      ],
+    ),
   );
 }

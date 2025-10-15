@@ -44,12 +44,13 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
     _loadLogs();
   }
 
-  int? _resolveSinhVienId() {
-    // Ưu tiên id được truyền sẵn
-    if (widget.data.sinhVienId != null) return widget.data.sinhVienId;
-    // Fallback: thử parse từ mã SV (nếu là số)
-    final id = int.tryParse(widget.data.maSV);
-    return id;
+  /// Trả về key để gọi API log:
+  /// - Ưu tiên mã SV
+  /// - Nếu không có, fallback sang id -> string
+  String? _resolveSinhVienId() {
+    if (widget.data.maSV.trim().isNotEmpty) return widget.data.maSV.trim();
+    if (widget.data.sinhVienId != null) return widget.data.sinhVienId!.toString();
+    return null;
   }
 
   Future<void> _loadLogs() async {
@@ -63,13 +64,96 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
     });
 
     try {
-      // ⬇️ Dùng THAM SỐ VỊ TRÍ (Cách B)
+      // ⬇️ Dùng THAM SỐ VỊ TRÍ (theo service bạn đang xài)
       final list = await DeCuongService.fetchLogBySinhVien(svId);
       setState(() => _logs = list);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+  List<int> _pendingIndexes() =>
+      _logs.asMap().entries.where((e) => e.value.status == DeCuongStatus.pending).map((e) => e.key).toList();
+
+  Future<int?> _pickPendingIndex(List<int> idxs) async {
+    if (idxs.length == 1) return idxs.first;
+    // Cho phép chọn log khi có nhiều "chờ duyệt"
+    return showModalBottomSheet<int>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(title: Text('Chọn lần nộp cần xử lý')),
+            for (final i in idxs)
+              ListTile(
+                title: Text('Lần nộp: ${_logs[i].lanNop ?? "—"}'),
+                subtitle: Text('File: ${_logs[i].fileName ?? "—"}'),
+                onTap: () => Navigator.pop(ctx, i),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onGlobalAction({required bool approve}) async {
+    final idxs = _pendingIndexes();
+    if (idxs.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có đề cương đang chờ duyệt.')),
+      );
+      return;
+    }
+    final index = await _pickPendingIndex(idxs);
+    if (index == null) return;
+
+    final note = await _showCommentDialog(context);
+    if (note == null || note.trim().isEmpty) return;
+
+    try {
+      final it = _logs[index];
+      final updated = approve
+          ? await DeCuongService.approvePut(id: it.id, nhanXet: note.trim())
+          : await DeCuongService.rejectPut(id: it.id, nhanXet: note.trim());
+      setState(() => _logs[index] = updated);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(approve ? 'Đã duyệt đề cương' : 'Đã từ chối đề cương')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật: $e')),
+      );
+    }
+  }
+
+  /// Duyệt / Từ chối 1 log (PUT) + popup nhận xét
+  Future<void> _onAction({required int index, required bool approve}) async {
+    final it = _logs[index];
+    final note = await _showCommentDialog(context);
+    if (note == null || note.trim().isEmpty) return;
+
+    try {
+      DeCuongItem updated;
+      if (approve) {
+        updated = await DeCuongService.approve(id: it.id, nhanXet: note.trim());
+      } else {
+        updated = await DeCuongService.reject(id: it.id, nhanXet: note.trim());
+      }
+      setState(() => _logs[index] = updated);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(approve ? 'Đã duyệt đề cương' : 'Đã từ chối đề cương')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật: $e')),
+      );
     }
   }
 
@@ -88,7 +172,7 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            // Tiêu đề đề tài (không icon, theo layout giống ảnh 4)
+            // Tiêu đề đề tài
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -108,7 +192,7 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
             ),
             const SizedBox(height: 8),
 
-            // Thông tin SV (gồm CV ở TRÊN như yêu cầu)
+            // Thông tin SV
             Card(
               elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -186,8 +270,10 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
     String two(int x) => x.toString().padLeft(2, '0');
     String fmt(DateTime? d) => d == null ? '—' : '${two(d.day)}/${two(d.month)}/${d.year}';
 
-    final color = deCuongStatusColor(e.status);
-    final text = deCuongStatusText(e.status);
+    final color   = deCuongStatusColor(e.status);
+    final text    = deCuongStatusText(e.status);
+    final pending = e.status == DeCuongStatus.pending;
+    final index   = _logs.indexOf(e);
 
     return Card(
       elevation: 1,
@@ -237,6 +323,45 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
             if ((e.nhanXet ?? '').isNotEmpty) ...[
               const SizedBox(height: 2),
               Text('Nhận xét: ${e.nhanXet}'),
+            ],
+
+            // ✅ Nút DUYỆT / TỪ CHỐI ngay trong thẻ
+            if (pending) ...[
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    height: 32,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: const Size(88, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.close, size: 16),
+                      label: const Text('Từ chối', style: TextStyle(fontSize: 13)),
+                      onPressed: () => _onAction(index: index, approve: false),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 32,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF16A34A),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: const Size(88, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.check, size: 16),
+                      label: const Text('Duyệt', style: TextStyle(fontSize: 13)),
+                      onPressed: () => _onAction(index: index, approve: true),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ],
         ),
@@ -313,5 +438,35 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
         )
       ],
     ),
+  );
+}
+
+/// Popup nhận xét
+Future<String?> _showCommentDialog(BuildContext context) async {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Nhận xét'),
+        content: TextField(
+          controller: controller,
+          minLines: 5,
+          maxLines: 10,
+          decoration: const InputDecoration(hintText: 'Nhập nhận xét bắt buộc...'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          FilledButton(
+            onPressed: () {
+              final t = controller.text.trim();
+              if (t.isEmpty) return;
+              Navigator.pop(ctx, t);
+            },
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      );
+    },
   );
 }

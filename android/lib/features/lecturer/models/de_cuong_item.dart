@@ -1,18 +1,9 @@
+// lib/features/lecturer/models/de_cuong_item.dart
 import 'package:flutter/material.dart';
 
 enum DeCuongStatus { pending, approved, rejected }
 
-DeCuongStatus mapDeCuongStatus(String? s) {
-  switch (s) {
-    case 'DA_DUYET':
-      return DeCuongStatus.approved;
-    case 'TU_CHOI':
-      return DeCuongStatus.rejected;
-    default:
-      return DeCuongStatus.pending;
-  }
-}
-
+// Hiển thị text trạng thái cho UI
 String deCuongStatusText(DeCuongStatus s) {
   switch (s) {
     case DeCuongStatus.approved:
@@ -25,91 +16,130 @@ String deCuongStatusText(DeCuongStatus s) {
   }
 }
 
+// Màu trạng thái cho UI
 Color deCuongStatusColor(DeCuongStatus s) {
   switch (s) {
     case DeCuongStatus.approved:
-      return const Color(0xFF16A34A);
+      return const Color(0xFF16A34A); // xanh
     case DeCuongStatus.rejected:
-      return const Color(0xFFDC2626);
+      return const Color(0xFFDC2626); // đỏ
     case DeCuongStatus.pending:
     default:
-      return const Color(0xFFC9B325);
+      return const Color(0xFFC9B325); // vàng
+  }
+}
+
+// -------------------- Model --------------------
+
+int _toInt(dynamic v) {
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? 0;
+  return 0;
+}
+
+String? _toStr(dynamic v) => v == null ? null : v.toString();
+
+DateTime? _toDate(dynamic v) {
+  if (v == null) return null;
+  if (v is DateTime) return v;
+  final s = v.toString();
+  try {
+    return DateTime.parse(s);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Map chuỗi trạng thái từ API -> enum
+DeCuongStatus _mapStatus(dynamic s) {
+  final v = s?.toString().toUpperCase();
+  switch (v) {
+    case 'DA_DUYET':
+    case 'APPROVED':
+      return DeCuongStatus.approved;
+    case 'TU_CHOI':
+    case 'REJECTED':
+      return DeCuongStatus.rejected;
+    case 'CHO_DUYET':
+    case 'PENDING':
+    default:
+      return DeCuongStatus.pending;
   }
 }
 
 class DeCuongItem {
   final int id;
-  final String? fileName;
-  final DateTime? ngayNop;
-  final DeCuongStatus status;
-  final String? nhanXet;
 
-  // Thông tin SV (tuỳ API có/không)
-  final int? sinhVienId;
-  final String? sinhVienTen;
-  final String? maSV;
+  // Thông tin hiển thị trên 2 màn:
+  final String? sinhVienTen;     // UI dùng: item.sinhVienTen
+  final String? maSV;            // UI dùng: item.maSV
+  final String? tenDeTai;
 
-  // Số lần nộp (API có thể là lanNop / soLanNop)
-  final int? lanNop;
+  // Log & file:
+  final int? lanNop;             // UI dùng: e.lanNop
+  final DateTime? ngayNop;       // UI dùng: e.ngayNop
+  final String? fileName;        // UI dùng: e.fileName (link)
+  final String? nhanXet;         // UI dùng: e.nhanXet
+
+  // Trạng thái:
+  final DeCuongStatus status;    // UI dùng: e.status
 
   DeCuongItem({
     required this.id,
     required this.status,
-    this.fileName,
-    this.ngayNop,
-    this.nhanXet,
-    this.sinhVienId,
     this.sinhVienTen,
     this.maSV,
+    this.tenDeTai,
     this.lanNop,
+    this.ngayNop,
+    this.fileName,
+    this.nhanXet,
   });
 
   DeCuongItem copyWith({
-    int? id,
-    String? fileName,
-    DateTime? ngayNop,
     DeCuongStatus? status,
     String? nhanXet,
-    int? sinhVienId,
-    String? sinhVienTen,
-    String? maSV,
-    int? lanNop,
   }) {
     return DeCuongItem(
-      id: id ?? this.id,
-      fileName: fileName ?? this.fileName,
-      ngayNop: ngayNop ?? this.ngayNop,
+      id: id,
       status: status ?? this.status,
+      sinhVienTen: sinhVienTen,
+      maSV: maSV,
+      tenDeTai: tenDeTai,
+      lanNop: lanNop,
+      ngayNop: ngayNop,
+      fileName: fileName,
       nhanXet: nhanXet ?? this.nhanXet,
-      sinhVienId: sinhVienId ?? this.sinhVienId,
-      sinhVienTen: sinhVienTen ?? this.sinhVienTen,
-      maSV: maSV ?? this.maSV,
-      lanNop: lanNop ?? this.lanNop,
     );
   }
 
+  /// Chấp nhận nhiều dạng key khác nhau từ API
   factory DeCuongItem.fromJson(Map<String, dynamic> j) {
-    DateTime? parseDate(dynamic v) {
-      if (v == null) return null;
-      try {
-        return DateTime.parse(v.toString());
-      } catch (_) {
-        return null;
-      }
-    }
+    // File có thể nằm ở nhiều key:
+    final file = _toStr(j['deCuongUrl']) ??
+        _toStr(j['duongDanFile']) ??
+        _toStr(j['fileUrl']) ??
+        _toStr(j['file']) ??
+        _toStr(j['tenFile']);
 
     return DeCuongItem(
-      id: (j['id'] as num).toInt(),
-      fileName: j['fileName'] ?? j['tenFile'] ?? j['file'],
-      ngayNop: parseDate(j['ngayNop']),
-      status: mapDeCuongStatus(j['trangThai']?.toString()),
-      nhanXet: j['nhanXet'] as String?,
-      sinhVienId: j['sinhVienId'] is num ? (j['sinhVienId'] as num).toInt() : null,
-      sinhVienTen: j['sinhVienTen'] as String?,
-      maSV: j['maSV'] as String?,
-      lanNop: j['lanNop'] is num
-          ? (j['lanNop'] as num).toInt()
-          : (j['soLanNop'] is num ? (j['soLanNop'] as num).toInt() : null),
+      id: _toInt(j['id'] ?? j['deCuongId']),
+      status: _mapStatus(j['trangThai']),
+      sinhVienTen: _toStr(j['sinhVienTen'] ?? j['hoTenSinhVien'] ?? j['studentName']),
+      maSV: _toStr(j['maSV'] ?? j['mssv'] ?? j['maSinhVien'] ?? j['studentId']),
+      tenDeTai: _toStr(j['tenDeTai']),
+      lanNop: j['soLanNop'] != null ? _toInt(j['soLanNop']) : (j['lanNop'] != null ? _toInt(j['lanNop']) : null),
+      ngayNop: _toDate(j['ngayNop'] ?? j['createdAt'] ?? j['thoiGianNop']),
+      fileName: file,
+      nhanXet: _toStr(j['nhanXet']),
     );
+  }
+
+  /// Tên file rút gọn (nếu bạn cần)
+  String? get fileBaseName {
+    final f = fileName;
+    if (f == null || f.isEmpty) return null;
+    return Uri.tryParse(f)?.pathSegments.last ?? f.split('/').last;
   }
 }

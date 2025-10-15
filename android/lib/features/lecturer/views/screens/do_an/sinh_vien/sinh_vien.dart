@@ -47,8 +47,29 @@ class _SinhVienTabState extends State<SinhVienTab> {
     }
   }
 
+  Future<void> _submitDanhSach() async {
+    final ok = await _confirmSubmit(context);
+    if (ok != true) return;
+
+    try {
+      await SinhVienService.submitDanhSach(); // <-- gọi API nộp danh sách
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã gửi danh sách thành công.')),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gửi danh sách thất bại: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    const green = Color(0xFF16A34A);
+
     return Column(
       children: [
         // Header
@@ -64,6 +85,20 @@ class _SinhVienTabState extends State<SinhVienTab> {
                     ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
+              // Nút nộp danh sách (màu xanh lá, có icon upload)
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: green,
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                ),
+                onPressed: _submitDanhSach,
+                icon: const Icon(Icons.upload_rounded, size: 18),
+                label: const Text('Nộp danh sách'),
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 tooltip: 'Tải lại',
                 onPressed: _load,
@@ -226,7 +261,7 @@ class _SinhVienCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, color: Colors.black45),
+              // const Icon(Icons.chevron_right, color: Colors.black45),
             ],
           ),
         ),
@@ -290,4 +325,54 @@ class _ErrorView extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Pop-up xác nhận “Nộp danh sách” đúng style mẫu
+Future<bool?> _confirmSubmit(BuildContext context) {
+  const blue = Color(0xFF2F7CD3);
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      title: Column(
+        children: const [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: blue,
+            child: Icon(Icons.help_outline, color: Colors.white),
+          ),
+          SizedBox(height: 8),
+          Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+      content: const Text(
+        'Bạn có chắc chắn muốn gửi danh sách đề tài hướng dẫn không?',
+        textAlign: TextAlign.center,
+      ),
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: blue),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Xác nhận'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Quay lại'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 }

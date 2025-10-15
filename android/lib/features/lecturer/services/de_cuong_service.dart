@@ -76,9 +76,9 @@ class DeCuongService {
 
   /// Log đề cương của sinh viên trong màn chi tiết đề tài
   /// GET /api/de-cuong/sinh-vien/log?sinhVienId=...
-  static Future<List<DeCuongItem>> fetchLogBySinhVien(int sinhVienId) async {
-    final uri = Uri.parse('$_base/api/de-cuong/sinh-vien/log')
-        .replace(queryParameters: {'sinhVienId': '$sinhVienId'});
+  static Future<List<DeCuongItem>> fetchLogBySinhVien(String sinhVienId) async {
+    final uri = Uri.parse('$_base/api/giang-vien/sinh-vien/log')
+        .replace(queryParameters: {'maSinhVien': '$sinhVienId'});
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) {
       throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
@@ -87,4 +87,39 @@ class DeCuongService {
     final list = _extractList(body);
     return list.map((e) => DeCuongItem.fromJson(e)).toList();
   }
+
+  // PUT /api/de-cuong/{id}/duyet?nhanXet=...
+  static Future<DeCuongItem> approvePut({
+    required int id,
+    required String nhanXet,
+  }) async {
+    final uri = Uri.parse('$_base/api/de-cuong/$id/duyet')
+        .replace(queryParameters: {'nhanXet': nhanXet});
+    final res = await http.put(uri, headers: await _headers());
+    if (res.statusCode != 200) {
+      throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
+    }
+    final body = jsonDecode(res.body);
+    final list = _extractList(body);
+    final map = list.isNotEmpty ? list.first : (body is Map ? body : {});
+    return DeCuongItem.fromJson(Map<String, dynamic>.from(map));
+  }
+
+// PUT /api/de-cuong/{id}/tu-choi?nhanXet=...
+  static Future<DeCuongItem> rejectPut({
+    required int id,
+    required String nhanXet,
+  }) async {
+    final uri = Uri.parse('$_base/api/de-cuong/$id/tu-choi')
+        .replace(queryParameters: {'nhanXet': nhanXet});
+    final res = await http.put(uri, headers: await _headers());
+    if (res.statusCode != 200) {
+      throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
+    }
+    final body = jsonDecode(res.body);
+    final list = _extractList(body);
+    final map = list.isNotEmpty ? list.first : (body is Map ? body : {});
+    return DeCuongItem.fromJson(Map<String, dynamic>.from(map));
+  }
+
 }
