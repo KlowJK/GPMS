@@ -3,6 +3,11 @@ import 'features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/viewmodels/auth_viewmodel.dart';
 import 'shared/theme/theme.dart';
+import 'shared/models/thong_bao_va_tin_tuc.dart';
+import 'core/services/main_service.dart';
+import 'package:intl/intl.dart';
+import 'shared/NewsDetailPage.dart';
+import 'shared/AllNewsPage.dart';
 
 void main() {
   runApp(
@@ -25,7 +30,7 @@ class GPMSApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFDCDEE4),
+        scaffoldBackgroundColor: const Color(0xFFE3E3E8),
       ),
       home: const HomeGuestResponsive(),
       routes: {'/login': (_) => const LoginScreen()},
@@ -33,8 +38,21 @@ class GPMSApp extends StatelessWidget {
   }
 }
 
-class HomeGuestResponsive extends StatelessWidget {
+class HomeGuestResponsive extends StatefulWidget {
   const HomeGuestResponsive({super.key});
+
+  @override
+  State<HomeGuestResponsive> createState() => _HomeGuestResponsiveState();
+}
+
+class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
+  late Future<List<ThongBaoVaTinTuc>> _notificationsFuture;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _notificationsFuture = MainService.listThongBao();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,16 +62,13 @@ class HomeGuestResponsive extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
-            // Giới hạn bề rộng nội dung để đọc thoải mái trên màn hình lớn
             final double maxContentWidth = w >= 1200
                 ? 1100
                 : w >= 900
                 ? 900
                 : w >= 600
                 ? 600
-                : w; // mobile: full width
-
-            // khoảng cách, kích cỡ chữ linh hoạt theo kích thước màn hình
+                : w;
             final double pad = w >= 900 ? 24 : 16;
             final double gap = w >= 900 ? 16 : 12;
 
@@ -63,50 +78,93 @@ class HomeGuestResponsive extends StatelessWidget {
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
                   children: [
-                    // Tin tức
                     SectionHeader(
                       title: 'Tin tức',
-                      trailing: TextButton(
-                        onPressed: () {},
-                        child: const Text('Xem thêm'),
+                      trailing: FutureBuilder<List<ThongBaoVaTinTuc>>(
+                        future: _notificationsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox.shrink();
+                          } else if (snapshot.hasError || !snapshot.hasData) {
+                            return const SizedBox.shrink();
+                          }
+                          final notifications = snapshot.data!;
+                          return TextButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      AllNewsPage(notifications: notifications),
+                                ),
+                              );
+                            },
+                            child: const Text('Xem thêm'),
+                          );
+                        },
                       ),
                     ),
-                    Card(
-                      elevation: 0,
-                      clipBehavior: Clip.antiAlias,
-                      margin: EdgeInsets.only(bottom: gap),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          _NewsItem(
-                            title: 'Công bố lịch bảo vệ đợt 10/2025',
-                            subtitle: 'Khoa Công nghệ Thông tin • 10:30 18/09',
-                            onTap: () {},
+                    FutureBuilder<List<ThongBaoVaTinTuc>>(
+                      future: _notificationsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('Lỗi: ${snapshot.error}'));
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text('Không có thông báo'),
+                          );
+                        }
+
+                        final notifications = snapshot.data!;
+                        return Card(
+                          elevation: 0,
+                          clipBehavior: Clip.antiAlias,
+                          margin: EdgeInsets.only(bottom: gap),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const Divider(height: 1),
-                          _NewsItem(
-                            title: 'Mở đăng ký đề tài cho sinh viên K64',
-                            subtitle: 'Hệ thống • 09:15 17/09',
-                            onTap: () {},
+                          child: Column(
+                            children: notifications.take(3).map((notification) {
+                              final formattedDate = DateFormat(
+                                'dd/MM/yy',
+                              ).format(notification.ngayDang);
+                              return Column(
+                                children: [
+                                  _NewsItem(
+                                    title: notification.tieuDe,
+                                    subtitle: notification.noiDung,
+                                    date: formattedDate,
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => NewsDetailPage(
+                                            notification: notification,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  if (notifications.take(3).last !=
+                                      notification)
+                                    const Divider(height: 1),
+                                ],
+                              );
+                            }).toList(),
                           ),
-                          const Divider(height: 1),
-                          _NewsItem(
-                            title: 'Kế hoạch ĐATN Kỳ 1 năm học 2025–2026',
-                            subtitle: 'Hệ thống • 08:00 16/09',
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
 
-                    // Thư viện đề tài (tìm kiếm + bộ lọc)
                     SizedBox(height: gap),
                     const SectionHeader(title: 'Thư viện đề tài'),
                     _TopicLibraryCard(gap: gap),
 
-                    // Danh sách đề tài nổi bật
                     SizedBox(height: gap),
                     SectionHeader(
                       title: 'Đề tài nổi bật',
@@ -128,7 +186,6 @@ class HomeGuestResponsive extends StatelessWidget {
               ),
             );
 
-            // Với tablet/desktop có thể tách layout 2 cột (tuỳ ý bật)
             if (w >= 1000) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,23 +223,22 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
             height: 55,
             child: Image.asset("assets/images/logo.png"),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 9),
           Flexible(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'TRƯỜNG ĐẠI HỌC THỦY LỢI',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
                   ),
                 ),
                 Text(
-                  '  KHOA CÔNG NGHỆ THÔNG TIN',
+                  'THUY LOI UNIVERSITY',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
@@ -240,10 +296,12 @@ class _NewsItem extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    required this.date,
   });
 
   final String title;
   final String subtitle;
+  final String date;
   final VoidCallback onTap;
 
   @override
@@ -259,11 +317,24 @@ class _NewsItem extends StatelessWidget {
           context,
         ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
-      subtitle: Text(subtitle),
-      trailing: TextButton(onPressed: onTap, child: const Text('Xem')),
+      subtitle: Text(
+        subtitle,
+        maxLines: 1, // Giới hạn hiển thị 1 hàng
+        overflow:
+            TextOverflow.ellipsis, // Cắt bớt nội dung thừa với dấu ba chấm
+      ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       dense: false,
+      trailing: Padding(
+        padding: const EdgeInsets.only(top: 0), // Điều chỉnh khoảng cách trên
+        child: Text(
+          date,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey, fontSize: 12),
+        ),
+      ),
     );
   }
 }
@@ -388,64 +459,105 @@ class _TopicList extends StatelessWidget {
   }
 }
 
-class AllTopicsPage extends StatelessWidget {
+class AllTopicsPage extends StatefulWidget {
   const AllTopicsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final items = List.generate(
-      30,
-      (i) => ('Đề tài số ${i + 1}', 'Học kỳ 2 - 9/2025'),
-    );
+  State<AllTopicsPage> createState() => _AllTopicsPageState();
+}
 
+class _AllTopicsPageState extends State<AllTopicsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  // Sample data
+  final List<(String, String)> _allItems = List.generate(
+    30,
+    (i) => ('Đề tài số ${i + 1}', 'Học kỳ 2 - 9/2025'),
+  );
+
+  List<(String, String)> get _filteredItems {
+    if (_searchQuery.isEmpty) return _allItems;
+    return _allItems
+        .where(
+          (item) =>
+              item.$1.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              item.$2.toLowerCase().contains(_searchQuery.toLowerCase()),
+        )
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderSide: BorderSide(color: Theme.of(context).dividerColor),
       borderRadius: BorderRadius.circular(10),
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tất cả đề tài')),
+      appBar: AppBar(
+        title: const Text(
+          'Tất cả đề tài',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Color(0xFF2563EB),
+      ),
       body: SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length + 1,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              // Ô tìm kiếm ở đầu danh sách
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm đề tài...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: border,
-                    enabledBorder: border,
-                    focusedBorder: border.copyWith(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
+        child: Material(
+          color: Colors.white,
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: _filteredItems.length + 1,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm đề tài...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: border,
+                      enabledBorder: border,
+                      focusedBorder: border.copyWith(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
+                      isDense: true,
                     ),
-                    isDense: true,
+                    onChanged: (q) {
+                      setState(() => _searchQuery = q);
+                    },
+                    onSubmitted: (q) {
+                      setState(() => _searchQuery = q);
+                    },
                   ),
-                  onSubmitted: (q) {
-                    // TODO: gọi search
-                  },
+                );
+              }
+              final (title, subtitle) = _filteredItems[index - 1];
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Color(0xFFF1F3F6),
+                  child: const Icon(Icons.folder, size: 18),
                 ),
+                title: Text(title),
+                subtitle: Text(subtitle),
+                trailing: TextButton(
+                  onPressed: () {},
+                  child: const Text('Xem'),
+                ),
+                onTap: () {},
               );
-            }
-            final (title, subtitle) = items[index - 1];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: const Icon(Icons.folder, size: 18),
-              ),
-              title: Text(title),
-              subtitle: Text(subtitle),
-              trailing: TextButton(onPressed: () {}, child: const Text('Xem')),
-              onTap: () {},
-            );
-          },
+            },
+          ),
         ),
       ),
     );
