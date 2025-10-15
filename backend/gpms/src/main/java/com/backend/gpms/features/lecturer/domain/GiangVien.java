@@ -48,9 +48,6 @@ public class GiangVien extends BaseEntity {
     @Column(name="quota_huong_dan", nullable=false)
     Integer quotaInstruct = 0;
 
-    @Column(name = "duong_dan_avt")
-    String duongDanAvt;
-
     @Column(name = "ngay_sinh" )
     LocalDate ngaySinh;
 

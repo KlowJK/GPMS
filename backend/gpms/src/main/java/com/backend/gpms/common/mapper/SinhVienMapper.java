@@ -27,7 +27,6 @@ public interface SinhVienMapper {
     @Mapping(target = "lop", ignore = true)  // Lop là @ManyToOne
     @Mapping(target = "user",  ignore = true)  // User là @OneToOne
     @Mapping(target = "duDieuKien", ignore = true) // set theo req ở service
-    @Mapping(target = "duongDanAvt", ignore = true)
     SinhVien toSinhVien(SinhVienCreateRequest req);
 
     @Mapping(target = "user.email",  source = "email")
