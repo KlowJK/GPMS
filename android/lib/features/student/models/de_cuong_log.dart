@@ -30,14 +30,36 @@ class DeCuongLog {
   });
 
   factory DeCuongLog.fromJson(Map<String, dynamic> json) {
-    var nhanXetsList = json['nhanXets'] as List? ?? [];
-    List<NhanXet> nhanXets = nhanXetsList.map((i) => NhanXet.fromJson(i)).toList();
+    int _parseInt(dynamic v, {int? fallback}) {
+      if (v == null) return fallback ?? 0;
+      if (v is int) return v;
+      if (v is String) return int.tryParse(v) ?? (fallback ?? 0);
+      if (v is double) return v.toInt();
+      return fallback ?? 0;
+    }
+
+    final idVal = _parseInt(json['id'], fallback: 0);
+    final phienBanVal = json.containsKey('phienBan') ? (json['phienBan'] == null ? null : _parseInt(json['phienBan'], fallback: 0)) : null;
+
+    final nhanXetsRaw = json['nhanXets'];
+    final List<NhanXet> nhanXets = <NhanXet>[];
+    if (nhanXetsRaw is List) {
+      for (final item in nhanXetsRaw) {
+        if (item is Map<String, dynamic>) {
+          try {
+            nhanXets.add(NhanXet.fromJson(item));
+          } catch (_) {
+            // ignore malformed item
+          }
+        }
+      }
+    }
 
     return DeCuongLog(
-      id: json['id'],
+      id: idVal,
       deCuongUrl: json['deCuongUrl'],
       trangThai: json['trangThai'],
-      phienBan: json['phienBan'],
+      phienBan: phienBanVal,
       tenDeTai: json['tenDeTai'],
       msv: json['msv'],
       hoTenSinhVien: json['hoTenSinhVien'],

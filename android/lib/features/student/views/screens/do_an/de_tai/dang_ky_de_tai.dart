@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import '../../../../models/giang_vien_huong_dan.dart';
 import '../../../../viewmodels/do_an_viewmodel.dart';
 
@@ -121,6 +121,18 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
   Future<void> _submit() async {
     setState(() => _sending = true);
     final vm = Provider.of<DoAnViewModel>(context, listen: false);
+    if (_selectedAdvisor == null) {
+      setState(() => _sending = false);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(content: Text('Vui lòng chọn giảng viên hướng dẫn.')),
+        );
+      return;
+    }
+    if (kDebugMode) {
+      print('➡️ DangKyDeTai: gvhdId=${_selectedAdvisor!.id}, tenDeTai="${_titleCtrl.text.trim()}", fileName=${_selectedFileName}, filePath=${_selectedFilePath ?? 'null'}, bytes=${_selectedFileBytes?.lengthInBytes ?? 0}');
+    }
     final ok = await vm.dangKyDeTai(
       gvhdId: _selectedAdvisor!.id,
       tenDeTai: _titleCtrl.text.trim(),
