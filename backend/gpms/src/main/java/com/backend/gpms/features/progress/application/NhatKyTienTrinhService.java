@@ -267,14 +267,21 @@ public class NhatKyTienTrinhService {
         return tuanList;
     }
 
-    // Lấy list nhật ký
-    public List<NhatKyTienTrinhResponse> getNhatKyList(boolean all) {
+    public List<NhatKyTienTrinhResponse> getNhatKyListBySinhVien(boolean all){
         String email = getCurrentUsername();
         DeTai deTai = deTaiRepository
                 .findBySinhVien_User_EmailIgnoreCase(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
-
         Long idDeTai=deTai.getId();
+        return getNhatKyList(all,idDeTai);
+    }
+
+    public List<NhatKyTienTrinhResponse> getNhatKyListByGiangVien(Long idDeTai){
+        boolean all = false;
+        return getNhatKyList(all,idDeTai);
+    }
+    // Lấy list nhật ký
+    public List<NhatKyTienTrinhResponse> getNhatKyList(boolean all, Long idDeTai) {
 
         List<NhatKyTienTrinh> entities = (all) ?
                 nhatKyRepository.findByDeTai_IdOrderByCreatedAtDesc(idDeTai) :

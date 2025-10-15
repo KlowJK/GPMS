@@ -62,24 +62,47 @@ function Inner() {
                   <th className="text-left px-6 py-4">Tên hội đồng</th>
                   <th className="text-left px-6 py-4">Thời gian bắt đầu</th>
                   <th className="text-left px-6 py-4">Thời gian kết thúc</th>
+                  <th className="text-left px-6 py-4">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {(((data as any)?.content) ?? []).map((h: any) => (
-                  <tr key={h.id} className="border-b hover:bg-slate-50">
-                    <td className="px-6 py-4">{h.id}</td>
-                    <td className="px-6 py-4">{h.tenHoiDong}</td>
-                    <td className="px-6 py-4">{h.thoiGianBatDau}</td>
-                    <td className="px-6 py-4">{h.thoiGianKetThuc}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 flex items-center justify-center">
-                          <button title="Xem" onClick={() => setDetailId(h.id)} className="p-2 bg-slate-50 text-sky-600 rounded-full flex items-center justify-center"><Eye size={16} /></button>
+                {(((data as any)?.content) ?? []).map((h: any) => {
+                  // compute status from start/end times
+                  const now = new Date()
+                  const start = h.thoiGianBatDau ? new Date(h.thoiGianBatDau) : null
+                  const end = h.thoiGianKetThuc ? new Date(h.thoiGianKetThuc) : null
+                  let status = 'sắp diễn ra'
+                  if (start && end) {
+                    if (now < start) status = 'sắp diễn ra'
+                    else if (now >= start && now <= end) status = 'đang diễn ra'
+                    else status = 'đã kết thúc'
+                  } else if (start && !end) {
+                    status = now < start ? 'sắp diễn ra' : 'đang diễn ra'
+                  } else if (!start && end) {
+                    status = now <= end ? 'đang diễn ra' : 'đã kết thúc'
+                  }
+
+                  const badgeClass = status === 'sắp diễn ra' ? 'bg-sky-100 text-sky-700' : status === 'đang diễn ra' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
+
+                  return (
+                    <tr key={h.id} className="border-b hover:bg-slate-50">
+                      <td className="px-6 py-4">{h.id}</td>
+                      <td className="px-6 py-4">{h.tenHoiDong}</td>
+                      <td className="px-6 py-4">{h.thoiGianBatDau}</td>
+                      <td className="px-6 py-4">{h.thoiGianKetThuc}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs ${badgeClass}`}>{status}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 flex items-center justify-center">
+                            <button title="Xem" onClick={() => setDetailId(h.id)} className="p-2 bg-slate-50 text-sky-600 rounded-full flex items-center justify-center"><Eye size={16} /></button>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
 

@@ -164,7 +164,7 @@ public class HoiDongService{
         List<ThanhVienHoiDong> members = new ArrayList<>();
         for (var li : lecturers) {
             GiangVien gv = giangVienRepository.findById(li.getGiangVienId())
-                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANGVIEN_LECTURER_NOT_FOUND));
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
 
 
 
