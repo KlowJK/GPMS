@@ -3,18 +3,21 @@ package com.backend.gpms.features.auth.application;
 import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.security.JwtUtils;
-import com.backend.gpms.features.auth.domain.PasswordResetToken;
+import com.backend.gpms.common.util.HashUtils;
+import com.backend.gpms.features.auth.domain.TokenBlacklist;
+import com.backend.gpms.features.auth.domain.TokenPurpose;
 import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.auth.dto.request.ChangePasswordRequest;
-import com.backend.gpms.features.auth.dto.request.ForgotPasswordRequest;
 import com.backend.gpms.features.auth.dto.request.LoginRequest;
 import com.backend.gpms.features.auth.dto.request.ResetPasswordRequest;
 import com.backend.gpms.features.auth.dto.response.AuthResponse;
 import com.backend.gpms.features.auth.dto.response.UserResponse;
-import com.backend.gpms.features.auth.infra.PasswordResetTokenRepository;
+import com.backend.gpms.features.auth.infra.TokenBlacklistRepository;
 import com.backend.gpms.features.auth.infra.UserRepository;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.storage.application.CloudinaryStorageService;
 import com.backend.gpms.features.student.infra.SinhVienRepository;
+import io.jsonwebtoken.JwtException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,47 +26,38 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.time.Duration;
+import java.io.IOException;
 import java.time.Instant;
-import java.util.Base64;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@FieldDefaults( level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Transactional
 public class AuthService {
-    private final UserRepository usersRepo;
-    private final PasswordEncoder encoder;
-    private final AuthenticationManager authManager;
-    private final JwtUtils jwt;
-    private final SinhVienRepository studentRepo;
-    private final GiangVienRepository lecturerRepo;
-    PasswordResetTokenRepository prtRepo;
-    PasswordResetMailer mailer;
-
-      @org.springframework.beans.factory.annotation.Value("${app.auth.password-reset-exp-minutes:30}")
-      private int resetExpMinutes;
-
-      @org.springframework.beans.factory.annotation.Value("${app.auth.password-reset-cooldown-seconds:60}")
-      private int resetCooldownSeconds;
-
-      @org.springframework.beans.factory.annotation.Value("${app.reset-password.base-url}")
-      private String resetBaseUrl;
+    UserRepository usersRepository;
+    AuthenticationManager authManager;
+    JwtUtils jwt;
+    SinhVienRepository studentRepo;
+    GiangVienRepository lecturerRepo;
+    TokenBlacklistRepository tokenBlacklistRepository;
+    CloudinaryStorageService cloudinaryStorageService;
+    PasswordEncoder passwordEncoder;
+    EmailService emailService;
 
     public AuthResponse login(LoginRequest req) {
         // Kiểm tra email tồn tại trước
-        if (!usersRepo.existsByEmail(req.getEmail())) {
+        if (!usersRepository.existsByEmail(req.getEmail())) {
             log.warn("Login failed: Email not found - {}", req.getEmail());
             throw new ApplicationException(ErrorCode.USER_NOT_FOUND);
         }
@@ -73,7 +67,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(req.getEmail(), req.getMatKhau()));
 
             var principal = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
-            var domainUser = usersRepo.findByEmail(principal.getUsername()).orElseThrow(() ->
+            var domainUser = usersRepository.findByEmail(principal.getUsername()).orElseThrow(() ->
                     new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
             List<String> roles = principal.getAuthorities().stream()
@@ -81,14 +75,14 @@ public class AuthService {
                     .toList();
 
             Long studentId = null, teacherId = null;
-            String fullName = null, duongDanAvt = null;
+            String fullName = null;
 
             var svOpt = studentRepo.findByUserId(domainUser.getId());
             if (svOpt.isPresent()) {
                 var sv = svOpt.get();
                 studentId = sv.getId();
                 fullName = sv.getHoTen();
-                duongDanAvt = sv.getDuongDanAvt();
+
             }
 
             var gvOpt = lecturerRepo.findByUserId(domainUser.getId());
@@ -98,7 +92,7 @@ public class AuthService {
                 if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
                     fullName = gv.getHoTen(); // Ưu tiên tên GV nếu có
                 }
-                duongDanAvt = gv.getDuongDanAvt();
+
             }
 
             String token = jwt.generate(domainUser.getEmail(), Map.of("roles", roles));
@@ -109,7 +103,7 @@ public class AuthService {
                     fullName,
                     domainUser.getEmail(),
                     domainUser.getVaiTro(),
-                    duongDanAvt,
+                    domainUser.getDuongDanAvt(),
                     domainUser.getTrangThaiKichHoat(),
                     teacherId,
                     studentId
@@ -132,90 +126,116 @@ public class AuthService {
     }
 
 
-    public void logout(){};
-
-
-    public void changePassword(String email, ChangePasswordRequest req) {
-        var user = usersRepo.findByEmail(email).orElseThrow();
-        if (!encoder.matches(req.getCurrentPassword(), user.getMatKhau())) {
-            throw new BadCredentialsException("Mật khẩu hiện tại không đúng");
-        }
-        user.setMatKhau(encoder.encode(req.getNewPassword()));
-        // cập nhật 'updated_at' tự động bằng trigger/hook hoặc @PreUpdate nếu bạn có
-        usersRepo.save(user);
-
-        // thu hồi mọi token reset còn lại
-        prtRepo.deleteByUser(user);
-    }
-
-    public void forgotPassword(ForgotPasswordRequest req) {
-        // Không tiết lộ sự tồn tại của email
-        Optional<User> userOpt = usersRepo.findByEmail(req.getEmail());
-        if (userOpt.isEmpty()) {
-            log.info("ForgotPassword requested for non-existing email={}", req.getEmail());
-            return;
-        }
-        var user = userOpt.get();
-
-        // cooldown (tùy chọn)
-        prtRepo.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user).ifPresent(last -> {
-            var elapsed = Duration.between(last.getCreatedAt(), Instant.now()).getSeconds();
-            if (elapsed < resetCooldownSeconds) {
-                throw new BadCredentialsException("Vui lòng thử lại sau ít phút.");
-            }
-        });
-
-        // Thu hồi token cũ trước khi cấp token mới
-        prtRepo.deleteByUser(user);
-
-        String rawToken = generateRandomToken();
-        String tokenHash = sha256(rawToken);
-        Instant expiresAt = Instant.now().plus(Duration.ofMinutes(resetExpMinutes));
-
-        prtRepo.save(
-                PasswordResetToken.builder()
-                        .user(user)
-                        .tokenHash(tokenHash)
-                        .expiresAt(expiresAt)
-                        .used(false)
-                        .build()
-        );
-
-        String resetLink = resetBaseUrl + "?token=" + rawToken;
-        mailer.sendResetLink(user.getEmail(), resetLink);
-    }
-
-    public void resetPassword(ResetPasswordRequest req) {
-        String hash = sha256(req.getToken());
-        var prt = prtRepo.findByTokenHashAndUsedFalseAndExpiresAtAfter(hash, Instant.now())
-                .orElseThrow(() -> new BadCredentialsException("Token không hợp lệ hoặc đã hết hạn"));
-
-        var user = prt.getUser();
-        user.setMatKhau(encoder.encode(req.getNewPassword()));
-        usersRepo.save(user);
-
-        // Đánh dấu token đã dùng và thu hồi các token khác
-        prt.setUsed(true);
-        prtRepo.save(prt);
-        prtRepo.deleteByUser(user);
-    }
-
-    /* ===================== helpers ===================== */
-    private static String generateRandomToken() {
-        byte[] buf = new byte[32];
-        new SecureRandom().nextBytes(buf);
-        // Base64URL không có padding để đưa vào query an toàn
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
-    }
-
-    private static String sha256(String raw) {
+    public void logout(String token) {
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = md.digest(raw.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(bytes);
-        } catch (Exception e) {
-            throw new IllegalStateException("Hash error", e);
+            if (!jwt.isExpired(token)) {
+                String email = jwt.getSubject(token);
+                User user = usersRepository.findByEmail(email)
+                        .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+                String tokenHash = HashUtils.sha256(token);
+                TokenBlacklist blacklist = new TokenBlacklist();
+                blacklist.setUser(user);
+                blacklist.setTokenHash(tokenHash);
+                blacklist.setPurpose(TokenPurpose.LOGOUT);
+                blacklist.setExpiresAt(Instant.ofEpochMilli(jwt.getExpiryEpochMillis(token)));
+                blacklist.setUsed(false);
+                tokenBlacklistRepository.save(blacklist);
+                log.info("Token blacklisted for logout: userId={}, purpose=LOGOUT", user.getId());
+            } else {
+                throw new ApplicationException(ErrorCode.TOKEN_EXPIRED);
+            }
+        } catch (JwtException e) {
+            throw new ApplicationException(ErrorCode.INVALID_TOKEN);
         }
+    }
+
+    public void changePassword(String token, ChangePasswordRequest req) {
+        try {
+            if (!jwt.isExpired(token)) {
+                String email = jwt.getSubject(token);
+                User user = usersRepository.findByEmail(email)
+                        .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+                if (!passwordEncoder.matches(req.getCurrentPassword(), user.getMatKhau())) {
+                    throw new ApplicationException(ErrorCode.WRONG_PASSWORD);
+                }
+                user.setMatKhau(passwordEncoder.encode(req.getNewPassword()));
+                usersRepository.save(user);
+
+                // Blacklist token hiện tại
+                String tokenHash = HashUtils.sha256(token);
+                TokenBlacklist blacklist = new TokenBlacklist();
+                blacklist.setUser(user);
+                blacklist.setTokenHash(tokenHash);
+                blacklist.setPurpose(TokenPurpose.CHANGE_PASSWORD);
+                blacklist.setExpiresAt(Instant.ofEpochMilli(jwt.getExpiryEpochMillis(token)));
+                blacklist.setUsed(false); // Không cần used
+                tokenBlacklistRepository.save(blacklist);
+                log.info("Token blacklisted for change password: userId={}, purpose=CHANGE_PASSWORD", user.getId());
+            } else {
+                throw new ApplicationException(ErrorCode.TOKEN_EXPIRED);
+            }
+        } catch (JwtException e) {
+            throw new ApplicationException(ErrorCode.INVALID_TOKEN);
+        }
+    }
+
+    public void requestPasswordReset(String email) {
+        User user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+        String resetToken = UUID.randomUUID().toString();
+        String tokenHash = HashUtils.sha256(resetToken);
+        TokenBlacklist blacklist = new TokenBlacklist();
+        blacklist.setUser(user);
+        blacklist.setTokenHash(tokenHash);
+        blacklist.setPurpose(TokenPurpose.RESET_PASSWORD);
+        blacklist.setExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
+        blacklist.setUsed(false);
+        tokenBlacklistRepository.save(blacklist);
+
+        // Lấy fullName từ Student hoặc Lecturer
+        String fullName = null;
+        var svOpt = studentRepo.findByUserId(user.getId());
+        if (svOpt.isPresent()) {
+            fullName = svOpt.get().getHoTen();
+        }
+        var gvOpt = lecturerRepo.findByUserId(user.getId());
+        if (gvOpt.isPresent() && gvOpt.get().getHoTen() != null && !gvOpt.get().getHoTen().isBlank()) {
+            fullName = gvOpt.get().getHoTen();
+        }
+
+        emailService.sendResetPasswordEmail(user.getEmail(), resetToken, fullName);
+        log.info("Password reset token created: userId={}, purpose=RESET_PASSWORD", user.getId());
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        String tokenHash = HashUtils.sha256(request.getToken());
+        TokenBlacklist token = tokenBlacklistRepository.findByTokenHashAndPurpose(tokenHash, TokenPurpose.RESET_PASSWORD)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.INVALID_TOKEN));
+        if (token.isUsed()) {
+            throw new ApplicationException(ErrorCode.INVALID_TOKEN);
+        }
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            throw new ApplicationException(ErrorCode.TOKEN_EXPIRED);
+        }
+        User user = token.getUser();
+        user.setMatKhau(passwordEncoder.encode(request.getNewPassword()));
+        token.setUsed(true); // Đánh dấu token đã dùng
+        usersRepository.save(user);
+        tokenBlacklistRepository.save(token);
+        log.info("Password reset successful: userId={}", user.getId());
+    }
+
+
+
+    public String uploadAnhDaiDien(MultipartFile file) throws IOException {
+        var auth =  SecurityContextHolder.getContext().getAuthentication();
+        log.info("Authenticated user: {}", auth.getName());
+        User taiKhoan = usersRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+        String anhDaiDienUrl = cloudinaryStorageService.upload(file);
+        taiKhoan.setDuongDanAvt(anhDaiDienUrl);
+        usersRepository.save(taiKhoan);
+        return "Upload anh dai dien thanh cong";
     }
 
 }

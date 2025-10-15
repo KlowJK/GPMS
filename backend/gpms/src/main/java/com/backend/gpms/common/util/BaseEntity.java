@@ -23,6 +23,7 @@ public abstract class BaseEntity implements Serializable {
     @Column(name = "created_at", updatable = false)
     @CreationTimestamp
     LocalDateTime createdAt;
+
     @Column(name = "updated_at")
     @UpdateTimestamp
     LocalDateTime updatedAt;
