@@ -9,10 +9,7 @@ class NopDeCuongScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => DoAnViewModel(),
-      child: _NopDeCuongView(submissionCount: submissionCount),
-    );
+    return _NopDeCuongView(submissionCount: submissionCount);
   }
 }
 
@@ -40,7 +37,20 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
       return;
     }
 
-    final viewModel = Provider.of<DoAnViewModel>(context, listen: false);
+    // Try to obtain the DoAnViewModel; if not available, show a friendly message
+    DoAnViewModel? viewModel;
+    try {
+      viewModel = Provider.of<DoAnViewModel>(context, listen: false);
+    } catch (e) {
+      // Provider not found in this BuildContext
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(content: Text('Không tìm thấy dữ liệu. Vui lòng mở màn này từ trang Đồ án.')),
+        );
+      return;
+    }
+
     final success = await viewModel.nopDeCuong(
       fileUrl: _urlController.text,
     );
@@ -75,7 +85,13 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
     final double gap = w >= 900 ? 16 : 12;
 
     final theme = Theme.of(context);
-    final viewModel = context.watch<DoAnViewModel>();
+    // Try to obtain DoAnViewModel; if not found, we'll show a helpful message
+    DoAnViewModel? viewModel;
+    try {
+      viewModel = context.watch<DoAnViewModel>();
+    } catch (_) {
+      viewModel = null;
+    }
 
     return Scaffold(
       backgroundColor: Colors.blueGrey[50],
@@ -128,7 +144,7 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                           SizedBox(height: gap * 2),
                           Center(
                             child: FilledButton(
-                              onPressed: viewModel.isLoading ? null : () => _submit(context),
+                              onPressed: (viewModel == null || viewModel.isLoading) ? null : () => _submit(context),
                               style: FilledButton.styleFrom(
                                 backgroundColor: const Color(0xFF2563EB),
                                 padding: const EdgeInsets.symmetric(
@@ -136,16 +152,18 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                                   vertical: 14,
                                 ),
                               ),
-                              child: viewModel.isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text('Nộp đề cương'),
+                              child: viewModel == null
+                                  ? const Text('Không có dữ liệu (mở từ trang Đồ án)')
+                                  : (viewModel.isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Nộp đề cương')),
                             ),
                           ),
                         ],

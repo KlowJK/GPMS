@@ -27,17 +27,13 @@ class AuthViewModel extends ChangeNotifier {
       } else {
         await prefs.remove('fullName');
       }
-
       await prefs.setString('email', u.email);
-
       await prefs.setString('role', u.role);
-
       if (u.duongDanAvt != null) {
         await prefs.setString('duongDanAvt', u.duongDanAvt!);
       } else {
         await prefs.remove('duongDanAvt');
       }
-
       if (u.teacherId != null) {
         await prefs.setInt('teacherId', u.teacherId!);
       } else {
