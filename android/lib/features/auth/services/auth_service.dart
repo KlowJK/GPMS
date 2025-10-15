@@ -1,3 +1,4 @@
+// language: dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -54,13 +55,13 @@ class AuthService {
     try {
       final response = await http
           .post(
-            uri,
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({'email': email, 'matKhau': password}),
-          )
+        uri,
+        headers: const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email, 'matKhau': password}),
+      )
           .timeout(const Duration(seconds: 15));
 
       if (kDebugMode) {
