@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:provider/provider.dart';
 import 'hoan_do_an.dart';
 import 'de_tai/dang_ky_de_tai.dart';
@@ -20,10 +23,31 @@ class DoAnState extends State<DoAn> {
 
   Future<void> _goRegister() async {
     final vm = Provider.of<DoAnViewModel>(context, listen: false);
+    // Nếu danh sách advisors rỗng thì cố gắng tải trước
     if (vm.advisors.isEmpty && !vm.isLoadingAdvisors) {
-      await vm.fetchAdvisors();
+      // Hiển thị dialog loading nhỏ trong khi fetch
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+      try {
+        await vm.fetchAdvisors();
+      } catch (e) {
+        // fetchAdvisors đã set advisorError trong viewmodel; log thêm
+        if (kDebugMode) print('Error while fetching advisors: $e');
+      } finally {
+        // đóng dialog nếu còn mở
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      }
     }
+
+    // Sau khi fetch xong, kiểm tra lại
+    if (!mounted) return;
     if (vm.advisors.isNotEmpty) {
+      // Có danh sách -> điều hướng
       await Navigator.push<RegisterResult>(
         context,
         MaterialPageRoute(
@@ -33,6 +57,17 @@ class DoAnState extends State<DoAn> {
           ),
         ),
       );
+    } else {
+      // Không có advisors -> hiển thị lỗi rõ ràng cho user
+      final String message = vm.advisorError != null && vm.advisorError!.isNotEmpty
+          ? vm.advisorError!
+          : 'Không có giảng viên hướng dẫn hoặc không thể tải dữ liệu. Vui lòng thử lại.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      if (kDebugMode) {
+        print('Cannot navigate to DangKyDeTai: advisors empty. isLoadingAdvisors=${vm.isLoadingAdvisors}, advisorError=${vm.advisorError}');
+      }
     }
   }
 
@@ -44,9 +79,15 @@ class DoAnState extends State<DoAn> {
   }
 
   void _goToNopDeCuong() {
+    final vm = Provider.of<DoAnViewModel>(context, listen: false);
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const NopDeCuongScreen(submissionCount: 1,)),
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: vm,
+          child: const NopDeCuongScreen(submissionCount: 1),
+        ),
+      ),
     );
   }
 
@@ -180,7 +221,7 @@ class DoAnState extends State<DoAn> {
             title: vm.deTaiDetail!.tenDeTai,
             advisor: vm.deTaiDetail!.gvhdTen,
             overviewFile: vm.deTaiDetail!.tongQuanFilename,
-            fileUrl: vm.deTaiDetail!.tongQuanDeTaiUrl ?? '',
+            fileUrl: vm.deTaiDetail!.tongQuanDeTaiUrl,
             status: vm.deTaiDetail!.trangThai,
             nhanXet: vm.deTaiDetail!.nhanXet,
           ),
