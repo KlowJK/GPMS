@@ -24,7 +24,7 @@ import java.util.List;
 
 @Tag(name = "BaoCao")
 @RestController
-@RequestMapping("/api/public")
+@RequestMapping("/api/bao-cao")
 @AllArgsConstructor
 public class BaoCaoController {
 

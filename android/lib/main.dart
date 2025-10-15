@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/viewmodels/auth_viewmodel.dart';
+import 'shared/theme/theme.dart';
 
 void main() {
   runApp(
