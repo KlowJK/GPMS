@@ -21,7 +21,6 @@ public interface GiangVienMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "boMon", ignore = true)
     @Mapping(target = "user",   ignore = true)
-    @Mapping(target = "duongDanAvt", ignore = true)
     @Mapping(source = "idBoMon", target = "boMon.id")
     GiangVien toGiangVien(GiangVienCreateRequest request);
 

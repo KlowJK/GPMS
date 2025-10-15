@@ -21,7 +21,6 @@ import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.*;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @Configuration
@@ -74,7 +73,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**",
+                        .requestMatchers("/api/auth/login",
+                                "/api/auth/request-reset-password",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html").permitAll()
