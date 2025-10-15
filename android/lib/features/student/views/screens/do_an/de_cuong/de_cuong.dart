@@ -11,40 +11,38 @@ class DeCuong extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => DoAnViewModel(),
-      child: Consumer<DoAnViewModel>(
-        builder: (context, viewModel, child) {
-          Widget bodyContent;
+    // Use the DoAnViewModel provided by ancestor (e.g., TrangChuSinhVien)
+    return Consumer<DoAnViewModel>(
+      builder: (context, viewModel, child) {
+        Widget bodyContent;
 
-          // Logic to determine what to show in the body
-          if (viewModel.isLoading && viewModel.deCuongLogs.isEmpty) {
-            // 1. Show loading indicator only on the first load
-            bodyContent = const Center(child: CircularProgressIndicator());
-          } else if (viewModel.deCuongLogs.isEmpty) {
-            // 2. If the list is empty for any reason, show the friendly empty state
-            bodyContent = _buildEmptyState(context);
-          } else {
-            // 3. If there is data, show the scrollable list
-            bodyContent = _buildLogList(context, viewModel.deCuongLogs);
-          }
+        // Logic to determine what to show in the body
+        if (viewModel.isLoading && viewModel.deCuongLogs.isEmpty) {
+          // 1. Show loading indicator only on the first load
+          bodyContent = const Center(child: CircularProgressIndicator());
+        } else if (viewModel.deCuongLogs.isEmpty) {
+          // 2. If the list is empty for any reason, show the friendly empty state
+          bodyContent = _buildEmptyState(context);
+        } else {
+          // 3. If there is data, show the scrollable list
+          bodyContent = _buildLogList(context, viewModel.deCuongLogs);
+        }
 
-          // Use a Stack to layer the FAB on top of the body content
-          return Stack(
-            children: [
-              bodyContent,
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: FloatingActionButton(
-                  onPressed: onCreate,
-                  child: const Icon(Icons.add),
-                ),
+        // Use a Stack to layer the FAB on top of the body content
+        return Stack(
+          children: [
+            bodyContent,
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: onCreate,
+                child: const Icon(Icons.add),
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 

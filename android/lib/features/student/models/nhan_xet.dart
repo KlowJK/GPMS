@@ -12,8 +12,17 @@ class NhanXet {
   });
 
   factory NhanXet.fromJson(Map<String, dynamic> json) {
+    int _parseInt(dynamic v, {int fallback = 0}) {
+      if (v == null) return fallback;
+      if (v is int) return v;
+      if (v is String) return int.tryParse(v) ?? fallback;
+      if (v is double) return v.toInt();
+      return fallback;
+    }
+
+    final idVal = _parseInt(json['id'], fallback: 0);
     return NhanXet(
-      id: json['id'],
+      id: idVal,
       noiDung: json['noiDung'],
       nguoiNhanXet: json['nguoiNhanXet'],
       thoiGian: json['thoiGian'],
