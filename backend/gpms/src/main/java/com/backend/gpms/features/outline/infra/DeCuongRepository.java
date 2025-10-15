@@ -77,4 +77,6 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
     );
 
     List<DeCuong> findByDeTai_SinhVien_MaSinhVien(String maSinhVien);
+
+    Optional<DeCuong> findFirstByDeTai_IdOrderByUpdatedAtDesc(Long ids);
 }

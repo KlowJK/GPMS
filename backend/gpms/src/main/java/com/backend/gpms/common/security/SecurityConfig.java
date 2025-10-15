@@ -1,8 +1,12 @@
 package com.backend.gpms.common.security;
 
+import com.backend.gpms.common.exception.ErrorCode;
+import com.backend.gpms.common.util.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.*;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -11,7 +15,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -27,8 +31,12 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtFilter;
     private final UserDetailsService uds;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint; // Thêm dependency
 
-    @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
     AuthenticationProvider authenticationProvider() {
@@ -45,18 +53,23 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()).cors(Customizer.withDefaults())
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((req, res, e) -> {
-                            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            res.setContentType("application/json;charset=UTF-8");
-                            res.getWriter().write("{\"error\":\"UNAUTHORIZED\",\"message\":\"Bạn cần đăng nhập.\"}");
-                        })
+                        .authenticationEntryPoint(authenticationEntryPoint) // Sử dụng CustomAuthenticationEntryPoint
                         .accessDeniedHandler((req, res, e) -> {
-                            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            res.setContentType("application/json;charset=UTF-8");
-                            res.getWriter().write("{\"error\":\"FORBIDDEN\",\"message\":\"Không có quyền truy cập.\"}");
+                            // Tùy chọn: Gọi GlobalExceptionHandler hoặc giữ logic inline
+                            ErrorCode errorCode = ErrorCode.FORBIDDEN; // Hoặc FORBIDDEN, tùy ngữ cảnh
+                            ApiResponse<?> apiResponse = ApiResponse.builder()
+                                    .code(errorCode.getCode())
+                                    .message(errorCode.getMessage())
+                                    .build();
+                            res.setStatus(errorCode.getHttpStatusCode().value());
+                            res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            new ObjectMapper().writeValue(res.getWriter(), apiResponse);
+                            res.flushBuffer();
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
@@ -74,7 +87,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS DEV cho Flutter/React local
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration conf = new CorsConfiguration();
@@ -82,8 +94,8 @@ public class SecurityConfig {
                 "http://localhost:*",
                 "http://127.0.0.1:*"
         ));
-        conf.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        conf.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Requested-With","Origin"));
+        conf.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        conf.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
         conf.setExposedHeaders(List.of("Authorization"));
         conf.setAllowCredentials(false); // JWT qua header
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

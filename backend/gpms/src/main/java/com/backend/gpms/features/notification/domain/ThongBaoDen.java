@@ -19,6 +19,6 @@ public class ThongBaoDen extends BaseEntity {
     ThongBao thongBao;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_nguoi_dung", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "id_nguoi_dung", nullable = false)
     User user;
 }

@@ -1,3 +1,4 @@
+// language: dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -52,13 +53,13 @@ class AuthService {
     try {
       final response = await http
           .post(
-            uri,
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({'email': email, 'matKhau': password}),
-          )
+        uri,
+        headers: const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email, 'matKhau': password}),
+      )
           .timeout(const Duration(seconds: 15));
 
       // Debug response
@@ -91,16 +92,16 @@ class AuthService {
 
         final prefs = await SharedPreferences.getInstance();
         await _clearAuthKeys(prefs);
+
         // Save new data
         await prefs.setString('token', user.token);
         await prefs.setString('typeToken', user.typeToken);
         await prefs.setString('expiresAt', user.expiresAt);
         await prefs.setInt('id', user.id);
-        if (user.studentId != null) {
-          await prefs.setInt('studentId', user.studentId!);
-        }
+        if (user.studentId != null) await prefs.setInt('studentId', user.studentId!);
         await prefs.setString('email', user.email);
         await prefs.setString('role', user.role);
+
         if (user.duongDanAvt != null) {
           await prefs.setString('duongDanAvt', user.duongDanAvt!);
         }
@@ -111,35 +112,17 @@ class AuthService {
           await prefs.setString('fullName', user.fullName!);
         }
         // Verify saved token
+
         final savedToken = prefs.getString('token');
         if (savedToken == null || savedToken.isEmpty) {
-          if (kDebugMode) {
-            print('❌ Token was not saved correctly after login!');
-          }
+          if (kDebugMode) print('❌ Token was not saved correctly after login!');
           throw Exception('Lỗi lưu token sau khi đăng nhập.');
         }
 
-        // Debug verify
         if (kDebugMode) {
           print('✅ LOGIN SUCCESSFUL');
           print('🔑 Token received: ${user.token}');
-          print('🔑 Token length: ${user.token.length}');
-          print(
-            '💾 Token saved to SharedPreferences: ${prefs.getString('token')}',
-          );
-          print('👤 User details saved:');
-          for (final key in _authKeys) {
-            print('   - $key: ${prefs.get(key)}');
-          }
-
-          final savedToken = prefs.getString('token');
-          if (savedToken == user.token) {
-            print('✅ Token verification: MATCHED');
-          } else {
-            print('❌ Token verification: MISMATCH');
-            print('   Original: ${user.token}');
-            print('   Saved: $savedToken');
-          }
+          print('💾 Token saved to SharedPreferences: ${prefs.getString('token')}');
         }
 
         return user;

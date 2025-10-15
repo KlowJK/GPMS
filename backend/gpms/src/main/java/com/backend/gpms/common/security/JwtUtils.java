@@ -1,7 +1,10 @@
 package com.backend.gpms.common.security;
 
+import com.backend.gpms.common.exception.ApplicationException;
+import com.backend.gpms.common.exception.ErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
@@ -44,12 +47,19 @@ public class JwtUtils {
                 .compact();
     }
 
+    // Trong JwtUtils
     public Claims parse(String token) {
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new ApplicationException(ErrorCode.TOKEN_EXPIRED);
+        } catch (JwtException e) {
+            throw new ApplicationException(ErrorCode.INVALID_TOKEN);
+        }
     }
 
     public boolean isExpired(String token) {
