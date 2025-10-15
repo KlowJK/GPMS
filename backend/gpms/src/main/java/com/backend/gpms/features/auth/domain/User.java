@@ -40,6 +40,9 @@ public class User extends BaseEntity {
     @Column(name = "kich_hoat", nullable = false)
     Boolean trangThaiKichHoat = true;
 
+    @Column(name = "duong_dan_avt")
+    String duongDanAvt;
+
     @OneToOne(mappedBy = "user")
     SinhVien sinhVien;
     @OneToOne(mappedBy = "user")

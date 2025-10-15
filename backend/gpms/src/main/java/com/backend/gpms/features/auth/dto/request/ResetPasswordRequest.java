@@ -2,8 +2,13 @@ package com.backend.gpms.features.auth.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter; @Getter
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class ResetPasswordRequest {
-    @NotBlank private String token; // token thô từ email
-    @NotBlank @Size(min = 8, max = 128) private String newPassword;
+    @NotBlank String token; // token thô từ email
+    @NotBlank @Size(min = 6, max = 128)
+    String newPassword;
 }

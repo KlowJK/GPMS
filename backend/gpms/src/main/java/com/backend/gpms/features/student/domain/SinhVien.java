@@ -55,9 +55,6 @@ public class SinhVien extends BaseEntity {
 
     @Column(name="du_dieu_kien", nullable=false) Boolean duDieuKien = false;
 
-    @Column(name = "duong_dan_avt")
-    String duongDanAvt;
-
     @OneToOne(mappedBy = "sinhVien")
     DeTai deTai;
 
