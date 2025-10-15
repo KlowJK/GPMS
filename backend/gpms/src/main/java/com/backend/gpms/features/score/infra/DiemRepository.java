@@ -1,4 +1,7 @@
 package com.backend.gpms.features.score.infra;
 
-public class DiemRepository {
+import com.backend.gpms.features.score.domain.Diem;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DiemRepository extends JpaRepository<Diem,Long> {
 }

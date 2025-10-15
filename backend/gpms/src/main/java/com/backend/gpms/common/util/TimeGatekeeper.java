@@ -49,6 +49,13 @@ public class TimeGatekeeper {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DANG_KY_TIME_INVALID));
     }
 
+    public ThoiGianThucHien validateThoiGianNopBaoCao(){
+        LocalDate today = LocalDate.now(ZONE_BKK);
+        return thoiGianThucHienRepository
+                .findTopByCongViecAndThoiGianBatDauLessThanEqualAndThoiGianKetThucGreaterThanEqualOrderByThoiGianBatDauDesc(CongViec.NOP_BAO_CAO, today, today)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOP_BAO_CAO_TIME_INVALID));
+    }
+
     public DotBaoVe getCurrentDotBaoVe(){
         LocalDate today = LocalDate.now(ZONE_BKK);
         return dotBaoVeRepository.

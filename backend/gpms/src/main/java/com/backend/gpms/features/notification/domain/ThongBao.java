@@ -26,7 +26,13 @@ public class ThongBao extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name="loai", nullable=false, columnDefinition="loai_thong_bao")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    LoaiThongBao loai = LoaiThongBao.HE_THONG;
+    LoaiThongBao loaiThongBao = LoaiThongBao.HE_THONG;
+
+    @Column(name="tep_dinh_kem",  columnDefinition="text")
+    String file;
+
+    @Column(name="tieu_de", nullable=false, columnDefinition="text")
+    String tieuDe;
 
     @OneToMany(mappedBy = "thongBao")
     List<ThongBaoDen> thongBaoDens;
