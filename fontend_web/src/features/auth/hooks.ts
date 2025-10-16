@@ -5,7 +5,9 @@ import { setToken, clearToken } from '@shared/libs/storage'
 export function useLogin() {
     return useMutation({
         mutationFn: login,
-        onSuccess: (data) => setToken(data.accessToken)
+        onSuccess: (data) => {
+            if (data?.accessToken) setToken(data.accessToken)
+        }
     })
 }
 export function useProfile() {
