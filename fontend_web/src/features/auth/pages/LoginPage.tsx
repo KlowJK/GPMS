@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { axios } from '@shared/libs/axios'
 import { setToken, setUser } from '@shared/libs/storage'
+import { login as loginApi } from '../api'
 import type { AxiosError } from 'axios'
 
 // Ảnh: nền = TLU.png (hình minh hoạ), logo = logo_tlu.png
@@ -20,43 +20,24 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            const payload = { email: username, matKhau: password }
-            const res = await axios.post('/api/auth/login', payload, {
-                headers: { 'Content-Type': 'application/json' },
-            })
-            // clear previous error
+            // call centralized login helper which normalizes server shapes
+            const result = await loginApi({ username, password })
             setError(null)
 
-            // debug log
+            // debug
             // eslint-disable-next-line no-console
-            console.debug('[login] server response:', res)
+            console.debug('[login] normalized result:', result)
 
-            // normalize response: some backends wrap payload in `result`
-            const raw = res.data ?? {}
-            const data = raw.result ?? raw
-
-            // try common token locations
-            const possibleToken = (data.accessToken ?? data.token ?? data.access_token ?? data.data?.accessToken) as string | undefined
-            const headerAuth = (res.headers && (res.headers.authorization || res.headers.Authorization)) as string | undefined
-            const accessToken = possibleToken || headerAuth?.replace(/^Bearer\s+/i, '')
-            const user = data.user ?? data
-
-            if (!accessToken) {
-                const serverBody = typeof data === 'string' ? data : JSON.stringify(data)
-                throw new Error(`Token not returned from server. Response body: ${serverBody}`)
+            if (!result?.accessToken) {
+                throw new Error('Token not returned from server. Response: ' + JSON.stringify(result?.raw ?? result))
             }
 
-            // store token and user
-            setToken(accessToken)
-            if (user) setUser(user)
+            setToken(result.accessToken)
+            if (result.user) setUser(result.user)
 
-            // navigate based on role
-            const role = (user?.role ?? '').toString()
-            if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') {
-                navigate('/lecturers', { replace: true })
-            } else {
-                navigate('/topics', { replace: true })
-            }
+            const role = (result.user?.role ?? '').toString()
+            if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') navigate('/lecturers', { replace: true })
+            else navigate('/topics', { replace: true })
         } catch (err) {
             const axiosErr = err as AxiosError
             const serverMsg =
