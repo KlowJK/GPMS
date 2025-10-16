@@ -72,6 +72,7 @@ public interface SinhVienMapper {
     @Mapping(source = "lop.nganh.khoa.tenKhoa", target = "tenKhoa")
     @Mapping(source = "lop.nganh.tenNganh", target = "tenNganh")
     @Mapping(source = "duongDanCv", target = "cvUrl")
+    @Mapping(source = "user.duongDanAvt", target = "duongDanAvt")
     SinhVienInfoResponse toSinhVienInfoResponse(SinhVien sv);
 
     @Mapping(source = "maSinhVien" , target = "maSV")
