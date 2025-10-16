@@ -8,6 +8,7 @@ import 'de_tai/dang_ky_de_tai.dart';
 import 'de_cuong/de_cuong.dart';
 import 'de_cuong/nop_de_cuong_screen.dart';
 import '../../../viewmodels/do_an_viewmodel.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum DoAnTab { detai, decuong }
 
@@ -23,28 +24,6 @@ class DoAnState extends State<DoAn> {
 
   Future<void> _goRegister() async {
     final vm = Provider.of<DoAnViewModel>(context, listen: false);
-    // Nếu danh sách advisors rỗng thì cố gắng tải trước
-    if (vm.advisors.isEmpty && !vm.isLoadingAdvisors) {
-      // Hiển thị dialog loading nhỏ trong khi fetch
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => const Center(child: CircularProgressIndicator()),
-        );
-      }
-      try {
-        await vm.fetchAdvisors();
-      } catch (e) {
-        // fetchAdvisors đã set advisorError trong viewmodel; log thêm
-        if (kDebugMode) print('Error while fetching advisors: $e');
-      } finally {
-        // đóng dialog nếu còn mở
-        if (mounted) Navigator.of(context, rootNavigator: true).pop();
-      }
-    }
-
-    // Sau khi fetch xong, kiểm tra lại
     if (!mounted) return;
     if (vm.advisors.isNotEmpty) {
       // Có danh sách -> điều hướng
@@ -59,14 +38,17 @@ class DoAnState extends State<DoAn> {
       );
     } else {
       // Không có advisors -> hiển thị lỗi rõ ràng cho user
-      final String message = vm.advisorError != null && vm.advisorError!.isNotEmpty
+      final String message =
+          vm.advisorError != null && vm.advisorError!.isNotEmpty
           ? vm.advisorError!
           : 'Không có giảng viên hướng dẫn hoặc không thể tải dữ liệu. Vui lòng thử lại.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
       if (kDebugMode) {
-        print('Cannot navigate to DangKyDeTai: advisors empty. isLoadingAdvisors=${vm.isLoadingAdvisors}, advisorError=${vm.advisorError}');
+        print(
+          'Cannot navigate to DangKyDeTai: advisors empty. isLoadingAdvisors=${vm.isLoadingAdvisors}, advisorError=${vm.advisorError}',
+        );
       }
     }
   }
@@ -105,47 +87,52 @@ class DoAnState extends State<DoAn> {
     final double gap = w >= 900 ? 16 : 12;
 
     return Consumer<DoAnViewModel>(
-        builder: (context, vm, _) {
-          return Scaffold(
-              appBar: AppBar(
-                backgroundColor: const Color(0xFF2563EB),
-                title: const Text('Đồ án', style: TextStyle(color: Colors.white)),
-                centerTitle: true,
-              ),
-              body: SafeArea(
-                  child: Center(
-                      child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxContentWidth),
-                          // Using a Column with an Expanded child is more robust for tabbed views
-                          // than a single ListView was.
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
-                                child: _TabsBar(
-                                  current: _tab,
-                                  onChanged: (t) => setState(() => _tab = t),
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              // Expanded provides the Tab content with bounded constraints, fixing layout errors.
-                              Expanded(
-                                child: _tab == DoAnTab.detai
-                                    ? _buildDeTaiTab(context, vm, pad, gap)
-                                    : _buildDeCuongTab(context, vm, gap),
-                              ),
-                            ],
-                          ),
+      builder: (context, vm, _) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF2563EB),
+            title: const Text('Đồ án', style: TextStyle(color: Colors.white)),
+            centerTitle: true,
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxContentWidth),
+                // Using a Column with an Expanded child is more robust for tabbed views
+                // than a single ListView was.
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
+                      child: _TabsBar(
+                        current: _tab,
+                        onChanged: (t) => setState(() => _tab = t),
                       ),
-                  ),
+                    ),
+                    const SizedBox(height: 1),
+                    // Expanded provides the Tab content with bounded constraints, fixing layout errors.
+                    Expanded(
+                      child: _tab == DoAnTab.detai
+                          ? _buildDeTaiTab(context, vm, pad, gap)
+                          : _buildDeCuongTab(context, vm, gap),
+                    ),
+                  ],
+                ),
               ),
-          );
-        },
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildDeTaiTab(BuildContext context, DoAnViewModel vm, double pad, double gap) {
+  Widget _buildDeTaiTab(
+    BuildContext context,
+    DoAnViewModel vm,
+    double pad,
+    double gap,
+  ) {
     // This tab content is now wrapped in its own ListView to be scrollable.
     return ListView(
       padding: EdgeInsets.all(pad),
@@ -160,7 +147,8 @@ class DoAnState extends State<DoAn> {
                     child: FilledButton.icon(
                       onPressed: _goRegister,
                       label: const Text('Đăng ký đề tài'),
-                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -256,7 +244,6 @@ class DoAnState extends State<DoAn> {
   }
 }
 
-
 class _ProjectInfoCard extends StatelessWidget {
   const _ProjectInfoCard({
     required this.gap,
@@ -275,18 +262,45 @@ class _ProjectInfoCard extends StatelessWidget {
   final String status;
   final String? nhanXet;
 
+  Future<void> _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Không thể mở liên kết $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       // ...
-        child: Padding(
-          padding: EdgeInsets.all(gap),child: Column(
+      child: Padding(
+        padding: EdgeInsets.all(gap),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _InfoRow(label: 'Tên đề tài:', value: title),
             _InfoRow(label: 'GVHD:', value: advisor),
-            if (overviewFile != null && overviewFile!.isNotEmpty)
-              _InfoRow(label: 'File tổng quan:', value: overviewFile),
+
+            if (fileUrl != null && fileUrl!.isNotEmpty)
+              _InfoRow(
+                label: 'Tổng quan:',
+                valueWidget: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _launchURL(fileUrl),
+                      child: Text(
+                        'Xem chi tiết',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             _InfoRow(
               label: 'Trạng thái:',
               valueWidget: _Badge(
@@ -310,7 +324,7 @@ class _ProjectInfoCard extends StatelessWidget {
               _InfoRow(label: 'Nhận xét:', value: nhanXet),
           ],
         ),
-        ),
+      ),
     );
   }
 }
@@ -331,9 +345,9 @@ class _InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, 
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 100, child: Text(label, style: styleLabel)),
+          SizedBox(width: 80, child: Text(label, style: styleLabel)),
           const SizedBox(width: 8),
           Expanded(child: valueWidget ?? Text(value ?? '', style: styleValue)),
         ],
@@ -367,30 +381,31 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-        padding: const EdgeInsets.symmetric(vertical: 144, horizontal: 36),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Column(
-            children: [Icon(icon, size: 56, color: cs.primary),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 144, horizontal: 36),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 56, color: cs.primary),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -470,19 +485,20 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
-        onTap: onTap,
-        splashFactory: NoSplash.splashFactory,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Center(
-                child: Text(
-                    text,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,color: selected ? cs.primary : Colors.black54,
-                    ),
-                ),
+      onTap: onTap,
+      splashFactory: NoSplash.splashFactory,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: selected ? cs.primary : Colors.black54,
             ),
+          ),
         ),
+      ),
     );
   }
 }

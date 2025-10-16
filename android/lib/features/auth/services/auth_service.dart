@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/user_entity.dart';
-import '../../../core/extensions/auth_exception.dart';
-import '../../../core/extensions/error_code.dart';
+import '../../../core/constants/exception/custom_exception.dart';
+import '../../../core/constants/exception/error_code.dart';
 import 'dart:io';
 
 class AuthService {
@@ -55,13 +55,13 @@ class AuthService {
     try {
       final response = await http
           .post(
-        uri,
-        headers: const {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'email': email, 'matKhau': password}),
-      )
+            uri,
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email, 'matKhau': password}),
+          )
           .timeout(const Duration(seconds: 15));
 
       if (kDebugMode) {
@@ -74,21 +74,10 @@ class AuthService {
         final data = jsonDecode(response.body);
         final result = data['result'];
         if (result == null) {
-          throw AuthException(ErrorCode.internalServerError);
+          throw CustomException(ErrorCode.internalServerError);
         }
 
-        final user = UserEntity(
-          token: result['accessToken'] ?? '',
-          typeToken: result['tokenType'] ?? '',
-          expiresAt: result['expiresAt']?.toString() ?? '',
-          id: result['user']['id'] ?? 0,
-          fullName: result['user']['fullName'],
-          email: result['user']['email'] ?? '',
-          role: result['user']['role'] ?? '',
-          duongDanAvt: result['user']['duongDanAvt'],
-          teacherId: result['user']['teacherId'],
-          studentId: result['user']['studentId'],
-        );
+        final user = UserEntity.fromJson(result);
 
         final prefs = await SharedPreferences.getInstance();
         await _clearAuthKeys(prefs);
@@ -135,23 +124,23 @@ class AuthService {
           if (kDebugMode) print('⚠️ Error parsing error response: $e');
           errorCode = ErrorCode.internalServerError;
         }
-        throw AuthException(
+        throw CustomException(
           errorCode,
         ); // <-- quan trọng: đừng wrap lại bên dưới
       }
     } on TimeoutException {
-      throw AuthException(ErrorCode.internalServerError);
+      throw (ErrorCode.internalServerError);
     } on SocketException catch (_) {
       // optional: mạng rớt, DNS...
-      throw AuthException(ErrorCode.internalServerError);
+      throw CustomException(ErrorCode.internalServerError);
     } on http.ClientException catch (_) {
-      throw AuthException(ErrorCode.internalServerError);
-    } on AuthException {
+      throw CustomException(ErrorCode.internalServerError);
+    } on CustomException {
       // 🔁 giữ nguyên lỗi business do mình đã map đúng từ server
       rethrow;
     } catch (e, st) {
       if (kDebugMode) print('❌ Unexpected login error: $e\n$st');
-      throw AuthException(ErrorCode.internalServerError);
+      throw CustomException(ErrorCode.internalServerError);
     }
   }
 
