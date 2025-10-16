@@ -79,44 +79,51 @@ class _NhatKyState extends State<NhatKy> {
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
                   children: [
-                    Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: EdgeInsets.all(gap),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 8),
-                            if (vm.loading)
-                              const Center(child: CircularProgressIndicator())
-                            else if (vm.tuans.isEmpty)
-                              const Text('Chưa có tuần nào từ server.')
-                            else
-                              ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: vm.tuans.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                itemBuilder: (_, i) {
-                                  final TuanItem t = vm.tuans[i];
-                                  String fmt(DateTime? d) {
-                                    if (d == null) return '-';
-                                    String two(int v) => v.toString().padLeft(2, '0');
-                                    return '${two(d.day)}/${two(d.month)}/${d.year}';
-                                  }
-                                  final range = '${fmt(t.ngayBatDau)} – ${fmt(t.ngayKetThuc)}';
-                                  return ListTile(
-                                    leading: const Icon(Icons.calendar_today),
-                                    title: Text('Tuần ${t.tuan}'),
-                                    subtitle: Text(range),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    // If the server indicates the student has no topic, show only a single friendly message and hide other lists
+                    if (vm.noDeTai) ...[
+                      const SizedBox(height: 12),
+                      const _EmptyState(icon: Icons.edit_note, title: 'Bạn chưa có đề tài', subtitle: 'Vui lòng đăng ký đề tài'),
+                      const SizedBox(height: 12),
+                    ] else ...[
+                     if (!vm.noDeTai)
+                       Card(
+                         elevation: 0,
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                         child: Padding(
+                           padding: EdgeInsets.all(gap),
+                           child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               const SizedBox(height: 8),
+                               if (vm.loading)
+                                 const Center(child: CircularProgressIndicator())
+                               else if (vm.tuans.isEmpty)
+                                 const Text('Chưa có tuần nào từ server.')
+                               else
+                                 ListView.separated(
+                                   shrinkWrap: true,
+                                   physics: const NeverScrollableScrollPhysics(),
+                                   itemCount: vm.tuans.length,
+                                   separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                   itemBuilder: (_, i) {
+                                     final TuanItem t = vm.tuans[i];
+                                     String fmt(DateTime? d) {
+                                       if (d == null) return '-';
+                                       String two(int v) => v.toString().padLeft(2, '0');
+                                       return '${two(d.day)}/${two(d.month)}/${d.year}';
+                                     }
+                                     final range = '${fmt(t.ngayBatDau)} – ${fmt(t.ngayKetThuc)}';
+                                     return ListTile(
+                                       leading: const Icon(Icons.calendar_today),
+                                       title: Text('Tuần ${t.tuan}'),
+                                       subtitle: Text(range),
+                                     );
+                                   },
+                                 ),
+                             ],
+                           ),
+                         ),
+                       ),
 
                     const SizedBox(height: 12),
 
@@ -165,6 +172,7 @@ class _NhatKyState extends State<NhatKy> {
                         ),
                       ),
                     ),
+                    ], // <- added closing bracket for the `else ...[` spread
                   ],
                 ),
               ),

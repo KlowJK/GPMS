@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:open_file/open_file.dart';
 
-import '../../../viewmodels/submit_diary_viewmodel.dart';
+import '../../../viewmodels/nop_nhat_ky_viewmodel.dart';
 
 /* Local diary model and submit page extracted from nhat_ky.dart */
 
