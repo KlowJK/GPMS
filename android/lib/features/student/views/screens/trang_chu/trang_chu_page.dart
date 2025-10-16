@@ -296,7 +296,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
                 Text(
-                  '  KHOA CÔNG NGHỆ THÔNG TIN',
+                  'THUY LOI UNIVERSITY',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Colors.white,

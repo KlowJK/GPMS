@@ -11,24 +11,17 @@ class DeCuong extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use the DoAnViewModel provided by ancestor (e.g., TrangChuSinhVien)
     return Consumer<DoAnViewModel>(
       builder: (context, viewModel, child) {
         Widget bodyContent;
-
-        // Logic to determine what to show in the body
         if (viewModel.isLoading && viewModel.deCuongLogs.isEmpty) {
-          // 1. Show loading indicator only on the first load
           bodyContent = const Center(child: CircularProgressIndicator());
         } else if (viewModel.deCuongLogs.isEmpty) {
-          // 2. If the list is empty for any reason, show the friendly empty state
           bodyContent = _buildEmptyState(context);
         } else {
-          // 3. If there is data, show the scrollable list
           bodyContent = _buildLogList(context, viewModel.deCuongLogs);
         }
 
-        // Use a Stack to layer the FAB on top of the body content
         return Stack(
           children: [
             bodyContent,
@@ -47,7 +40,6 @@ class DeCuong extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    // A centered widget that fills the available space
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -59,7 +51,9 @@ class DeCuong extends StatelessWidget {
             Text(
               'Bạn chưa có đề cương trong hệ thống.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
             ),
           ],
         ),
@@ -68,9 +62,10 @@ class DeCuong extends StatelessWidget {
   }
 
   Widget _buildLogList(BuildContext context, List<DeCuongLog> logs) {
-    // A scrollable view for the list of logs
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 80), // Padding to avoid FAB overlap
+      padding: const EdgeInsets.only(
+        bottom: 80,
+      ), // Padding to avoid FAB overlap
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -78,7 +73,9 @@ class DeCuong extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(gap, gap, gap, gap / 2),
             child: Text(
               'Danh sách đề cương',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           ListView.builder(
@@ -97,7 +94,9 @@ class DeCuong extends StatelessWidget {
 
   Widget _buildLogItem(BuildContext context, DeCuongLog log) {
     final textTheme = Theme.of(context).textTheme;
-    final fileName = log.deCuongUrl != null ? Uri.parse(log.deCuongUrl!).pathSegments.last : 'N/A';
+    final fileName = log.deCuongUrl != null
+        ? Uri.parse(log.deCuongUrl!).pathSegments.last
+        : 'N/A';
     String formattedDate = 'N/A';
     if (log.createdAt != null) {
       try {
@@ -159,15 +158,27 @@ class DeCuong extends StatelessWidget {
               ),
             ),
             _buildInfoRow(context, 'Ngày nộp: ', text: formattedDate),
-            _buildInfoRow(context, 'Số lần nộp: ', text: log.phienBan?.toString() ?? 'N/A'),
+            _buildInfoRow(
+              context,
+              'Số lần nộp: ',
+              text: log.phienBan?.toString() ?? 'N/A',
+            ),
             ...log.nhanXets
                 .asMap()
                 .entries
-                .where((entry) => entry.value.noiDung != null && entry.value.noiDung!.isNotEmpty)
+                .where(
+                  (entry) =>
+                      entry.value.noiDung != null &&
+                      entry.value.noiDung!.isNotEmpty,
+                )
                 .map((entry) {
-              return _buildInfoRow(context, 'Lý do từ chối lần ${entry.key + 1}: ',
-                  text: entry.value.noiDung);
-            }).toList(),
+                  return _buildInfoRow(
+                    context,
+                    'Lý do từ chối lần ${entry.key + 1}: ',
+                    text: entry.value.noiDung,
+                  );
+                })
+                .toList(),
             _buildInfoRow(
               context,
               'Trạng thái: ',
@@ -179,15 +190,25 @@ class DeCuong extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, String label, {String? text, Widget? child}) {
+  Widget _buildInfoRow(
+    BuildContext context,
+    String label, {
+    String? text,
+    Widget? child,
+  }) {
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-          Expanded(child: child ?? Text(text ?? 'N/A', style: textTheme.bodyMedium)),
+          Text(
+            label,
+            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: child ?? Text(text ?? 'N/A', style: textTheme.bodyMedium),
+          ),
         ],
       ),
     );
@@ -214,6 +235,9 @@ class DeCuong extends StatelessWidget {
         color = Colors.grey.shade700;
         text = status ?? 'N/A';
     }
-    return Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold));
+    return Text(
+      text,
+      style: TextStyle(color: color, fontWeight: FontWeight.bold),
+    );
   }
 }
