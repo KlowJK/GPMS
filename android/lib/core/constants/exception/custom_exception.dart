@@ -1,9 +1,9 @@
 import 'error_code.dart'; // Import the ErrorCode enum
 
-class AuthException implements Exception {
+class CustomException implements Exception {
   final ErrorCode errorCode;
 
-  AuthException(this.errorCode);
+  CustomException(this.errorCode);
 
   @override
   String toString() => errorCode.message;

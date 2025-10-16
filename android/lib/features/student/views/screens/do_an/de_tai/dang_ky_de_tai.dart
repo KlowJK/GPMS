@@ -131,7 +131,9 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
       return;
     }
     if (kDebugMode) {
-      print('➡️ DangKyDeTai: gvhdId=${_selectedAdvisor!.id}, tenDeTai="${_titleCtrl.text.trim()}", fileName=${_selectedFileName}, filePath=${_selectedFilePath ?? 'null'}, bytes=${_selectedFileBytes?.lengthInBytes ?? 0}');
+      print(
+        '➡️ DangKyDeTai: gvhdId=${_selectedAdvisor!.id}, tenDeTai="${_titleCtrl.text.trim()}", fileName=${_selectedFileName}, filePath=${_selectedFilePath ?? 'null'}, bytes=${_selectedFileBytes?.lengthInBytes ?? 0}',
+      );
     }
     final ok = await vm.dangKyDeTai(
       gvhdId: _selectedAdvisor!.id,
@@ -222,34 +224,6 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '   ',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: const ShapeDecoration(
-                                  color: Color(0xFFDBEAFE),
-                                  shape: StadiumBorder(),
-                                ),
-                                child: Text(
-                                  'Đợt 10/2025',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: const Color(0xFF1E3A8A),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                           SizedBox(height: gap),
 
                           // ========== GVHD ==========

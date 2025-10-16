@@ -3,7 +3,7 @@ import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_sinh_vie
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/extensions/auth_exception.dart';
+import '../../../../core/constants/exception/custom_exception.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
 
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         Navigator.pushReplacementNamed(context, '/');
       }
-    } on AuthException catch (e) {
+    } on CustomException catch (e) {
       if (!mounted) return;
       if (kDebugMode) {
         print(

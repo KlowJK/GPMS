@@ -34,29 +34,37 @@ class UserEntity {
       return int.tryParse(v.toString());
     }
 
-    final user = _asMap(json['user']); // có thể rỗng
+    // Cho phép truyền vào: data (có result) HOẶC result trực tiếp
+    final root = _asMap(json['result'] ?? json);
+    final user = _asMap(root['user']);
 
-    final token = (json['token'] ?? json['accessToken'] ?? '').toString();
-    final email = (user['email'] ?? json['email'] ?? '').toString();
-    final role = (user['role'] ?? json['role'] ?? '').toString();
-    final id = _toInt(user['id'] ?? json['id']) ?? 0;
-    final typeToken = (json['typeToken'] ?? json['tokenType'] ?? '').toString();
-    final expiresAt = (json['expiresAt'] ?? json['expires_in'] ?? '')
+    // Lấy các trường từ root trước, nếu thiếu thì fallback sang user (hoặc ngược lại khi hợp lý)
+    final token = (root['accessToken'] ?? root['token'] ?? '').toString();
+    final typeToken = (root['tokenType'] ?? root['typeToken'] ?? '').toString();
+    final expiresAt = (root['expiresAt'] ?? root['expires_in'] ?? '')
         .toString();
-    final duongDanAvt = (user['duongDanAvt'] ?? json['duongDanAvt'])
+
+    final id = _toInt(user['id'] ?? root['id']) ?? 0;
+    final fullName = (user['fullName'] ?? root['fullName'])?.toString();
+    final email = (user['email'] ?? root['email'] ?? '').toString();
+    final role = (user['role'] ?? root['role'] ?? '').toString();
+    final duongDanAvt = (user['duongDanAvt'] ?? root['duongDanAvt'])
         ?.toString();
+
+    final teacherId = _toInt(user['teacherId'] ?? root['teacherId']);
+    final studentId = _toInt(user['studentId'] ?? root['studentId']);
 
     return UserEntity(
       token: token,
       typeToken: typeToken,
       expiresAt: expiresAt,
       id: id,
-      fullName: (user['fullName'] ?? json['fullName'])?.toString(),
+      fullName: fullName,
       email: email,
       role: role,
       duongDanAvt: duongDanAvt,
-      teacherId: _toInt(user['teacherId'] ?? json['teacherId']),
-      studentId: _toInt(user['studentId'] ?? json['studentId']),
+      teacherId: teacherId,
+      studentId: studentId,
     );
   }
 }
