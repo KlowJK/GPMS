@@ -8,12 +8,6 @@ import '../../../models/nhat_ki_tuan.dart';
 import '../../../models/danh_sach_nhat_ky.dart';
 import 'nop_nhat_ky.dart';
 
-/* ===================== MODEL ===================== */
-
-// DiaryEntry and SubmitDiaryPage moved to nop_nhat_ky.dart
-
-/* ================== NHẬT KÝ PAGE (MVVM) ================== */
-
 class NhatKy extends StatefulWidget {
   const NhatKy({super.key});
 
@@ -25,10 +19,10 @@ class _NhatKyState extends State<NhatKy> {
   final List<DiaryEntry> _items = [];
 
   // New helper: open submit page with optional defaultWeek
-  Future<void> _openSubmitPage({int? defaultWeek, int? deTaiId, int? idNhatKy}) async {
+  Future<void> _openSubmitPage({int? defaultWeek, int? deTaiId, int? idNhatKy, DateTime? ngayBatDau, DateTime? ngayKetThuc}) async {
     final week = defaultWeek ?? (_items.isEmpty ? 1 : (_items.first.week + 1));
     final result = await Navigator.of(context).push<DiaryEntry?>(
-      MaterialPageRoute(builder: (_) => SubmitDiaryPage(defaultWeek: week, deTaiId: deTaiId, idNhatKy: idNhatKy)),
+      MaterialPageRoute(builder: (_) => SubmitDiaryPage(defaultWeek: week, deTaiId: deTaiId, idNhatKy: idNhatKy, ngayBatDau: ngayBatDau, ngayKetThuc: ngayKetThuc)),
     );
     if (!mounted) return;
     // If this page was opened for an existing server diary (deTaiId or idNhatKy provided),
@@ -77,13 +71,6 @@ class _NhatKyState extends State<NhatKy> {
             backgroundColor: const Color(0xFF2563EB),
             title: const Text('Nhật ký', style: TextStyle(color: Colors.white)),
             centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: vm.loading ? null : () => vm.fetchTuans(includeAll: false),
-                tooltip: 'Làm mới tuần',
-              ),
-            ],
           ),
           body: SafeArea(
             child: Center(
@@ -147,7 +134,6 @@ class _NhatKyState extends State<NhatKy> {
                           itemBuilder: (_, i) => _DiaryCard(item: _items[i], onSubmit: () => _openSubmitPage(defaultWeek: _items[i].week)),
                         ),
 
-                    const SizedBox(height: 12),
 
                     // Hiển thị danh sách nhật ký từ backend
                     Card(
@@ -172,7 +158,7 @@ class _NhatKyState extends State<NhatKy> {
                                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                                 itemBuilder: (_, i) => _DiaryItemCard(
                                   item: vm.diaries[i],
-                                  onSubmit: () => _openSubmitPage(defaultWeek: vm.diaries[i].tuan, deTaiId: vm.diaries[i].idDeTai, idNhatKy: vm.diaries[i].id),
+                                  onSubmit: () => _openSubmitPage(defaultWeek: vm.diaries[i].tuan, deTaiId: vm.diaries[i].idDeTai, idNhatKy: vm.diaries[i].id, ngayBatDau: vm.diaries[i].ngayBatDau, ngayKetThuc: vm.diaries[i].ngayKetThuc),
                                 ),
                               ),
                           ],
@@ -228,15 +214,17 @@ class _DiaryCard extends StatelessWidget {
           if (item.resultFileName != null) _meta('Kết quả đạt được', 'File: ${item.resultFileName}'),
           if (item.teacherNote != null) _meta('Nhận xét GVHD', item.teacherNote!),
           const SizedBox(height: 8),
-          // Nút nộp nhật ký cho từng mục
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: onSubmit,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Nộp nhật ký'),
+          // Nút nộp nhật ký cho từng mục (ẩn khi đã được duyệt/đã nộp)
+          if (item.status != DiaryStatus.approved)
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+                onPressed: onSubmit,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Nộp nhật ký'),
+              ),
             ),
-          ),
         ]),
       ),
     );
@@ -309,6 +297,15 @@ class _DiaryItemCard extends StatelessWidget {
     );
   }
 
+  // Determine if the server-provided status string indicates the diary is already submitted
+  bool _isSubmittedStatus() {
+    final s = (item.trangThaiNhatKy ?? '').toLowerCase();
+    if (s.contains('chưa') || s.contains('chua')) return false;
+    // treat any form of 'đã', 'da', or 'nộp' as submitted
+    if (s.contains('đã') || s.contains('da') || s.contains('nộp') || s.contains('nop')) return true;
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -331,10 +328,17 @@ class _DiaryItemCard extends StatelessWidget {
           if (item.duongDanFile != null) _fileRow(context, item.duongDanFile!),
           if (item.nhanXet != null) _meta('Nhận xét', item.nhanXet!),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(onPressed: onSubmit, icon: const Icon(Icons.upload_file), label: const Text('Nộp nhật ký')),
-          ),
+          // Hide submit button when backend status indicates already submitted
+          if (!_isSubmittedStatus())
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+                onPressed: onSubmit,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Nộp nhật ký'),
+              ),
+            ),
         ]),
       ),
     );
