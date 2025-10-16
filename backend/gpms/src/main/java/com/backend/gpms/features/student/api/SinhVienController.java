@@ -102,6 +102,12 @@ public class SinhVienController {
         return ApiResponse.success(sinhVienService.getSinhVienInfo(maSV));
     }
 
+    @Operation(summary = "Lấy thông tin chi tiết sinh viên theo id sinh vien")
+    @GetMapping("/by-id/{idSV}")
+    public ApiResponse<SinhVienInfoResponse> getSinhVienInfoById(@PathVariable Long idSV) {
+        return ApiResponse.success(sinhVienService.getSinhVienInfoById(idSV));
+    }
+
     @Operation(summary = "Lấy danh sách sinh viên chưa có đề tài")
     @GetMapping("without-de-tai")
     public ApiResponse<List<GetSinhVienWithoutDeTaiResponse>> getSinhVienWithoutDeTai() {

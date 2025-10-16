@@ -20,6 +20,7 @@ class DoAnViewModel extends ChangeNotifier {
 
   DoAnViewModel() {
     fetchDeTaiChiTiet();
+    fetchAdvisors();
     fetchDeCuongLogs();
   }
 
@@ -60,6 +61,7 @@ class DoAnViewModel extends ChangeNotifier {
       advisors = await DoAnService.fetchAdvisors();
     } catch (e) {
       advisorError = e.toString();
+      advisors = [];
     } finally {
       isLoadingAdvisors = false;
       notifyListeners();
@@ -100,16 +102,12 @@ class DoAnViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> nopDeCuong({
-    required String fileUrl,
-  }) async {
+  Future<bool> nopDeCuong({required String fileUrl}) async {
     isLoading = true;
     error = null;
     notifyListeners();
     try {
-      final result = await DoAnService.nopDeCuong(
-        fileUrl: fileUrl,
-      );
+      final result = await DoAnService.nopDeCuong(fileUrl: fileUrl);
       if (result != null) {
         deCuong = result;
         // Sau khi nộp thành công, tải lại danh sách logs

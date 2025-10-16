@@ -45,7 +45,7 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
 
     Optional<DeCuong> findFirstByDeTai_SinhVien_User_EmailIgnoreCaseOrderByCreatedAtDesc(String email);
 
-    List<DeCuong> findByDeTai_SinhVien_User_EmailIgnoreCase(String email);
+    List<DeCuong> findByDeTai_SinhVien_User_EmailIgnoreCaseOrderByPhienBanDesc(String email);
 
     Page<DeCuong> findByTruongBoMon_User_Email(String email, Pageable pageable);
     Page<DeCuong> findByGiangVienPhanBien_User_Email(String email, Pageable pageable);

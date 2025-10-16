@@ -124,19 +124,15 @@ class AuthService {
           if (kDebugMode) print('⚠️ Error parsing error response: $e');
           errorCode = ErrorCode.internalServerError;
         }
-        throw CustomException(
-          errorCode,
-        ); // <-- quan trọng: đừng wrap lại bên dưới
+        throw CustomException(errorCode);
       }
     } on TimeoutException {
       throw (ErrorCode.internalServerError);
     } on SocketException catch (_) {
-      // optional: mạng rớt, DNS...
       throw CustomException(ErrorCode.internalServerError);
     } on http.ClientException catch (_) {
       throw CustomException(ErrorCode.internalServerError);
     } on CustomException {
-      // 🔁 giữ nguyên lỗi business do mình đã map đúng từ server
       rethrow;
     } catch (e, st) {
       if (kDebugMode) print('❌ Unexpected login error: $e\n$st');

@@ -53,14 +53,19 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
   String _weekToRange(int w) {
     final start = DateTime(2025, 9, 15).add(Duration(days: (w - 1) * 7));
     final end = start.add(const Duration(days: 6));
-    String fmt(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    String fmt(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
     return '${fmt(start)} – ${fmt(end)}';
   }
 
   Future<void> _pickFile() async {
     // Use file_picker to pick a single PDF/DOCX
     try {
-      final res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'docx'], withData: false);
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'docx'],
+        withData: false,
+      );
       if (res == null) return; // user canceled
       final path = res.files.single.path;
       if (path == null) return;
@@ -69,7 +74,10 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
         _fileCtrl.text = path.split(Platform.pathSeparator).last;
       });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi chọn tệp: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi khi chọn tệp: $e')));
     }
   }
 
@@ -100,13 +108,22 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
     final deTaiId = widget.deTaiId!;
 
     // Use the provided ViewModel instance passed from the button's Consumer
-    final success = await vm.submit(deTaiId: deTaiId, idNhatKy: idNhatKy, noiDung: _contentCtrl.text.trim(), filePath: _pickedFilePath);
+    final success = await vm.submit(
+      deTaiId: deTaiId,
+      idNhatKy: idNhatKy,
+      noiDung: _contentCtrl.text.trim(),
+      filePath: _pickedFilePath,
+    );
 
     if (!mounted) return;
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nộp nhật ký thành công')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nộp nhật ký thành công')));
       // Map server response into local DiaryEntry when possible
-      final fileName = _pickedFilePath != null ? _pickedFilePath!.split(Platform.pathSeparator).last : (_fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim());
+      final fileName = _pickedFilePath != null
+          ? _pickedFilePath!.split(Platform.pathSeparator).last
+          : (_fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim());
       final teacherNote = vm.result?.nhanXet;
       // If this page was opened for an existing server diary (deTaiId or idNhatKy provided),
       // do not return a local DiaryEntry — let the parent refresh server data instead.
@@ -115,39 +132,72 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
       } else {
         Navigator.pop(
           context,
-          DiaryEntry(week: _week, timeRange: _timeRange, content: _contentCtrl.text.trim(), resultFileName: fileName, status: DiaryStatus.approved, teacherNote: teacherNote),
+          DiaryEntry(
+            week: _week,
+            timeRange: _timeRange,
+            content: _contentCtrl.text.trim(),
+            resultFileName: fileName,
+            status: DiaryStatus.approved,
+            teacherNote: teacherNote,
+          ),
         );
       }
     } else {
       final err = vm.error ?? 'Không thể nộp nhật ký';
       // Show detailed dialog with raw error and copy button
-      await showDialog<void>(context: context, builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Lỗi khi nộp nhật ký'),
-          content: SingleChildScrollView(child: Text(vm.rawError ?? err)),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Đóng')),
-            TextButton(onPressed: () async {
-              final textToCopy = vm.rawError ?? err;
-              await Clipboard.setData(ClipboardData(text: textToCopy));
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép lỗi vào clipboard')));
-            }, child: const Text('Sao chép')),
-          ],
-        );
-      });
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            title: const Text('Lỗi khi nộp nhật ký'),
+            content: SingleChildScrollView(child: Text(vm.rawError ?? err)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Đóng'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final textToCopy = vm.rawError ?? err;
+                  await Clipboard.setData(ClipboardData(text: textToCopy));
+                  if (mounted)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã sao chép lỗi vào clipboard'),
+                      ),
+                    );
+                },
+                child: const Text('Sao chép'),
+              ),
+            ],
+          );
+        },
+      );
       // also show a small snackbar
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final double maxW = w >= 1200 ? 820 : w >= 900 ? 700 : w >= 600 ? 540 : w;
+    final double maxW = w >= 1200
+        ? 820
+        : w >= 900
+        ? 700
+        : w >= 600
+        ? 540
+        : w;
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
-    final border = OutlineInputBorder(borderSide: BorderSide(color: Theme.of(context).dividerColor), borderRadius: BorderRadius.circular(10));
+    final border = OutlineInputBorder(
+      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+      borderRadius: BorderRadius.circular(10),
+    );
 
     return ChangeNotifierProvider<SubmitDiaryViewModel>(
       create: (_) => SubmitDiaryViewModel(),
@@ -166,7 +216,9 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                 children: [
                   Card(
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Padding(
                       padding: EdgeInsets.all(gap),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -226,7 +278,27 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
 
                   const SizedBox(height: 12),
 
-                  Card(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: EdgeInsets.all(gap), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: const [Icon(Icons.info_outline), SizedBox(width: 12), Expanded(child: Text('Điền nội dung công việc theo tuần, đính kèm file kết quả (nếu có). Sau khi nộp, nhật ký sẽ hiển thị ở trang danh sách.'))]))),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(gap),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Icon(Icons.info_outline),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Điền nội dung công việc theo tuần, đính kèm file kết quả (nếu có). Sau khi nộp, nhật ký sẽ hiển thị ở trang danh sách.',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
