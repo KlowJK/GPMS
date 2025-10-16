@@ -11,6 +11,6 @@ import java.util.List;
 public interface NhanXetDeCuongRepository extends JpaRepository<NhanXetDeCuong,Long> {
     List<NhanXetDeCuong> findByDeCuong_IdOrderByCreatedAtAsc(Long deCuongId);
 
-    List<NhanXetDeCuong> findByDeCuong_IdInOrderByCreatedAtAsc(Collection<Long> deCuongIds);
+    List<NhanXetDeCuong> findByDeCuong_IdInOrderByCreatedAtDesc(Collection<Long> deCuongIds);
 }
 

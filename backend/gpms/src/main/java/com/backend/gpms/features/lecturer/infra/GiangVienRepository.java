@@ -1,6 +1,7 @@
 package com.backend.gpms.features.lecturer.infra;
 
 import com.backend.gpms.features.lecturer.domain.GiangVien;
+import com.backend.gpms.features.lecturer.dto.response.GiangVienLiteProjection;
 import com.backend.gpms.features.lecturer.dto.response.GiangVienLiteResponse;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 
@@ -55,5 +56,36 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
             "AND d.sinhVien.duDieuKien = true")
     int countDeTaiByGiangVienAndSinhVienActive(@Param("maGV") String maGV);
 
+    @Query("""
+    select
+        gv.id as id,
+        concat(
+            coalesce(concat(gv.hocHam, ' '), ''),
+            coalesce(concat(gv.hocVi, ' '), ''),
+            gv.hoTen
+        ) as hoTen,
+        bm.id as boMonId,
+        coalesce(gv.quotaInstruct, 0) as quotaInstruct,
+        coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0) as currentInstruct,
+        (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) as remaining
+    from GiangVien gv
+        join gv.boMon bm
+        join bm.khoa k
+        left join DeTai d on d.giangVienHuongDan = gv
+    where k.id = :khoaId
+    group by gv.id, gv.hocHam, gv.hocVi, gv.hoTen, bm.id, gv.quotaInstruct
+    having (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) > 0
+    order by
+        (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) desc,
+        concat(
+            coalesce(concat(gv.hocHam, ' '), ''),
+            coalesce(concat(gv.hocVi, ' '), ''),
+            gv.hoTen
+        ) asc
+    """)
+    List<GiangVienLiteProjection> findAdvisorsWithRemainingByKhoaId(
+            @Param("khoaId") Long khoaId,
+            @Param("approved") TrangThaiDeTai approved
+    );
 
 }

@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class DeTaiDetail {
   final int id;
   final String tenDeTai;
@@ -8,8 +6,8 @@ class DeTaiDetail {
   final int gvhdId;
   final String gvhdTen;
   final int sinhVienId;
-  final String tongQuanDeTaiUrl;
-  final String tongQuanFilename;
+  final String? tongQuanDeTaiUrl;
+  final String? tongQuanFilename;
 
   DeTaiDetail({
     required this.id,
@@ -19,8 +17,8 @@ class DeTaiDetail {
     required this.gvhdId,
     required this.gvhdTen,
     required this.sinhVienId,
-    required this.tongQuanDeTaiUrl,
-    required this.tongQuanFilename,
+    this.tongQuanDeTaiUrl,
+    this.tongQuanFilename,
   });
 
   factory DeTaiDetail.fromJson(Map<String, dynamic> json) {

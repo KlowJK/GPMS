@@ -63,7 +63,7 @@ class NewsDetailPage extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => _launchURL(notification.duongDanFile!),
                     child: Text(
-                      'Tải tài liệu', // Tiêu đề thay cho đường link
+                      'Xem tài liệu đính kèm',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.blue,
                         decoration: TextDecoration.underline,

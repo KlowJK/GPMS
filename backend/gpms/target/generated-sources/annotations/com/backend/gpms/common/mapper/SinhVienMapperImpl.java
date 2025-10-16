@@ -15,12 +15,13 @@ import com.backend.gpms.features.student.dto.response.SinhVienInfoResponse;
 import com.backend.gpms.features.student.dto.response.SinhVienResponse;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
+import java.time.format.DateTimeFormatter;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-10-15T19:47:24+0700",
+    date = "2025-10-17T02:26:36+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.4 (Oracle Corporation)"
 )
 @Component
@@ -171,8 +172,13 @@ public class SinhVienMapperImpl implements SinhVienMapper {
         sinhVienInfoResponse.tenKhoa( svLopNganhKhoaTenKhoa( sv ) );
         sinhVienInfoResponse.tenNganh( svLopNganhTenNganh( sv ) );
         sinhVienInfoResponse.cvUrl( sv.getDuongDanCv() );
+        sinhVienInfoResponse.duongDanAvt( svUserDuongDanAvt( sv ) );
         sinhVienInfoResponse.hoTen( sv.getHoTen() );
         sinhVienInfoResponse.soDienThoai( sv.getSoDienThoai() );
+        sinhVienInfoResponse.diaChi( sv.getDiaChi() );
+        if ( sv.getNgaySinh() != null ) {
+            sinhVienInfoResponse.ngaySinh( DateTimeFormatter.ISO_LOCAL_DATE.format( sv.getNgaySinh() ) );
+        }
 
         return sinhVienInfoResponse.build();
     }
@@ -287,5 +293,13 @@ public class SinhVienMapperImpl implements SinhVienMapper {
             return null;
         }
         return nganh.getTenNganh();
+    }
+
+    private String svUserDuongDanAvt(SinhVien sinhVien) {
+        User user = sinhVien.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        return user.getDuongDanAvt();
     }
 }
