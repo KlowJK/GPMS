@@ -22,12 +22,27 @@ class DoAn extends StatefulWidget {
 class DoAnState extends State<DoAn> {
   DoAnTab _tab = DoAnTab.detai;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vm = context.read<DoAnViewModel>();
+      if (!vm.isLoadingAdvisors && vm.advisors.isEmpty) {
+        vm.fetchAdvisors();
+      }
+    });
+  }
+
   Future<void> _goRegister() async {
-    final vm = Provider.of<DoAnViewModel>(context, listen: false);
-    if (!mounted) return;
+    final vm = context.read<DoAnViewModel>();
+
+    if (vm.advisors.isEmpty && !vm.isLoadingAdvisors) {
+      // Thử nạp ngay
+      await vm.fetchAdvisors();
+    }
+
     if (vm.advisors.isNotEmpty) {
-      // Có danh sách -> điều hướng
-      await Navigator.push<RegisterResult>(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider.value(
@@ -36,21 +51,14 @@ class DoAnState extends State<DoAn> {
           ),
         ),
       );
-    } else {
-      // Không có advisors -> hiển thị lỗi rõ ràng cho user
-      final String message =
-          vm.advisorError != null && vm.advisorError!.isNotEmpty
-          ? vm.advisorError!
-          : 'Không có giảng viên hướng dẫn hoặc không thể tải dữ liệu. Vui lòng thử lại.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-      if (kDebugMode) {
-        print(
-          'Cannot navigate to DangKyDeTai: advisors empty. isLoadingAdvisors=${vm.isLoadingAdvisors}, advisorError=${vm.advisorError}',
-        );
-      }
+      return;
     }
+
+    // Thông báo lỗi/không có dữ liệu
+    final msg = vm.advisorError?.isNotEmpty == true
+        ? vm.advisorError!
+        : 'Không có giảng viên hướng dẫn hoặc không thể tải dữ liệu. Vui lòng thử lại.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   void _goPostpone() {
@@ -250,7 +258,7 @@ class _ProjectInfoCard extends StatelessWidget {
     required this.title,
     required this.advisor,
     this.overviewFile, // <-- String?
-    required this.fileUrl,
+    this.fileUrl,
     required this.status,
     this.nhanXet,
   });
@@ -258,13 +266,13 @@ class _ProjectInfoCard extends StatelessWidget {
   final String title;
   final String advisor;
   final String? overviewFile; // <-- nullable
-  final String fileUrl;
+  final String? fileUrl;
   final String status;
   final String? nhanXet;
 
-  Future<void> _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
+  Future<void> _launchURL(String? url) async {
+    if (await canLaunch(url ?? '')) {
+      await launch(url ?? '');
     } else {
       throw 'Không thể mở liên kết $url';
     }
@@ -282,7 +290,7 @@ class _ProjectInfoCard extends StatelessWidget {
             _InfoRow(label: 'Tên đề tài:', value: title),
             _InfoRow(label: 'GVHD:', value: advisor),
 
-            if (fileUrl != null && fileUrl!.isNotEmpty)
+            if (fileUrl?.isNotEmpty == true)
               _InfoRow(
                 label: 'Tổng quan:',
                 valueWidget: Row(
@@ -381,7 +389,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 144, horizontal: 36),
+      padding: const EdgeInsets.symmetric(vertical: 130, horizontal: 36),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),

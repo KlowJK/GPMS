@@ -509,10 +509,15 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
 
                           const SizedBox(height: 16),
 
+                          // dart
                           Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(minWidth: 180),
                               child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                ),
                                 onPressed: _sending ? null : _confirmAndSubmit,
                                 child: _sending
                                     ? const SizedBox(
@@ -520,6 +525,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
                                         height: 16,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
+                                          color: Colors.white,
                                         ),
                                       )
                                     : const Text('Gửi đăng ký'),

@@ -9,6 +9,8 @@ import '../models/de_cuong.dart';
 import '../models/de_cuong_log.dart';
 import '../models/de_tai_detail.dart';
 import '../models/giang_vien_huong_dan.dart';
+import '../../../core/constants/exception/custom_exception.dart';
+import '../../../core/constants/exception/error_code.dart';
 
 class DoAnService {
   static String get _baseUrl {
@@ -74,7 +76,25 @@ class DoAnService {
       }
       return [];
     } else {
-      throw Exception('Không thể tải lịch sử nộp đề cương.');
+      // Map lỗi từ server -> ErrorCode
+      ErrorCode errorCode;
+      try {
+        final errorData = jsonDecode(response.body);
+        if (errorData is! Map<String, dynamic>) {
+          if (kDebugMode) print('⚠️ Invalid JSON response: $errorData');
+          throw Exception('Invalid response format');
+        }
+        errorCode = ErrorCode.fromResponse(errorData);
+        if (kDebugMode) {
+          print(
+            'Parsed errorCode: ${errorCode.name}, field: ${errorCode.field}',
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) print('⚠️ Error parsing error response: $e');
+        errorCode = ErrorCode.internalServerError;
+      }
+      throw CustomException(errorCode);
     }
   }
 
