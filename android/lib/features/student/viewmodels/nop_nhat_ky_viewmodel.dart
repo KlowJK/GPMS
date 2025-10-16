@@ -1,4 +1,3 @@
-// filepath: c:\Users\ASUS\AndroidStudioProjects\GPMS\android\lib\features\student\viewmodels\submit_diary_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import '../models/danh_sach_nhat_ky.dart';
 import '../services/nhat_ky_service.dart';
