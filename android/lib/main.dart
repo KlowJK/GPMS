@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/viewmodels/auth_viewmodel.dart';
-import 'shared/theme/theme.dart';
 import 'shared/models/thong_bao_va_tin_tuc.dart';
 import 'core/services/main_service.dart';
 import 'package:intl/intl.dart';
