@@ -70,3 +70,9 @@ export const login = async ({ username, password }: LoginReq): Promise<LoginNorm
 }
 
 export const me = () => axios.get('/api/auth/me').then(r => unwrap(r))
+
+export const logout = async () => {
+	// call server logout to invalidate token/session if backend supports it
+	const resp = await axios.post('/api/auth/logout', {}, { headers: { Accept: '*/*' } })
+	return unwrap(resp)
+}

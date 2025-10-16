@@ -37,6 +37,7 @@ export default function LoginPage() {
 
             const role = (result.user?.role ?? '').toString()
             if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') navigate('/lecturers', { replace: true })
+            else if (role === 'SINH_VIEN') navigate('/students', { replace: true })
             else navigate('/topics', { replace: true })
         } catch (err) {
             const axiosErr = err as AxiosError
