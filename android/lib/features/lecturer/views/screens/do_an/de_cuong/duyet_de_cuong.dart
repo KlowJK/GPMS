@@ -152,15 +152,33 @@ class _DeCuongCard extends StatelessWidget {
                 const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    item.sinhVienTen ?? 'Sinh viên',
-                    style: Theme.of(context).textTheme.titleMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      // TÊN (ưu tiên width, có ellipsis)
+                      Expanded(
+                        child: Text(
+                          item.sinhVienTen ?? 'Sinh viên',
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if ((item.maSV ?? '').isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        // MÃ SV (xám nhạt, cùng dòng với tên)
+                        Text(
+                          item.maSV!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF6B7280),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if ((item.maSV ?? '').isNotEmpty)
-                  Text(item.maSV!, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
             const SizedBox(height: 10),
@@ -227,6 +245,7 @@ class _DeCuongCard extends StatelessWidget {
             if (pending) ...[
               const SizedBox(height: 12),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SizedBox(
                     height: 28,

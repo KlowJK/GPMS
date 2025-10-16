@@ -66,18 +66,25 @@ class DeTaiService {
     return list.map((e) => DeTaiItem.fromJson(e)).toList();
   }
 
-  /// DUYỆT đề tài (theo yêu cầu dùng GET)
-  /// GET /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/approve?nhanXet=...
+  /// DUYỆT đề tài (PUT)
+  /// PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/approve
   static Future<DeTaiItem> approve({
     required int deTaiId,
     required String nhanXet,
   }) async {
     final uri = Uri.parse(
-        '$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/approve')
-        .replace(queryParameters: {'nhanXet': nhanXet});
-    final res = await http.get(uri, headers: await _headers());
+      '$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/approve',
+    );
+    final res = await http.put(
+      uri,
+      headers: await _headers(),
+      body: jsonEncode({'nhanXet': nhanXet}),
+    );
+    if (res.statusCode == 401) {
+      throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
+    }
     if (res.statusCode != 200) {
-      throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
+      throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
     final body = jsonDecode(res.body);
     final map = _extractList(body).isNotEmpty
@@ -86,18 +93,25 @@ class DeTaiService {
     return DeTaiItem.fromJson(Map<String, dynamic>.from(map));
   }
 
-  /// TỪ CHỐI đề tài (GET)
-  /// GET /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/reject?nhanXet=...
+  /// TỪ CHỐI đề tài (PUT)
+  /// PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/reject
   static Future<DeTaiItem> reject({
     required int deTaiId,
     required String nhanXet,
   }) async {
     final uri = Uri.parse(
-        '$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/reject')
-        .replace(queryParameters: {'nhanXet': nhanXet});
-    final res = await http.get(uri, headers: await _headers());
+      '$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/reject',
+    );
+    final res = await http.put(
+      uri,
+      headers: await _headers(),
+      body: jsonEncode({'nhanXet': nhanXet}),
+    );
+    if (res.statusCode == 401) {
+      throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
+    }
     if (res.statusCode != 200) {
-      throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
+      throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
     final body = jsonDecode(res.body);
     final map = _extractList(body).isNotEmpty

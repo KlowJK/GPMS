@@ -116,8 +116,8 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
     try {
       final it = _logs[index];
       final updated = approve
-          ? await DeCuongService.approvePut(id: it.id, nhanXet: note.trim())
-          : await DeCuongService.rejectPut(id: it.id, nhanXet: note.trim());
+          ? await DeCuongService.approve(id: it.id, nhanXet: note.trim())
+          : await DeCuongService.reject(id: it.id, nhanXet: note.trim());
       setState(() => _logs[index] = updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
