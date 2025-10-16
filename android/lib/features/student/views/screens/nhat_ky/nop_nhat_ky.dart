@@ -7,28 +7,9 @@ import 'package:provider/provider.dart';
 import 'package:open_file/open_file.dart';
 
 import '../../../viewmodels/nop_nhat_ky_viewmodel.dart';
+import '../../../models/nop_nhat_ki.dart';
 
 /* Local diary model and submit page extracted from nhat_ky.dart */
-
-enum DiaryStatus { pending, approved, rejected }
-
-class DiaryEntry {
-  final int week;
-  final String timeRange;
-  final String content;
-  final String? resultFileName;
-  final DiaryStatus status;
-  final String? teacherNote;
-
-  const DiaryEntry({
-    required this.week,
-    required this.timeRange,
-    required this.content,
-    this.resultFileName,
-    this.status = DiaryStatus.pending,
-    this.teacherNote,
-  });
-}
 
 class SubmitDiaryPage extends StatefulWidget {
   const SubmitDiaryPage({super.key, required this.defaultWeek, this.deTaiId, this.idNhatKy, this.ngayBatDau, this.ngayKetThuc});
