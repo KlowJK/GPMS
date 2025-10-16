@@ -27,6 +27,7 @@ class TrangChuPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         elevation: 1,
         centerTitle: false,
@@ -41,7 +42,8 @@ class TrangChuPage extends StatelessWidget {
             const SizedBox(width: 12),
             Flexible(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+
                 children: [
                   Text(
                     'TRƯỜNG ĐẠI HỌC THỦY LỢI',
@@ -51,7 +53,7 @@ class TrangChuPage extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '  KHOA CÔNG NGHỆ THÔNG TIN',
+                    'THUY LOI UNIVERSITY',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,

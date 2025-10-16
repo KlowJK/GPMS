@@ -1,7 +1,9 @@
 import 'package:GPMS/features/lecturer/views/screens/trang_chu/trang_chu_giang_vien.dart';
 import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_sinh_vien.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/constants/exception/custom_exception.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
 
@@ -14,10 +16,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _emailFieldKey = GlobalKey<FormFieldState>();
+  final _passwordFieldKey = GlobalKey<FormFieldState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  String? _emailServerError;
+  String? _passwordServerError;
 
   @override
   void dispose() {
@@ -27,8 +33,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _onLogin() async {
+    // Reset server-side errors
+    setState(() {
+      _emailServerError = null;
+      _passwordServerError = null;
+    });
+
+    // Run client-side validation
     final ok = _formKey.currentState?.validate() ?? false;
-    if (!ok) return;
+    if (!ok) {
+      setState(() => _loading = false);
+      return;
+    }
 
     setState(() => _loading = true);
     try {
@@ -39,10 +55,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // Ví dụ: điều hướng theo vai trò
+      // Navigate based on role
       final vm = context.read<AuthViewModel>();
       final role = vm.user?.role ?? '';
-      if (role.contains('GIANG') || role.contains('TEACHER')) {
+      if (role.contains('GIANG') ||
+          role.contains('TEACHER') ||
+          role.contains('QUAN') ||
+          role.contains('TRO')) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TrangChuGiangVien()),
@@ -55,6 +74,25 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         Navigator.pushReplacementNamed(context, '/');
       }
+    } on CustomException catch (e) {
+      if (!mounted) return;
+      if (kDebugMode) {
+        print(
+          'Caught AuthException - code: ${e.errorCode.code}, field: ${e.errorCode.field}, message: ${e.errorCode.message}',
+        );
+      }
+      setState(() {
+        if (e.errorCode.field == 'email') {
+          _emailServerError = e.errorCode.message;
+        } else if (e.errorCode.field == 'password') {
+          _passwordServerError = e.errorCode.message;
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.errorCode.message)));
+        }
+      });
+      _formKey.currentState?.validate();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -69,8 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final w = MediaQuery.of(context).size.width;
-
-    // Bề rộng tối đa của card form
     final maxCardWidth = w >= 1000
         ? 520.0
         : w >= 600
@@ -88,11 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   constraints: BoxConstraints(maxWidth: maxCardWidth),
                   child: Column(
                     children: [
-                      // Header có nền xanh + logo
                       _HeaderHero(),
                       const SizedBox(height: 16),
-
-                      // Form Login trong Card
                       Card(
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -114,14 +147,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 20),
-
-                                // Tài khoản
+                                // Email field
                                 Text(
                                   'Tài khoản',
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
+                                  key: _emailFieldKey,
                                   controller: _emailCtrl,
                                   textInputAction: TextInputAction.next,
                                   keyboardType: TextInputType.emailAddress,
@@ -135,21 +168,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty)
-                                      return 'Vui lòng nhập tài khoản';
+                                    if (v == null || v.trim().isEmpty) {
+                                      return 'Vui lòng nhập email';
+                                    }
+                                    if (_emailServerError != null) {
+                                      return _emailServerError;
+                                    }
                                     return null;
                                   },
                                 ),
-
                                 const SizedBox(height: 16),
-
-                                // Mật khẩu
+                                // Password field
                                 Text(
                                   'Mật khẩu',
                                   style: Theme.of(context).textTheme.labelLarge,
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
+                                  key: _passwordFieldKey,
                                   controller: _passwordCtrl,
                                   obscureText: _obscure,
                                   decoration: InputDecoration(
@@ -169,33 +205,34 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   validator: (v) {
-                                    if (v == null || v.isEmpty)
+                                    if (v == null || v.isEmpty) {
                                       return 'Vui lòng nhập mật khẩu';
-                                    if (v.length < 2)
+                                    }
+                                    if (v.length < 3) {
                                       return 'Mật khẩu tối thiểu 6 ký tự';
+                                    }
+                                    if (_passwordServerError != null) {
+                                      return _passwordServerError;
+                                    }
                                     return null;
                                   },
                                   onFieldSubmitted: (_) => _onLogin(),
                                 ),
-
                                 const SizedBox(height: 12),
-
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
                                     onPressed: () {
-                                      // TODO: điều hướng trang quên mật khẩu
+                                      // TODO: Navigate to forgot password
                                     },
                                     child: const Text('Quên mật khẩu?'),
                                   ),
                                 ),
-
                                 const SizedBox(height: 8),
-
-                                // Nút đăng nhập full width
                                 FilledButton(
                                   onPressed: _loading ? null : _onLogin,
                                   style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2563EB),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 14,
                                     ),
@@ -216,19 +253,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                           style: TextStyle(fontSize: 16),
                                         ),
                                 ),
-
                                 const SizedBox(height: 12),
-
-                                const SizedBox(height: 8),
                               ],
                             ),
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Gợi ý hỗ trợ
                     ],
                   ),
                 ),
@@ -253,7 +284,7 @@ class _HeaderHero extends StatelessWidget {
       height: isWide ? 220 : 180,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [cs.primary, cs.primary.withOpacity(0.7)],
+          colors: [Color(0xFF2563EB), Color(0xFF2563EB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -304,7 +335,7 @@ class _HeaderHero extends StatelessWidget {
                             ),
                       ),
                       Text(
-                        'KHOA CÔNG NGHỆ THÔNG TIN',
+                        'THUY LOI UNIVERSITY',
                         textAlign: isWide ? TextAlign.left : TextAlign.center,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Colors.white.withOpacity(0.9),

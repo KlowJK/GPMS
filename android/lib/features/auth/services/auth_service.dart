@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/user_entity.dart';
+import '../../../core/constants/exception/custom_exception.dart';
+import '../../../core/constants/exception/error_code.dart';
+import 'dart:io';
 
 class AuthService {
   /// Base URL configuration
@@ -40,7 +43,6 @@ class AuthService {
     }
   }
 
-  /// Login and return UserEntity
   static Future<UserEntity> login(String email, String password) async {
     final uri = Uri.parse('$baseUrl/api/auth/login');
 
@@ -53,16 +55,15 @@ class AuthService {
     try {
       final response = await http
           .post(
-        uri,
-        headers: const {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'email': email, 'matKhau': password}),
-      )
+            uri,
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email, 'matKhau': password}),
+          )
           .timeout(const Duration(seconds: 15));
 
-      // Debug response
       if (kDebugMode) {
         print('📨 Response status: ${response.statusCode}');
         print('📦 Response body: ${response.body}');
@@ -73,88 +74,73 @@ class AuthService {
         final data = jsonDecode(response.body);
         final result = data['result'];
         if (result == null) {
-          throw Exception('Invalid response format: missing result field');
+          throw CustomException(ErrorCode.internalServerError);
         }
 
-        // Construct UserEntity from the response
-        final user = UserEntity(
-          token: result['accessToken'] ?? '',
-          typeToken: result['tokenType'] ?? '',
-          expiresAt: result['expiresAt']?.toString() ?? '',
-          id: result['user']['id'] ?? 0,
-          fullName: result['user']['fullName'],
-          email: result['user']['email'] ?? '',
-          role: result['user']['role'] ?? '',
-          duongDanAvt: result['user']['duongDanAvt'],
-          teacherId: result['user']['teacherId'],
-          studentId: result['user']['studentId'],
-        );
+        final user = UserEntity.fromJson(result);
 
         final prefs = await SharedPreferences.getInstance();
         await _clearAuthKeys(prefs);
-
-        // Save new data
         await prefs.setString('token', user.token);
         await prefs.setString('typeToken', user.typeToken);
         await prefs.setString('expiresAt', user.expiresAt);
         await prefs.setInt('id', user.id);
-        if (user.studentId != null) await prefs.setInt('studentId', user.studentId!);
+        if (user.studentId != null)
+          await prefs.setInt('studentId', user.studentId!);
         await prefs.setString('email', user.email);
         await prefs.setString('role', user.role);
-
-        if (user.duongDanAvt != null) {
+        if (user.duongDanAvt != null)
           await prefs.setString('duongDanAvt', user.duongDanAvt!);
-        }
-        if (user.teacherId != null) {
+        if (user.teacherId != null)
           await prefs.setInt('teacherId', user.teacherId!);
-        }
-        if (user.fullName != null) {
+        if (user.fullName != null)
           await prefs.setString('fullName', user.fullName!);
-        }
-        // Verify saved token
-
-        final savedToken = prefs.getString('token');
-        if (savedToken == null || savedToken.isEmpty) {
-          if (kDebugMode) print('❌ Token was not saved correctly after login!');
-          throw Exception('Lỗi lưu token sau khi đăng nhập.');
-        }
 
         if (kDebugMode) {
           print('✅ LOGIN SUCCESSFUL');
           print('🔑 Token received: ${user.token}');
-          print('💾 Token saved to SharedPreferences: ${prefs.getString('token')}');
+          print('🔑 Token length: ${user.token.length}');
+          print(
+            '💾 Token saved to SharedPreferences: ${prefs.getString('token')}',
+          );
         }
-
         return user;
       } else {
-        // Handle error
-        String errorMessage = 'Login failed (${response.statusCode})';
+        // Map lỗi từ server -> ErrorCode
+        ErrorCode errorCode;
         try {
           final errorData = jsonDecode(response.body);
-          if (errorData is Map<String, dynamic>) {
-            errorMessage = errorData['message']?.toString() ?? errorMessage;
-            if (errorData.containsKey('code')) {
-              errorMessage += ' (Code: ${errorData['code']})';
-            }
+          if (errorData is! Map<String, dynamic>) {
+            if (kDebugMode) print('⚠️ Invalid JSON response: $errorData');
+            throw Exception('Invalid response format');
+          }
+          errorCode = ErrorCode.fromResponse(errorData);
+          if (kDebugMode) {
+            print(
+              'Parsed errorCode: ${errorCode.name}, field: ${errorCode.field}',
+            );
           }
         } catch (e) {
-          if (kDebugMode) {
-            print('⚠️ Error parsing error response: $e');
-          }
+          if (kDebugMode) print('⚠️ Error parsing error response: $e');
+          errorCode = ErrorCode.internalServerError;
         }
-        throw Exception(errorMessage);
+        throw CustomException(
+          errorCode,
+        ); // <-- quan trọng: đừng wrap lại bên dưới
       }
     } on TimeoutException {
-      throw Exception(
-        'Connection timeout. Please check your network and try again.',
-      );
-    } on http.ClientException catch (e) {
-      throw Exception('Network error: ${e.message}');
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Unexpected login error: $e');
-      }
-      throw Exception('Login failed: ${e.toString()}');
+      throw (ErrorCode.internalServerError);
+    } on SocketException catch (_) {
+      // optional: mạng rớt, DNS...
+      throw CustomException(ErrorCode.internalServerError);
+    } on http.ClientException catch (_) {
+      throw CustomException(ErrorCode.internalServerError);
+    } on CustomException {
+      // 🔁 giữ nguyên lỗi business do mình đã map đúng từ server
+      rethrow;
+    } catch (e, st) {
+      if (kDebugMode) print('❌ Unexpected login error: $e\n$st');
+      throw CustomException(ErrorCode.internalServerError);
     }
   }
 
