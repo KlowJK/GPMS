@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
-
-import '../../../viewmodels/ho_so_viewmodel.dart';
-import '../../../models/student_profile.dart';
+import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
+import 'package:GPMS/features/student/models/student_profile.dart';
 
 // ======= PAGE chính (đọc VM) =======
 class HoSo extends StatefulWidget {

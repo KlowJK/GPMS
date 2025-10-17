@@ -1,12 +1,11 @@
-// language: dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../shared/models/user_entity.dart';
-import '../../../core/constants/exception/custom_exception.dart';
-import '../../../core/constants/exception/error_code.dart';
+import 'package:GPMS/shared/models/user_entity.dart';
+import 'package:GPMS/core/constants/exception/custom_exception.dart';
+import 'package:GPMS/core/constants/exception/error_code.dart';
 import 'dart:io';
 
 class AuthService {

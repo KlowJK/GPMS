@@ -3,7 +3,7 @@ import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_sinh_vie
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/constants/exception/custom_exception.dart';
+import 'package:GPMS/core/constants/exception/custom_exception.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
 

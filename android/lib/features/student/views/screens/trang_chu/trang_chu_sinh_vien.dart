@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
-import 'trang_chu_page.dart';
-import '../bao_cao/bao_cao.dart';
-import '../do_an/do_an.dart';
-import '../nhat_ky/nhat_ky.dart';
-import '../hoi_dong/hoi_dong.dart';
-import '../ho_so/ho_so.dart';
+import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_page.dart';
+import 'package:GPMS/features/student/views/screens/bao_cao/bao_cao.dart';
+import 'package:GPMS/features/student/views/screens/do_an/do_an.dart';
+import 'package:GPMS/features/student/views/screens/nhat_ky/nhat_ky.dart';
+import 'package:GPMS/features/student/views/screens/hoi_dong/hoi_dong.dart';
+import 'package:GPMS/features/student/views/screens/ho_so/ho_so.dart';
 import 'package:provider/provider.dart';
-import '../../../viewmodels/do_an_viewmodel.dart';
-import '../../../viewmodels/ho_so_viewmodel.dart';
-import '../../../../auth/services/auth_service.dart';
-import '../../../services/ho_so_service.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
+import 'package:GPMS/features/student/services/ho_so_service.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/core/services/main_service.dart';
+import 'package:intl/intl.dart';
 
 class TrangChuSinhVien extends StatelessWidget {
   const TrangChuSinhVien({super.key});

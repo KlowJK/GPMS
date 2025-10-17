@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-
-import '../../../viewmodels/nhat_ky_viewmodel.dart';
-import '../../../models/nhat_ki_tuan.dart';
-import '../../../models/danh_sach_nhat_ky.dart';
-import '../../../models/nop_nhat_ki.dart';
-import 'nop_nhat_ky.dart';
+import 'package:GPMS/features/student/viewmodels/nhat_ky_viewmodel.dart';
+import 'package:GPMS/features/student/models/nhat_ki_tuan.dart';
+import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
+import 'package:GPMS/features/student/models/nop_nhat_ki.dart';
+import 'package:GPMS/features/student/views/screens/nhat_ky/nop_nhat_ky.dart';
 
 class NhatKy extends StatefulWidget {
   const NhatKy({super.key});

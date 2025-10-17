@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 
 class NopDeCuongScreen extends StatelessWidget {
   const NopDeCuongScreen({super.key, required this.submissionCount});

@@ -1,10 +1,9 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-
-import '../../auth/services/auth_service.dart';
-import '../models/student_profile.dart';
-import '../services/ho_so_service.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/student_profile.dart';
+import 'package:GPMS/features/student/services/ho_so_service.dart';
 
 class HoSoViewModel extends ChangeNotifier {
   HoSoViewModel(this._service);

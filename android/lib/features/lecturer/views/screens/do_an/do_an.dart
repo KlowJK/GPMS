@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import 'sinh_vien/sinh_vien.dart';        // => chứa class SinhVienScreen
-import 'de_tai/duyet_de_tai.dart';
-import 'de_cuong/duyet_de_cuong.dart';
+import 'package:GPMS/features/lecturer/views/screens/do_an/sinh_vien/sinh_vien.dart';        // => chứa class SinhVienScreen
+import 'package:GPMS/features/lecturer/views/screens/do_an/de_tai/duyet_de_tai.dart';
+import 'package:GPMS/features/lecturer/views/screens/do_an/de_cuong/duyet_de_cuong.dart';
 
 class DoAn extends StatelessWidget {
   const DoAn({super.key});

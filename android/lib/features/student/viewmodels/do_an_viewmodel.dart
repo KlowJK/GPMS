@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import '../models/de_cuong.dart';
-import '../models/de_cuong_log.dart';
-import '../models/de_tai_detail.dart';
-import '../models/giang_vien_huong_dan.dart';
-import '../services/do_an_service.dart';
+import 'package:GPMS/features/student/models/de_cuong.dart';
+import 'package:GPMS/features/student/models/de_cuong_log.dart';
+import 'package:GPMS/features/student/models/de_tai_detail.dart';
+import 'package:GPMS/features/student/models/giang_vien_huong_dan.dart';
+import 'package:GPMS/features/student/services/do_an_service.dart';
 
 class DoAnViewModel extends ChangeNotifier {
   DeTaiDetail? deTaiDetail;

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import '../../../models/hoi_dong_item.dart';
-import '../../../viewmodels/hoi_dong_viewmodel.dart';
+import 'package:GPMS/features/student/models/hoi_dong_item.dart';
+import 'package:GPMS/features/student/viewmodels/hoi_dong_viewmodel.dart';
 
 /* ================== COUNCIL LIST PAGE (MVVM) ================== */
 

@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
-import '../../auth/services/auth_service.dart';
-import '../models/sinh_vien_item.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/lecturer/models/sinh_vien_item.dart';
 
 class SinhVienService {
   /// GET /api/giang-vien/sinh-vien

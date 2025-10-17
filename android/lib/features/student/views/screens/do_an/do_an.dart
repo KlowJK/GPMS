@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:provider/provider.dart';
-import 'hoan_do_an.dart';
-import 'de_tai/dang_ky_de_tai.dart';
-import 'de_cuong/de_cuong.dart';
-import 'de_cuong/nop_de_cuong_screen.dart';
-import '../../../viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/views/screens/do_an/hoan_do_an.dart';
+import 'package:GPMS/features/student/views/screens/do_an/de_tai/dang_ky_de_tai.dart';
+import 'package:GPMS/features/student/views/screens/do_an/de_cuong/de_cuong.dart';
+import 'package:GPMS/features/student/views/screens/do_an/de_cuong/nop_de_cuong_screen.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum DoAnTab { detai, decuong }

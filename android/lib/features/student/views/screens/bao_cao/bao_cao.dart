@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../models/report_item.dart';
-import '../../../viewmodels/bao_cao_viewmodel.dart';
-import '../../../services/bao_cao_service.dart';
+import 'package:GPMS/features/student/models/report_item.dart';
+import 'package:GPMS/features/student/viewmodels/bao_cao_viewmodel.dart';
+import 'package:GPMS/features/student/services/bao_cao_service.dart';
 
 class BaoCao extends StatelessWidget {
   const BaoCao({super.key});

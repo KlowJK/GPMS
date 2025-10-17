@@ -3,10 +3,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:http/http.dart' as http;
-
-import '../../../core/constants/exception/custom_exception.dart';
-import '../../../core/constants/exception/error_code.dart';
-import '../models/student_profile.dart';
+import 'package:GPMS/core/constants/exception/custom_exception.dart';
+import 'package:GPMS/core/constants/exception/error_code.dart';
+import 'package:GPMS/features/student/models/student_profile.dart';
 
 class HoSoService {
   HoSoService({Dio? dio}) : _dio = dio ?? Dio();

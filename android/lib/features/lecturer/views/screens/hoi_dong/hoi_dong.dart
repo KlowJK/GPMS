@@ -1,7 +1,5 @@
-// filepath: lib/features/lecturer/views/screens/hoi_dong/hoi_dong.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-
 import 'package:GPMS/features/lecturer/models/hoi_dong_item.dart';
 import 'package:GPMS/features/lecturer/services/hoi_dong_service.dart';
 

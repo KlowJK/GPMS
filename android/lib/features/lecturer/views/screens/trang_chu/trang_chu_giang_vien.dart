@@ -1,10 +1,10 @@
 import 'package:GPMS/features/lecturer/views/screens/do_an/do_an.dart';
 import 'package:flutter/material.dart';
-import '../bao_cao/bao_cao.dart';
-import '../tien_do/tien_do.dart';
-import '../hoi_dong/hoi_dong.dart';
-import '../ho_so/ho_so.dart';
-import 'trang_chu_page.dart';
+import 'package:GPMS/features/lecturer/views/screens/bao_cao/bao_cao.dart';
+import 'package:GPMS/features/lecturer/views/screens/tien_do/tien_do.dart';
+import 'package:GPMS/features/lecturer/views/screens/hoi_dong/hoi_dong.dart';
+import 'package:GPMS/features/lecturer/views/screens/ho_so/ho_so.dart';
+import 'package:GPMS/features/lecturer/views/screens/trang_chu/trang_chu_page.dart';
 
 class TrangChuGiangVien extends StatefulWidget {
   const TrangChuGiangVien({super.key});

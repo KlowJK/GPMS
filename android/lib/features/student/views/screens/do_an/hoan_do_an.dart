@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../auth/services/auth_service.dart';
-import '../../../models/de_nghi_hoan_model.dart';
-import '../../../services/hoan_do_an_service.dart';
-import '../../../viewmodels/hoan_do_an_viewmodel.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/de_nghi_hoan_model.dart';
+import 'package:GPMS/features/student/services/hoan_do_an_service.dart';
+import 'package:GPMS/features/student/viewmodels/hoan_do_an_viewmodel.dart';
 
 class HoanDoAn extends StatelessWidget {
   const HoanDoAn({super.key});
