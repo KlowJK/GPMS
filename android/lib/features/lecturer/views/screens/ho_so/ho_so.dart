@@ -1,111 +1,70 @@
+import 'package:GPMS/features/lecturer/models/giang_vien_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:GPMS/features/lecturer/views/screens/ho_so/LogoutButton.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:GPMS/features/lecturer/viewmodels/ho_so_viewmodel.dart';
 
-class HoSo extends StatelessWidget {
+class HoSo extends StatefulWidget {
   const HoSo({super.key});
+
+  @override
+  State<HoSo> createState() => _HoSoPageState();
+}
+
+class _HoSoPageState extends State<HoSo> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HoSoViewModel>().loadForCurrentUser();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.of(context).size.width * 0.05;
+    final vm = context.watch<HoSoViewModel>();
+    final data = vm.profile;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CD3),
-        elevation: 0,
-        toolbarHeight: 0, // ẩn tiêu đề AppBar
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        title: const Text('Hồ sơ'), // ẩn tiêu đề AppBar
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(pad, 0, pad, 24),
-          children: [
-            // Header Giảng viên
-            const _TeacherHeader(
-              name: 'ThS. Lê Đức Anh',
-              department: 'Khoa Công nghệ thông tin',
-              avatarUrl: 'https://placehold.co/120x120',
-            ),
-            const SizedBox(height: 24),
 
-            // Thông tin cá nhân
-            const Text(
-              'Thông tin cá nhân',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-
-            const _InfoCard(
-              rows: [
-                _InfoRow(label: 'Email', value: 'leducanh@e.tlu.vn'),
-                _InfoRow(label: 'Ngày sinh', value: '24/09/1988'),
-                _InfoRow(label: 'Số điện thoại', value: '0345178542'),
-                _InfoRow(label: 'Giới tính', value: 'Nam'),
-                _InfoRow(label: 'Mã giảng viên', value: 'GV002'),
-                _InfoRow(label: 'Bộ môn', value: 'Lập trình nâng cao'),
-                _InfoRow(label: 'Trạng thái', value: 'Đang công tác'),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Cài đặt
-            const Text(
-              'Cài đặt',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              elevation: 0,
-              clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.history),
-                    title: const Text('Lịch sử thao tác'),
-                    onTap: () {
-                      // TODO: điều hướng lịch sử thao tác
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.help_outline),
-                    title: const Text('Trợ giúp'),
-                    onTap: () {
-                      // TODO: mở trang trợ giúp
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Đăng xuất
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFBF2D2D),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+      body: Builder(
+        builder: (context) {
+          if (vm.isLoading && data == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (vm.error != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Lỗi: ${vm.error}', textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => vm.loadForCurrentUser(),
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
                 ),
-                icon: const Icon(Icons.logout),
-                label: const Text(
-                  'Đăng xuất',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                onPressed: () {
-                  // TODO: xử lý đăng xuất
-                },
               ),
-            ),
-          ],
-        ),
+            );
+          }
+          if (data == null) {
+            return const Center(child: Text('Không có dữ liệu hồ sơ.'));
+          }
+
+          return _HoSoBody(data: data);
+        },
       ),
 
       // Thanh điều hướng dưới (demo)
@@ -113,78 +72,193 @@ class HoSo extends StatelessWidget {
   }
 }
 
-/// Header Giảng viên với nền xanh + avatar + mũi nhọn
-class _TeacherHeader extends StatelessWidget {
-  final String name;
-  final String department;
-  final String? avatarUrl;
+class _HoSoBody extends StatelessWidget {
+  const _HoSoBody({required this.data});
+  final GiangVienProfile data;
 
-  const _TeacherHeader({
-    required this.name,
-    required this.department,
-    this.avatarUrl,
-  });
+  String get hoTen {
+    final parts = [
+      (data.hocVi ?? '').trim(),
+      (data.hocHam ?? '').trim(),
+      (data.hoTen ?? '').trim(),
+    ].where((s) => s.isNotEmpty).toList();
+    return parts.isEmpty ? '—' : parts.join(' ');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: 190,
-          width: double.infinity,
-          color: const Color(0xFF2F7CD3),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.white24,
-                backgroundImage: avatarUrl != null
-                    ? NetworkImage(avatarUrl!)
-                    : null,
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        final double maxW = w >= 1200
+            ? 900
+            : w >= 900
+            ? 720
+            : 560;
+        final double pad = w >= 900 ? 24 : 16;
+        final double gap = w >= 900 ? 18 : 12;
 
-                child: avatarUrl == null
-                    ? const Icon(Icons.person, size: 40, color: Colors.white)
-                    : null,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                department,
-
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          bottom: -8,
-          left: 0,
-          right: 0,
+        return SingleChildScrollView(
           child: Center(
-            child: Transform.rotate(
-              angle: 3.14159,
-              child: const Icon(
-                Icons.arrow_drop_up,
-                size: 32,
-                color: Color(0xFF2F7CD3),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxW),
+              child: Column(
+                children: [
+                  _ProfileHeader(
+                    data: data,
+
+                    onChangeAvatar: () async {
+                      final url = await context
+                          .read<HoSoViewModel>()
+                          .pickAndUploadAvatar(context);
+                      if (!context.mounted) return;
+                      if (url != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Cập nhật ảnh đại diện thành công'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SectionTitle('Thông tin cá nhân'),
+                        Card(
+                          elevation: 0,
+                          clipBehavior: Clip.antiAlias,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              _InfoRow(
+                                icon: Icons.badge_outlined,
+                                label: 'Mã giảng viên',
+                                value: _v(data.maGiangVien),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.person_outline,
+                                label: 'Họ và tên',
+                                value: _v(hoTen),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.email_outlined,
+                                label: 'Email',
+                                value: _v(data.email),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.phone_outlined,
+                                label: 'Số điện thoại',
+                                value: _v(data.soDienThoai),
+                              ),
+
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.school_outlined,
+                                label: 'Bộ môn',
+                                value: _v(data.tenBoMon),
+                              ),
+                              const Divider(height: 1),
+                            ],
+                          ),
+                        ),
+
+                        // Đăng xuất
+                        SizedBox(height: gap * 2),
+                        const LogoutButton(),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      ],
+        );
+      },
+    );
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.data, this.onChangeAvatar});
+
+  final GiangVienProfile data;
+
+  final Future<void> Function()? onChangeAvatar;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = data.hoTen ?? '';
+    final initials = _initials(name);
+    final avatarUrl = context.watch<HoSoViewModel>().avatarUrl;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
+      decoration: const BoxDecoration(
+        color: Color(0xFF2563EB),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+      ),
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.black26,
+                backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                    ? NetworkImage(avatarUrl)
+                    : null,
+                child: (avatarUrl == null || avatarUrl.isEmpty)
+                    ? Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      )
+                    : null,
+              ),
+              Positioned(
+                right: -4,
+                bottom: -4,
+                child: Material(
+                  color: Colors.white,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onChangeAvatar, // giờ là async ok
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.edit, size: 18, color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            name.isEmpty ? '—' : name,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -219,37 +293,71 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 12),
+      child: Text(
+        text,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
 /// Một dòng thông tin
 class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
   final String label;
   final String value;
-
-  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final labelStyle = Theme.of(
       context,
     ).textTheme.bodyMedium?.copyWith(color: Colors.black87);
-
     final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
       fontWeight: FontWeight.w700,
       color: const Color(0xFF393938),
     );
 
-    return Row(
-      children: [
-        Expanded(child: Text(label, style: labelStyle)),
-        Flexible(
-          flex: 2,
-          child: Text(
-            value,
-            style: valueStyle,
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-          ),
+    return ListTile(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      leading: Icon(icon),
+      title: Text(label, style: labelStyle),
+      trailing: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Text(
+          value,
+          textAlign: TextAlign.right,
+          overflow: TextOverflow.ellipsis,
+          style: valueStyle,
         ),
-      ],
+      ),
     );
   }
+}
+
+String _v(String? s) => (s == null || s.trim().isEmpty) ? '—' : s.trim();
+
+String _initials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty) return '';
+  if (parts.length == 1) return parts.first.characters.take(1).toString();
+  return (parts.first.characters.take(1).toString() +
+          parts.last.characters.take(1).toString())
+      .toUpperCase();
 }

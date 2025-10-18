@@ -6,10 +6,13 @@ import 'package:GPMS/features/lecturer/models/sinh_vien_item.dart';
 class SinhVienService {
   /// GET /api/giang-vien/sinh-vien
   static Future<List<SinhVienItem>> fetch() async {
-    final uri = Uri.parse('${AuthService.baseUrl}/api/giang-vien/sinh-vien');
+    final uri = Uri.parse(
+      '${AuthService.baseUrl}/api/giang-vien/sinh-vien/list',
+    );
     final headers = await _headers();
 
-    final res = await http.get(uri, headers: headers)
+    final res = await http
+        .get(uri, headers: headers)
         .timeout(const Duration(seconds: 15));
 
     if (res.statusCode != 200) {
@@ -27,10 +30,7 @@ class SinhVienService {
 
   static Future<Map<String, String>> _headers() async {
     final token = await AuthService.getToken();
-    return {
-      'Accept': 'application/json',
-      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-    };
+    return {'Accept': 'application/json', 'Authorization': 'Bearer $token'};
   }
 
   /// Nhận mọi kiểu trả về thường gặp: List, {result: [...]}, {result:{content:[...]}}, {content:[...]}…

@@ -40,7 +40,7 @@ class DeCuong extends StatelessWidget {
     return Consumer<DoAnViewModel>(
       builder: (context, viewModel, child) {
         Widget bodyContent;
-        if (viewModel.isLoading && viewModel.deCuongLogs.isEmpty) {
+        if (viewModel.isLoadingLogs && viewModel.deCuongLogs.isEmpty) {
           bodyContent = const Center(child: CircularProgressIndicator());
         } else if (viewModel.deCuongLogs.isEmpty) {
           bodyContent = ListView(

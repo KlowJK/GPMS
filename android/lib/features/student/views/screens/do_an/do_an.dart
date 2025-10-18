@@ -98,6 +98,7 @@ class DoAnState extends State<DoAn> {
       builder: (context, vm, _) {
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: const Color(0xFF2563EB),
             title: const Text('Đồ án', style: TextStyle(color: Colors.white)),
             centerTitle: true,
@@ -200,9 +201,9 @@ class DoAnState extends State<DoAn> {
           },
         ),
         SizedBox(height: gap),
-        if (vm.isLoading)
+        if (vm.isLoadingDeTai)
           const Center(child: CircularProgressIndicator())
-        else if (vm.deTaiDetail != null && vm.error == null) ...[
+        else if (vm.deTaiDetail != null && vm.deTaiError == null) ...[
           SizedBox(height: gap * 1),
           Text(
             "Thông tin đề tài",

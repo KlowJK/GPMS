@@ -160,7 +160,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
-          SnackBar(content: Text(vm.error ?? 'Đăng ký đề tài thất bại.')),
+          SnackBar(content: Text(vm.deTaiError ?? 'Đăng ký đề tài thất bại.')),
         );
     }
   }

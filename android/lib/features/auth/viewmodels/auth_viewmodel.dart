@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:GPMS/shared/models/user_entity.dart';
@@ -6,7 +7,8 @@ import 'package:GPMS/features/auth/services/auth_service.dart';
 class AuthViewModel extends ChangeNotifier {
   UserEntity? _user;
 
-  bool get isLoggedIn => _user != null;
+  bool get _isLoggedIn => _user != null;
+  bool get isLoggedIn => _isLoggedIn;
   UserEntity? get user => _user;
 
   bool get isTeacher => _user?.role == 'GIANG_VIEN';
@@ -84,18 +86,14 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    _user = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('typeToken');
-    await prefs.remove('expiresAt');
-    await prefs.remove('id');
-    await prefs.remove('fullName');
-    await prefs.remove('email');
-    await prefs.remove('role');
-    await prefs.remove('duongDanAvt');
-    await prefs.remove('teacherId');
-    await prefs.remove('studentId');
-    notifyListeners();
+    try {
+      await AuthService.logoutRemote(); // không critical nếu fail
+    } catch (e) {
+      if (kDebugMode) print('⚠️ Logout remote failed: $e');
+    } finally {
+      await AuthService.clearLocalSession();
+      _user = null;
+      notifyListeners();
+    }
   }
 }

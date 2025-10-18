@@ -275,6 +275,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: const Color(0xFF2563EB),
       elevation: 1,
       centerTitle: false,

@@ -63,6 +63,7 @@ class _BaoCaoBody extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         title: const Text('Báo cáo', style: TextStyle(color: Colors.white)),
         centerTitle: true,
@@ -77,18 +78,18 @@ class _BaoCaoBody extends StatelessWidget {
               child: vm.loading
                   ? const Center(child: CircularProgressIndicator())
                   : vm.error != null
-                      ? Center(child: Text('Lỗi: ${vm.error}'))
-                      : vm.items.isEmpty
-                          ? const _EmptyState(
-                              icon: Icons.description_outlined,
-                              title: 'Bạn chưa có báo cáo trong hệ thống.',
-                              subtitle: 'Nhấn nút “+” để nộp báo cáo.',
-                            )
-                          : ListView.separated(
-                              itemCount: vm.items.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
-                              itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
-                            ),
+                  ? Center(child: Text('Lỗi: ${vm.error}'))
+                  : vm.items.isEmpty
+                  ? const _EmptyState(
+                      icon: Icons.description_outlined,
+                      title: 'Bạn chưa có báo cáo trong hệ thống.',
+                      subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                    )
+                  : ListView.separated(
+                      itemCount: vm.items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
+                    ),
             ),
           ),
         ),

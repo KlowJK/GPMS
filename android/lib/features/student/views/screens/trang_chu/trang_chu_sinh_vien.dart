@@ -9,38 +9,14 @@ import 'package:provider/provider.dart';
 import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
 import 'package:GPMS/features/student/services/ho_so_service.dart';
-import 'package:GPMS/features/auth/services/auth_service.dart';
-import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
-import 'package:GPMS/core/services/main_service.dart';
-import 'package:intl/intl.dart';
 
-class TrangChuSinhVien extends StatelessWidget {
+class TrangChuSinhVien extends StatefulWidget {
   const TrangChuSinhVien({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2563EB);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'GPMS',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFDCDEE4),
-      ),
-
-      home: const TrangChuWidget(),
-    );
-  }
+  State<TrangChuSinhVien> createState() => _AfterLoginShellState();
 }
 
-class TrangChuWidget extends StatefulWidget {
-  const TrangChuWidget({super.key});
-  @override
-  State<TrangChuWidget> createState() => _AfterLoginShellState();
-}
-
-class _AfterLoginShellState extends State<TrangChuWidget> {
+class _AfterLoginShellState extends State<TrangChuSinhVien> {
   int _index = 0;
 
   @override

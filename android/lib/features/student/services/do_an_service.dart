@@ -9,8 +9,8 @@ import 'package:GPMS/features/student/models/de_cuong.dart';
 import 'package:GPMS/features/student/models/de_cuong_log.dart';
 import 'package:GPMS/features/student/models/de_tai_detail.dart';
 import 'package:GPMS/features/student/models/giang_vien_huong_dan.dart';
-import 'package:GPMS/core/constants/exception/custom_exception.dart';
-import 'package:GPMS/core/constants/exception/error_code.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 
 class DoAnService {
   static String get _baseUrl {

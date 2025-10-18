@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
 import 'package:GPMS/features/student/models/student_profile.dart';
 
+import 'package:GPMS/features/student/views/screens/ho_so/LogoutButton.dart';
+
 // ======= PAGE chính (đọc VM) =======
 class HoSo extends StatefulWidget {
   const HoSo({super.key});
@@ -16,7 +18,6 @@ class _HoSoPageState extends State<HoSo> {
   @override
   void initState() {
     super.initState();
-    // Load dữ liệu khi khởi tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HoSoViewModel>().loadForCurrentUser();
     });
@@ -29,6 +30,7 @@ class _HoSoPageState extends State<HoSo> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -95,19 +97,6 @@ class _HoSoBody extends StatelessWidget {
                 children: [
                   _ProfileHeader(
                     data: data,
-                    onUploadCv: () async {
-                      final url = await context
-                          .read<HoSoViewModel>()
-                          .pickAndUploadCV(context);
-                      if (!context.mounted) return;
-                      if (url != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tải lên CV thành công'),
-                          ),
-                        );
-                      }
-                    },
                     onChangeAvatar: () async {
                       final url = await context
                           .read<HoSoViewModel>()
@@ -117,6 +106,19 @@ class _HoSoBody extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Cập nhật ảnh đại diện thành công'),
+                          ),
+                        );
+                      }
+                    },
+                    onUploadCv: () async {
+                      final url = await context
+                          .read<HoSoViewModel>()
+                          .pickAndUploadCV(context);
+                      if (!context.mounted) return;
+                      if (url != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tải lên CV thành công'),
                           ),
                         );
                       }
@@ -202,6 +204,9 @@ class _HoSoBody extends StatelessWidget {
                         const _SectionTitle('Tài liệu'),
                         _CvCard(cvUrl: data.cvUrl),
                         SizedBox(height: gap * 2.5),
+
+                        // Đăng xuất
+                        const LogoutButton(),
                       ],
                     ),
                   ),
@@ -219,15 +224,15 @@ class _HoSoBody extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.data,
-    this.onUploadCv,
     this.onChangeAvatar,
+    this.onUploadCv,
   });
 
   final StudentProfile data;
 
   // Cho phép async callback
-  final Future<void> Function()? onUploadCv;
   final Future<void> Function()? onChangeAvatar;
+  final Future<void> Function()? onUploadCv;
 
   @override
   Widget build(BuildContext context) {

@@ -11,7 +11,8 @@ class HoiDong extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => HoiDongViewModel()..fetchForCurrentStudent(fallbackToAll: true),
+      create: (_) =>
+          HoiDongViewModel()..fetchForCurrentStudent(fallbackToAll: true),
       child: const _HoiDongBody(),
     );
   }
@@ -24,6 +25,7 @@ class _HoiDongBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -36,10 +38,10 @@ class _HoiDongBody extends StatelessWidget {
             final double maxW = w >= 1200
                 ? 1100
                 : w >= 900
-                    ? 900
-                    : w >= 600
-                        ? 600
-                        : w;
+                ? 900
+                : w >= 600
+                ? 600
+                : w;
             final double pad = w >= 900 ? 24 : 16;
             final double gap = w >= 900 ? 16 : 12;
 
@@ -52,9 +54,9 @@ class _HoiDongBody extends StatelessWidget {
                     if (vm.error != null) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (vm.error != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(vm.error!)),
-                          );
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(vm.error!)));
                           vm.clearError();
                         }
                       });
@@ -65,9 +67,8 @@ class _HoiDongBody extends StatelessWidget {
                       children: [
                         Text(
                           'Danh sách hội đồng bảo vệ',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         SizedBox(height: gap),
 
@@ -84,8 +85,10 @@ class _HoiDongBody extends StatelessWidget {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: vm.items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (_, i) => _CouncilCardHoiDong(item: vm.items[i]),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, i) =>
+                                _CouncilCardHoiDong(item: vm.items[i]),
                           ),
                       ],
                     );
@@ -132,19 +135,30 @@ class _CouncilCardHoiDong extends StatelessWidget {
     DateTime? endUtc = toUtcSafe(end);
 
     // If endUtc is present and looks like a date-only (midnight UTC), treat it as end of day to be inclusive
-    if (endUtc != null && endUtc.hour == 0 && endUtc.minute == 0 && endUtc.second == 0 && endUtc.millisecond == 0 && endUtc.microsecond == 0) {
-      endUtc = endUtc.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+    if (endUtc != null &&
+        endUtc.hour == 0 &&
+        endUtc.minute == 0 &&
+        endUtc.second == 0 &&
+        endUtc.millisecond == 0 &&
+        endUtc.microsecond == 0) {
+      endUtc = endUtc
+          .add(const Duration(days: 1))
+          .subtract(const Duration(milliseconds: 1));
     }
 
     // Defensive: if backend returned start after end, swap them and log
     if (startUtc != null && endUtc != null && startUtc.isAfter(endUtc)) {
-      debugPrint('[HoiDong] Warning: startUtc > endUtc for id=${item.id}; swapping values startUtc=$startUtc endUtc=$endUtc');
+      debugPrint(
+        '[HoiDong] Warning: startUtc > endUtc for id=${item.id}; swapping values startUtc=$startUtc endUtc=$endUtc',
+      );
       final tmp = startUtc;
       final newStartUtc = endUtc;
       final newEndUtc = tmp;
       final isBefore = nowUtc.isBefore(newStartUtc!);
       final isAfter = nowUtc.isAfter(newEndUtc);
-      debugPrint('[HoiDong] id=${item.id} corrected startUtc=$newStartUtc endUtc=$newEndUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter');
+      debugPrint(
+        '[HoiDong] id=${item.id} corrected startUtc=$newStartUtc endUtc=$newEndUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter',
+      );
       if (isBefore) {
         return (
           const Color(0xFFDBEAFE),
@@ -159,18 +173,16 @@ class _CouncilCardHoiDong extends StatelessWidget {
           'Đã kết thúc',
         );
       }
-      return (
-        const Color(0xFFFDE68A),
-        const Color(0xFF92400E),
-        'Đang diễn ra',
-      );
+      return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
     }
 
     // If both start and end exist, determine status from times (inclusive end)
     if (startUtc != null && endUtc != null) {
       final isBefore = nowUtc.isBefore(startUtc);
       final isAfter = nowUtc.isAfter(endUtc);
-      debugPrint('[HoiDong] id=${item.id} startUtc=$startUtc endUtc=$endUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter');
+      debugPrint(
+        '[HoiDong] id=${item.id} startUtc=$startUtc endUtc=$endUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter',
+      );
       if (isBefore) {
         return (
           const Color(0xFFDBEAFE),
@@ -186,34 +198,23 @@ class _CouncilCardHoiDong extends StatelessWidget {
         );
       }
       // now is between start and end (inclusive)
-      return (
-        const Color(0xFFFDE68A),
-        const Color(0xFF92400E),
-        'Đang diễn ra',
-      );
+      return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
     }
 
     // Fallback to textual status if dates are not present
     final status = (item.trangThai ?? '').toLowerCase();
-    if (status.contains('upcoming') || status.contains('sap') || status.contains('sapdienra') || status.contains('sắp')) {
-      return (
-        const Color(0xFFDBEAFE),
-        const Color(0xFF1E3A8A),
-        'Sắp diễn ra',
-      );
+    if (status.contains('upcoming') ||
+        status.contains('sap') ||
+        status.contains('sapdienra') ||
+        status.contains('sắp')) {
+      return (const Color(0xFFDBEAFE), const Color(0xFF1E3A8A), 'Sắp diễn ra');
     }
-    if (status.contains('ongoing') || status.contains('dang') || status.contains('đang')) {
-      return (
-        const Color(0xFFFDE68A),
-        const Color(0xFF92400E),
-        'Đang diễn ra',
-      );
+    if (status.contains('ongoing') ||
+        status.contains('dang') ||
+        status.contains('đang')) {
+      return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
     }
-    return (
-      const Color(0xFFD1FAE5),
-      const Color(0xFF065F46),
-      'Đã kết thúc',
-    );
+    return (const Color(0xFFD1FAE5), const Color(0xFF065F46), 'Đã kết thúc');
   }
 
   @override
@@ -269,7 +270,8 @@ class _CouncilCardHoiDong extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         TextSpan(
-                          text: '${_fmt(item.thoiGianBatDau)}  –  ${_fmt(item.thoiGianKetThuc)}',
+                          text:
+                              '${_fmt(item.thoiGianBatDau)}  –  ${_fmt(item.thoiGianKetThuc)}',
                         ),
                       ],
                     ),
@@ -339,9 +341,7 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const ShapeDecoration(
-        shape: StadiumBorder(),
-      ),
+      decoration: const ShapeDecoration(shape: StadiumBorder()),
       child: Container(
         decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

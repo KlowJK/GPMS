@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:GPMS/shared/models/user_entity.dart';
-import 'package:GPMS/core/constants/exception/custom_exception.dart';
-import 'package:GPMS/core/constants/exception/error_code.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 import 'dart:io';
 
 class AuthService {
@@ -226,33 +226,43 @@ class AuthService {
     }
   }
 
-  /// Logout with debug
-  static Future<void> logout() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
+  static Future<void> logoutRemote() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null || token.isEmpty) return;
 
-      if (kDebugMode) {
-        print('🚪 Logging out - Clearing SharedPreferences');
-        print('   - Current token: ${prefs.getString('token')}');
-        print(
-          '   - Current avatar: ${prefs.getString('profile_avatar_base64')}',
-        );
-      }
+    final uri = Uri.parse('$baseUrl/api/auth/logout');
 
-      await _clearAuthKeys(prefs);
+    // Nếu backend yêu cầu raw token (không JSON):
+    // final response = await http.post(uri,
+    //   headers: {
+    //     'accept': '*/*',
+    //     'Authorization': 'Bearer $token',
+    //     'Content-Type': 'text/plain',
+    //   },
+    //   body: token,
+    // ).timeout(_timeout);
 
-      if (kDebugMode) {
-        print('✅ Logout successful - Auth keys cleared');
-        print('   - Token after clear: ${prefs.getString('token')}');
-        print(
-          '   - Avatar still exists: ${prefs.getString('profile_avatar_base64')}',
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error during logout: $e');
-      }
-      rethrow;
+    final response = await http.post(
+      uri,
+      headers: {
+        'accept': '*/*',
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'token': token}),
+    );
+
+    if (kDebugMode) {
+      print('↪️ POST $uri status=${response.statusCode}');
+      print('body=${response.body}');
+    }
+
+    // Nhiều backend trả 200/204; nếu 401 coi như phiên hết hạn -> vẫn xóa local
+    if (response.statusCode != 200 &&
+        response.statusCode != 204 &&
+        response.statusCode != 401) {
+      throw Exception('Logout API failed (${response.statusCode})');
     }
   }
 
@@ -278,6 +288,32 @@ class AuthService {
         print('❌ Error verifying token consistency: $e');
       }
       return false;
+    }
+  }
+
+  static Future<void> clearLocalSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (kDebugMode) {
+      print('🚪 Logging out - Clearing SharedPreferences');
+      print('   - Current token: ${prefs.getString('token')}');
+      print('   - Current avatar: ${prefs.getString('profile_avatar_base64')}');
+    }
+    await prefs.remove('token');
+    await prefs.remove('typeToken');
+    await prefs.remove('expiresAt');
+    await prefs.remove('id');
+    await prefs.remove('fullName');
+    await prefs.remove('email');
+    await prefs.remove('role');
+    await prefs.remove('duongDanAvt');
+    await prefs.remove('teacherId');
+    await prefs.remove('studentId');
+    if (kDebugMode) {
+      print('✅ Logout successful - Auth keys cleared');
+      print('   - Token after clear: ${prefs.getString('token')}');
+      print(
+        '   - Avatar after clear: ${prefs.getString('profile_avatar_base64')}',
+      );
     }
   }
 }
