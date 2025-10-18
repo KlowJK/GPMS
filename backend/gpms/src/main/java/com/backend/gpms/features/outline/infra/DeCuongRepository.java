@@ -56,27 +56,34 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
             String email1, String email2, String email3, List<Long> dotIds, Pageable pageable
     );
 
-    @Query("SELECT d FROM DeCuong d WHERE " +
-           "(LOWER(d.giangVienHuongDan.user.email) = LOWER(:email1) " +
-           "OR LOWER(d.giangVienPhanBien.user.email) = LOWER(:email2) " +
-           "OR LOWER(d.truongBoMon.user.email) = LOWER(:email3)) " +
-           "AND d.deTai.dotBaoVe.id IN :dotIds " +
-           "AND (d.trangThaiDeCuong = :trangThaiDeCuong " +
-           "OR d.gvPhanBienDuyet = :gvPhanBienDuyet " +
-           "OR d.tbmDuyet = :tbmDuyet) " +
-           "ORDER BY d.createdAt DESC")
-    Page<DeCuong> findOutlineWithAnyStatus(
-        @Param("email1") String email1,
-        @Param("email2") String email2,
-        @Param("email3") String email3,
-        @Param("dotIds") List<Long> dotIds,
-        @Param("trangThaiDeCuong") TrangThaiDeCuong trangThaiDeCuong,
-        @Param("gvPhanBienDuyet") TrangThaiDuyetDon gvPhanBienDuyet,
-        @Param("tbmDuyet") TrangThaiDuyetDon tbmDuyet,
-        Pageable pageable
+    @Query("""
+SELECT d
+FROM DeCuong d
+LEFT JOIN d.giangVienHuongDan ghd
+LEFT JOIN ghd.user uhd
+LEFT JOIN d.giangVienPhanBien gpb
+LEFT JOIN gpb.user upb
+LEFT JOIN d.truongBoMon tbm
+LEFT JOIN tbm.user utbm
+WHERE d.deTai.dotBaoVe.id IN :dotIds
+  AND (
+        (LOWER(uhd.email) = LOWER(:email) AND d.trangThaiDeCuong = :ttDeCuong)
+     OR (LOWER(upb.email) = LOWER(:email) AND d.gvPhanBienDuyet = :ttPB)
+     OR (LOWER(utbm.email) = LOWER(:email) AND d.tbmDuyet = :ttTBM)
+      )
+ORDER BY d.createdAt DESC
+""")
+    Page<DeCuong> findOutlinesForUserByRoleAndStatus(
+            @Param("email") String email,
+            @Param("dotIds") List<Long> dotIds,
+            @Param("ttDeCuong") TrangThaiDeCuong ttDeCuong,
+            @Param("ttPB") TrangThaiDuyetDon ttPB,
+            @Param("ttTBM") TrangThaiDuyetDon ttTBM,
+            Pageable pageable
     );
 
-    List<DeCuong> findByDeTai_SinhVien_MaSinhVien(String maSinhVien);
+
+    List<DeCuong> findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(String maSinhVien);
 
     Optional<DeCuong> findFirstByDeTai_IdOrderByUpdatedAtDesc(Long ids);
 }

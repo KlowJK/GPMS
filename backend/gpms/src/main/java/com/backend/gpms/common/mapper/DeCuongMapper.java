@@ -28,7 +28,10 @@ public interface DeCuongMapper {
             @Mapping(source = "duongDanFile",                   target = "deCuongUrl"),
             @Mapping(source = "giangVienPhanBien.hoTen",      target = "giangVienPhanBien"),
             @Mapping(source = "truongBoMon.hoTen",      target = "truongBoMon"),
-            @Mapping(source = "nhanXets", target = "nhanXets", qualifiedByName = "mapNhanXets")
+            @Mapping(source = "nhanXets", target = "nhanXets", qualifiedByName = "mapNhanXets"),
+            @Mapping(source = "gvPhanBienDuyet", target = "gvPhanBienDuyet"),
+            @Mapping(source = "tbmDuyet", target = "tbmDuyet"),
+            @Mapping(source = "createdAt", target = "createdAt")
     })
     DeCuongResponse toResponse(DeCuong entity);
 
@@ -57,6 +60,8 @@ public interface DeCuongMapper {
     @Mapping(target = "hoTenGiangVienHuongDan", source = "giangVienHuongDan.hoTen")
     @Mapping(target = "hoTenGiangVienPhanBien", source = "giangVienPhanBien.hoTen")
     @Mapping(target = "hoTenTruongBoMon", source = "truongBoMon.hoTen")
+    @Mapping(target = "gvPhanBienDuyet", source = "gvPhanBienDuyet")
+    @Mapping(target = "tbmDuyet", source = "tbmDuyet")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "nhanXets", ignore = true) // set sau
     DeCuongNhanXetResponse toDeCuongNhanXetResponse(DeCuong entity);

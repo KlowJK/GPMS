@@ -340,7 +340,8 @@ public class DeCuongService {
         } else {
             page = isGV
                 ? deCuongRepository
-                    .findOutlineWithAnyStatus(email, email, email, activeDotIds, status, statusFilter, statusFilter, pageable)
+                    .findOutlinesForUserByRoleAndStatus(
+                            email, activeDotIds, status, statusFilter, statusFilter, pageable)
                 : deCuongRepository
                     .findByDeTai_DotBaoVe_IdIn(activeDotIds, pageable);
         }

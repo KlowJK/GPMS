@@ -5,10 +5,7 @@ import com.backend.gpms.features.department.domain.BoMon;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.lecturer.dto.request.GiangVienCreateRequest;
 
-import com.backend.gpms.features.lecturer.dto.response.GiangVienCreationResponse;
-import com.backend.gpms.features.lecturer.dto.response.GiangVienInfoResponse;
-import com.backend.gpms.features.lecturer.dto.response.GiangVienLiteResponse;
-import com.backend.gpms.features.lecturer.dto.response.GiangVienResponse;
+import com.backend.gpms.features.lecturer.dto.response.*;
 import org.mapstruct.*;
 
 @Mapper(
@@ -39,6 +36,12 @@ public interface GiangVienMapper {
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "boMon.id",       target = "boMonId")
     GiangVienResponse toGiangVienResponse(GiangVien entity);
+
+    @Mapping(source = "boMon.id",       target = "boMonId")
+    @Mapping(source = "boMon.tenBoMon", target = "tenBoMon")
+    @Mapping(source = "user.email",     target = "email")
+    @Mapping(source = "user.duongDanAvt", target = "duongDanAvt")
+    GiangVienProfileResponse toGiangVienProfileResponse(GiangVien entity);
 
     default BoMon map(Long boMonId) {
         if (boMonId == null) return null;
