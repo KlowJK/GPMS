@@ -4,6 +4,30 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:GPMS/features/lecturer/services/de_cuong_service.dart';
 import 'package:GPMS/features/lecturer/models/de_cuong_item.dart';
 
+Color deCuongStatusColor(DeCuongStatus s) {
+  switch (s) {
+    case DeCuongStatus.approved:
+      return const Color(0xFF16A34A); // xanh lá
+    case DeCuongStatus.rejected:
+      return const Color(0xFFDC2626); // đỏ
+    case DeCuongStatus.pending:
+    default:
+      return const Color(0xFFF59E0B); // vàng
+  }
+}
+
+String deCuongStatusText(DeCuongStatus s) {
+  switch (s) {
+    case DeCuongStatus.approved:
+      return 'Đã duyệt';
+    case DeCuongStatus.rejected:
+      return 'Từ chối';
+    case DeCuongStatus.pending:
+    default:
+      return 'Đang chờ duyệt';
+  }
+}
+
 /// Dữ liệu truyền vào màn chi tiết (có kèm sinhVienId để load log)
 class ChiTietDeTaiArgs {
   final String maSV;

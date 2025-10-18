@@ -1,198 +1,251 @@
 // filepath: lib/features/lecturer/services/tien_do_service.dart
-import 'package:dio/dio.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
-import '../../auth/services/auth_service.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/lecturer/models/tien_do_item.dart';
 
-/// Trạng thái hiển thị ở màn danh sách
-enum SubmitStatus { submitted, missing }
-
-/// Item cho màn danh sách sinh viên (từ /api/nhat-ky-tien-trinh)
-class ProgressStudent {
-  final int idDeTai;
-  final String hoTen;
-  final String maSinhVien;
-  final String lop;
-  final String deTai;
-  final int tuan; // tuần hiện tại
-  final DateTime? ngayBatDau;
-  final DateTime? ngayKetThuc;
-  final SubmitStatus status;
-
-  ProgressStudent({
-    required this.idDeTai,
-    required this.hoTen,
-    required this.maSinhVien,
-    required this.lop,
-    required this.deTai,
-    required this.tuan,
-    required this.status,
-    required this.ngayBatDau,
-    required this.ngayKetThuc,
+class WeeksInfo {
+  final DateTime? from;
+  final DateTime? to;
+  final int selectedWeek;
+  final List<int> weeks;
+  WeeksInfo({
+    this.from,
+    this.to,
+    required this.selectedWeek,
+    required this.weeks,
   });
-
-  /// Map chuỗi trạng thái backend -> SubmitStatus
-  static SubmitStatus _mapStatus(String? s) {
-    switch ((s ?? '').toUpperCase()) {
-      case 'DA_NOP':
-      case 'HOAN_THANH':
-        return SubmitStatus.submitted;
-      case 'CHUA_NOP':
-      default:
-        return SubmitStatus.missing;
-    }
-  }
-
-  factory ProgressStudent.fromJson(Map<String, dynamic> j) {
-    DateTime? _p(String? iso) =>
-        (iso == null || iso.isEmpty) ? null : DateTime.tryParse(iso);
-    return ProgressStudent(
-      idDeTai: (j['idDeTai'] as num).toInt(),
-      hoTen: (j['hoTen'] ?? '') as String,
-      maSinhVien: (j['maSinhVien'] ?? '') as String,
-      lop: (j['lop'] ?? '') as String,
-      deTai: (j['deTai'] ?? '') as String,
-      tuan: (j['tuan'] is num) ? (j['tuan'] as num).toInt() : 1,
-      ngayBatDau: _p(j['ngayBatDau'] as String?),
-      ngayKetThuc: _p(j['ngayKetThuc'] as String?),
-      status: _mapStatus(j['trangThaiNhatKy'] as String?),
-    );
-  }
-}
-
-/// Item tuần cho màn chi tiết (từ /api/nhat-ky-tien-trinh/tuans)
-class WeeklyEntry {
-  final int tuan;
-  final DateTime? ngayBatDau;
-  final DateTime? ngayKetThuc;
-  final String noiDung;
-  final String duongDanFile;
-  final String? nhanXet;
-
-  WeeklyEntry({
-    required this.tuan,
-    required this.ngayBatDau,
-    required this.ngayKetThuc,
-    required this.noiDung,
-    required this.duongDanFile,
-    required this.nhanXet,
-  });
-
-  factory WeeklyEntry.fromJson(Map<String, dynamic> j) {
-    DateTime? _p(String? iso) =>
-        (iso == null || iso.isEmpty) ? null : DateTime.tryParse(iso);
-    return WeeklyEntry(
-      tuan: (j['tuan'] as num).toInt(),
-      ngayBatDau: _p(j['ngayBatDau'] as String?),
-      ngayKetThuc: _p(j['ngayKetThuc'] as String?),
-      noiDung: (j['noiDung'] ?? '') as String,
-      duongDanFile: (j['duongDanFile'] ?? '') as String,
-      nhanXet: j['nhanXet'] as String?,
-    );
-  }
 }
 
 class TienDoService {
-  final Dio _dio;
+  static String get _base => AuthService.baseUrl;
 
-  TienDoService({Dio? dio})
-      : _dio = dio ??
-      Dio(
-        BaseOptions(
-          baseUrl: AuthService.baseUrl,
-          connectTimeout: const Duration(seconds: 20),
-          receiveTimeout: const Duration(seconds: 20),
-        ),
-      );
-
-  Future<Map<String, String>> _headers() async {
-    final token = await AuthService.getToken();
-    final h = <String, String>{'accept': 'application/json'};
-    if (token != null && token.isNotEmpty) {
-      h['Authorization'] = 'Bearer $token';
+  static Future<Map<String, String>> _headers() async {
+    final raw = await AuthService.getToken();
+    if (kDebugMode) {
+      final short = raw == null ? 'NULL' : '${raw.substring(0, raw.length > 10 ? 10 : raw.length)}...';
+      debugPrint('[TienDoService] token(short) $short');
     }
+    var token = raw;
+    if (token != null && token.startsWith('Bearer ')) token = token.substring(7);
+    final h = <String, String>{
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) h['Authorization'] = 'Bearer $token';
     return h;
   }
 
-  /// Màn chính: GET /api/nhat-ky-tien-trinh?tuan=...
-  Future<List<ProgressStudent>> fetchStudents({int? week}) async {
-    final headers = await _headers();
-    final qp = <String, dynamic>{};
-    if (week != null) qp['tuan'] = week;
-
-    try {
-      if (kDebugMode) {
-        print('[TienDoService] GET /api/nhat-ky-tien-trinh $qp');
-      }
-      final resp = await _dio.get(
-        '/api/nhat-ky-tien-trinh',
-        queryParameters: qp,
-        options: Options(headers: headers),
-      );
-
-      final data = resp.data;
-      List list;
-      if (data is Map && data['result'] is List) {
-        list = data['result'] as List;
-      } else if (data is List) {
-        list = data;
-      } else {
-        list = const [];
-      }
-      return list
-          .map((e) => ProgressStudent.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    } on DioException catch (e) {
-      throw Exception(
-          'Lỗi tải danh sách tiến độ: ${e.response?.data ?? e.message}');
+  static List<Map<String, dynamic>> _extractList(dynamic raw) {
+    if (raw == null) return const [];
+    if (raw is List) {
+      return raw.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
+    if (raw is Map) {
+      final m = Map<String, dynamic>.from(raw);
+      if (m['result'] != null) return _extractList(m['result']);
+      if (m['content'] != null) return _extractList(m['content']);
+      return [m];
+    }
+    return const [];
   }
 
-  /// Màn chi tiết: GET /api/nhat-ky-tien-trinh/tuans?deTaiId=...
-  Future<List<WeeklyEntry>> fetchWeeksByTopic(int deTaiId) async {
-    final headers = await _headers();
-    try {
-      if (kDebugMode) {
-        print('[TienDoService] GET /api/nhat-ky-tien-trinh/tuans?deTaiId=$deTaiId');
-      }
-      final resp = await _dio.get(
-        '/api/nhat-ky-tien-trinh/tuans',
-        queryParameters: {'deTaiId': deTaiId},
-        options: Options(headers: headers),
-      );
-      final data = resp.data;
-      final list = (data is Map && data['result'] is List)
-          ? (data['result'] as List)
-          : (data is List ? data : const []);
-      return list
-          .map((e) => WeeklyEntry.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    } on DioException catch (e) {
-      throw Exception(
-          'Lỗi tải nhật ký theo tuần: ${e.response?.data ?? e.message}');
+  // --- helpers parse an toàn ---
+  static DateTime? _toDateFlex(dynamic v) {
+    if (v == null) return null;
+    if (v is int) {
+      final isSeconds = v < 100000000000;
+      return DateTime.fromMillisecondsSinceEpoch(isSeconds ? v * 1000 : v);
     }
+    if (v is num) {
+      final x = v.toInt();
+      final isSeconds = x < 100000000000;
+      return DateTime.fromMillisecondsSinceEpoch(isSeconds ? x * 1000 : x);
+    }
+    final s = v.toString().trim();
+    if (s.isEmpty) return null;
+    final iso = DateTime.tryParse(s);
+    if (iso != null) return iso;
+    final m = RegExp(
+        r'(\d{2})[-/](\d{2})[-/](\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?'
+    ).firstMatch(s);
+    if (m != null) {
+      final d  = int.parse(m.group(1)!);
+      final mo = int.parse(m.group(2)!);
+      final y  = int.parse(m.group(3)!);
+      final h  = int.tryParse(m.group(4) ?? '0') ?? 0;
+      final mi = int.tryParse(m.group(5) ?? '0') ?? 0;
+      final se = int.tryParse(m.group(6) ?? '0') ?? 0;
+      return DateTime(y, mo, d, h, mi, se);
+    }
+    return null;
   }
 
-  /// PUT /api/nhat-ky-tien-trinh/{deTaiId}/nop-nhat-ky  body: { tuan, nhanXet }
-  Future<void> submitReview({
-    required int deTaiId,
-    required int tuan,
-    required String nhanXet,
+  static int _toInt(dynamic v) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
+  }
+
+  static List<int> _parseWeeks(dynamic rawWeeks) {
+    final set = <int>{};
+    if (rawWeeks is List) {
+      for (final e in rawWeeks) {
+        int? val;
+        if (e is int) val = e;
+        else if (e is num) val = e.toInt();
+        else if (e is String) val = int.tryParse(e.trim());
+        if (val != null && val > 0 && val < 100) set.add(val);
+      }
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  static int _calcWeekCount(DateTime? from, DateTime? to) {
+    if (from == null || to == null) return 15;
+    final days = to.difference(from).inDays + 1;
+    final weeks = (days / 7).ceil();
+    return weeks.clamp(1, 30);
+  }
+
+  /// ✅ GET /api/nhat-ky-tien-trinh/tuans-by-lecturer?includeAll=false|true
+  /// Hỗ trợ cả 2 format:
+  /// 1) result: [ {tuan, ngayBatDau, ngayKetThuc}, ... ]
+  /// 2) result: { weeks: [...], from: "...", to: "...", currentWeek: n }
+  static Future<WeeksInfo> fetchWeeksByLecturer({required bool includeAll}) async {
+    final uri = Uri.parse('$_base/api/nhat-ky-tien-trinh/tuans-by-lecturer')
+        .replace(queryParameters: {'includeAll': includeAll.toString()});
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) {
+      throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+
+    // TH1: API trả mảng tuần: [{tuan, ngayBatDau, ngayKetThuc}, ...]
+    final listLike = _extractList(decoded);
+    if (listLike.isNotEmpty && listLike.first.containsKey('tuan')) {
+      final ranges = <int, Map<String, DateTime?>>{};
+      DateTime? minFrom, maxTo;
+      for (final e in listLike) {
+        final w = _toInt(e['tuan']);
+        if (w <= 0) continue;
+        final f = _toDateFlex(e['ngayBatDau']);
+        final t = _toDateFlex(e['ngayKetThuc']);
+        ranges[w] = {'from': f, 'to': t};
+        if (f != null && (minFrom == null || f.isBefore(minFrom))) minFrom = f;
+        if (t != null && (maxTo   == null || t.isAfter(maxTo)))     maxTo   = t;
+      }
+      var weeks = ranges.keys.toList()..sort();
+      if (weeks.isEmpty) weeks = [1];
+
+      // chọn tuần hiện tại theo "now" nếu khớp range; không thì lấy tuần nhỏ nhất
+      var selected = weeks.first;
+      final now = DateTime.now();
+      for (final w in weeks) {
+        final f = ranges[w]!['from'], t = ranges[w]!['to'];
+        if (f != null && t != null &&
+            (now.isAtSameMomentAs(f) || now.isAfter(f)) &&
+            (now.isAtSameMomentAs(t) || now.isBefore(t))) {
+          selected = w; break;
+        }
+      }
+
+      if (kDebugMode) {
+        debugPrint('[Weeks] ${weeks.join(", ")} | selected=$selected '
+            '| from=$minFrom | to=$maxTo');
+      }
+
+      return WeeksInfo(
+        from: minFrom, to: maxTo, selectedWeek: selected, weeks: weeks,
+      );
+    }
+
+    // TH2: API trả object { weeks, from, to, currentWeek, ... }
+    final obj = (decoded is Map && decoded['result'] is Map)
+        ? Map<String, dynamic>.from(decoded['result'])
+        : (listLike.isNotEmpty ? listLike.first : <String, dynamic>{});
+
+    final from = _toDateFlex(obj['from'] ?? obj['ngayBatDau'] ?? obj['startDate']);
+    final to   = _toDateFlex(obj['to']   ?? obj['ngayKetThuc'] ?? obj['endDate']);
+    var selected = _toInt(obj['currentWeek'] ?? obj['weekNow'] ?? obj['week'] ?? 1);
+    var weeks = _parseWeeks(obj['weeks'] ?? obj['listWeeks'] ?? obj['tuans']);
+
+    if (weeks.isEmpty) {
+      final count = _calcWeekCount(from, to);
+      weeks = List.generate(count, (i) => i + 1);
+    }
+    if (!weeks.contains(selected)) {
+      selected = weeks.first;
+    }
+
+    if (kDebugMode) {
+      debugPrint('[Weeks(obj)] ${weeks.join(", ")} | selected=$selected '
+          '| from=$from | to=$to');
+    }
+
+    return WeeksInfo(from: from, to: to, selectedWeek: selected, weeks: weeks);
+  }
+
+  /// ✅ Khử trùng lặp theo (maSinhVien, idDeTai)
+  static Future<List<ProgressStudent>> listStudents({required int week}) async {
+    final uri = Uri.parse('$_base/api/nhat-ky-tien-trinh/all-nhat-ky/list')
+        .replace(queryParameters: {'week': '$week'});
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) {
+      throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
+    }
+    final list = _extractList(jsonDecode(res.body))
+        .map((e) => ProgressStudent.fromJson(e))
+        .toList();
+
+    final seen = <String>{};
+    final dedup = <ProgressStudent>[];
+    for (final it in list) {
+      final key = '${it.maSinhVien}#${it.idDeTai}';
+      if (seen.add(key)) dedup.add(it);
+    }
+    if (kDebugMode) {
+      debugPrint('[Students] raw=${list.length} -> unique=${dedup.length}');
+    }
+    return dedup;
+  }
+
+  /// GET /api/nhat-ky-tien-trinh/my-supervised-students/list?maSinhVien=&deTaiId=&week=
+  static Future<List<WeeklyEntry>> fetchStudentLogs({
+    required String maSinhVien,
+    int? deTaiId,
+    int? week,
   }) async {
-    final headers = await _headers();
-    final body = {'tuan': tuan, 'nhanXet': nhanXet};
-    try {
-      if (kDebugMode) {
-        print('[TienDoService] PUT /api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky $body');
-      }
-      await _dio.put(
-        '/api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky',
-        data: body,
-        options: Options(headers: headers),
-      );
-    } on DioException catch (e) {
-      throw Exception(
-          'Gửi nhận xét thất bại: ${e.response?.data ?? e.message}');
+    final qp = <String, String>{'maSinhVien': maSinhVien};
+    if (deTaiId != null && deTaiId > 0) qp['deTaiId'] = '$deTaiId';
+    if (week != null && week > 0) qp['week'] = '$week';
+
+    final uri = Uri.parse('$_base/api/nhat-ky-tien-trinh/my-supervised-students/list')
+        .replace(queryParameters: qp);
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) {
+      throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
+    final list = _extractList(jsonDecode(res.body));
+    return list.map((e) => WeeklyEntry.fromJson(e)).toList();
+  }
+
+  /// PUT /api/nhat-ky-tien-trinh/{id}/duyet?nhanXet=...
+  static Future<WeeklyEntry> review({required int id, required String nhanXet}) async {
+    final uri = Uri.parse('$_base/api/nhat-ky-tien-trinh/$id/duyet')
+        .replace(queryParameters: {'nhanXet': nhanXet});
+    final res = await http.put(uri, headers: await _headers(), body: '{}');
+    if (res.statusCode != 200) {
+      throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
+    }
+    final body = jsonDecode(res.body);
+    final map = _extractList(body).isNotEmpty
+        ? _extractList(body).first
+        : (body is Map ? body : {});
+    return WeeklyEntry.fromJson(Map<String, dynamic>.from(map));
   }
 }

@@ -9,21 +9,14 @@ import 'package:GPMS/features/lecturer/models/de_cuong_item.dart';
 class DeCuongService {
   static String get _base => AuthService.baseUrl;
 
-  /// Header giống DeTaiService: có Accept + Content-Type và Authorization Bearer <token>
   static Future<Map<String, String>> _headers() async {
     final raw = await AuthService.getToken();
+    String? token = raw;
+    if (token != null && token.startsWith('Bearer ')) token = token.substring(7);
 
     if (kDebugMode) {
-      final short = raw == null
-          ? 'NULL'
-          : '${raw.substring(0, raw.length > 12 ? 12 : raw.length)}... (len=${raw.length})';
-      print('[DeCuongService] token(short) = $short');
-    }
-
-    // Cắt "Bearer " nếu token đã có sẵn
-    String? token = raw;
-    if (token != null && token.startsWith('Bearer ')) {
-      token = token.substring(7);
+      debugPrint('[DeCuongService] tokenPrefix='
+          '${token == null ? "NULL" : token.substring(0, token.length > 10 ? 10 : token.length)}...');
     }
 
     final h = <String, String>{
@@ -50,7 +43,7 @@ class DeCuongService {
     return const [];
   }
 
-  /// GET /api/de-cuong (giữ nguyên)
+  /// GET /api/de-cuong
   static Future<List<DeCuongItem>> list() async {
     final uri = Uri.parse('$_base/api/de-cuong');
     final res = await http.get(uri, headers: await _headers());
@@ -62,34 +55,78 @@ class DeCuongService {
     return list.map((e) => DeCuongItem.fromJson(e)).toList();
   }
 
-  /// ✅ PUT /api/de-cuong/{id}/duyet?nhanXet=...
+  // PUT /api/de-cuong/{id}/duyet?reason=... (&nhanXet=... để tương thích ngược)
   static Future<DeCuongItem> approve({
     required int id,
     required String nhanXet,
+    bool alsoSendBody = false, // bật nếu BE yêu cầu body JSON
   }) async {
-    final uri = Uri.parse('$_base/api/de-cuong/$id/duyet')
-        .replace(queryParameters: {'nhanXet': nhanXet});
-    final res = await http.put(uri, headers: await _headers());
+    final note = nhanXet.trim();
+    if (note.isEmpty) throw ArgumentError('Nhận xét bắt buộc.');
+
+    final uri = Uri.parse('$_base/api/de-cuong/$id/duyet').replace(
+      queryParameters: {
+        'reason': note,     // <<< tên BE đang cần
+        'nhanXet': note,    // (tùy chọn) giữ để tương thích
+      },
+    );
+
+    final h = await _headers();
+    if (kDebugMode) {
+      debugPrint('[DeCuongService.approve] PUT $uri');
+      debugPrint('  headers: $h');
+    }
+
+    final res = await http.put(
+      uri,
+      headers: h,
+      body: alsoSendBody ? jsonEncode({'idDeCuong': id, 'reason': note}) : null,
+    );
+
     if (res.statusCode != 200) {
+      if (kDebugMode) debugPrint('approve sent headers: ${res.request?.headers}');
       throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
+
     final body = jsonDecode(res.body);
     final list = _extractList(body);
     final map = list.isNotEmpty ? list.first : (body is Map ? body : {});
     return DeCuongItem.fromJson(Map<String, dynamic>.from(map));
   }
 
-  /// ✅ PUT /api/de-cuong/{id}/tu-choi?nhanXet=...
+  // PUT /api/de-cuong/{id}/tu-choi?reason=... (&nhanXet=...)
   static Future<DeCuongItem> reject({
     required int id,
     required String nhanXet,
+    bool alsoSendBody = false,
   }) async {
-    final uri = Uri.parse('$_base/api/de-cuong/$id/tu-choi')
-        .replace(queryParameters: {'nhanXet': nhanXet});
-    final res = await http.put(uri, headers: await _headers());
+    final note = nhanXet.trim();
+    if (note.isEmpty) throw ArgumentError('Nhận xét bắt buộc.');
+
+    final uri = Uri.parse('$_base/api/de-cuong/$id/tu-choi').replace(
+      queryParameters: {
+        'reason': note,     // <<< tên BE cần
+        'nhanXet': note,    // (tùy chọn)
+      },
+    );
+
+    final h = await _headers();
+    if (kDebugMode) {
+      debugPrint('[DeCuongService.reject] PUT $uri');
+      debugPrint('  headers: $h');
+    }
+
+    final res = await http.put(
+      uri,
+      headers: h,
+      body: alsoSendBody ? jsonEncode({'idDeCuong': id, 'reason': note}) : null,
+    );
+
     if (res.statusCode != 200) {
+      if (kDebugMode) debugPrint('reject sent headers: ${res.request?.headers}');
       throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
+
     final body = jsonDecode(res.body);
     final list = _extractList(body);
     final map = list.isNotEmpty ? list.first : (body is Map ? body : {});

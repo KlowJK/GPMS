@@ -1,6 +1,6 @@
 import 'package:GPMS/features/lecturer/views/screens/do_an/do_an.dart';
+import 'package:GPMS/features/student/views/screens/bao_cao/bao_cao.dart';
 import 'package:flutter/material.dart';
-import '../bao_cao/bao_cao.dart';
 import '../tien_do/tien_do.dart';
 import '../hoi_dong/hoi_dong.dart';
 import '../ho_so/ho_so.dart';

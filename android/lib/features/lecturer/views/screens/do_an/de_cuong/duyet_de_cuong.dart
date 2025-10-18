@@ -5,6 +5,30 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:GPMS/features/lecturer/services/de_cuong_service.dart';
 import 'package:GPMS/features/lecturer/models/de_cuong_item.dart';
 
+Color deCuongStatusColor(DeCuongStatus s) {
+  switch (s) {
+    case DeCuongStatus.approved:
+      return const Color(0xFF16A34A); // xanh lá
+    case DeCuongStatus.rejected:
+      return const Color(0xFFDC2626); // đỏ
+    case DeCuongStatus.pending:
+    default:
+      return const Color(0xFFF59E0B); // vàng
+  }
+}
+
+String deCuongStatusText(DeCuongStatus s) {
+  switch (s) {
+    case DeCuongStatus.approved:
+      return 'Đã duyệt';
+    case DeCuongStatus.rejected:
+      return 'Từ chối';
+    case DeCuongStatus.pending:
+    default:
+      return 'Đang chờ duyệt';
+  }
+}
+
 class DuyetDeCuong extends StatefulWidget {
   const DuyetDeCuong({super.key});
   @override
@@ -53,22 +77,31 @@ class _DuyetDeCuongState extends State<DuyetDeCuong> {
     if (note == null || note.trim().isEmpty) return;
 
     try {
-      DeCuongItem updated;
-      if (approve) {
-        updated = await DeCuongService.approve(id: it.id, nhanXet: note.trim());
-      } else {
-        updated = await DeCuongService.reject(id: it.id, nhanXet: note.trim());
+      DeCuongItem updated = approve
+          ? await DeCuongService.approve(id: it.id, nhanXet: note.trim())
+          : await DeCuongService.reject(id: it.id, nhanXet: note.trim());
+
+      if ((updated.nhanXet ?? '').isEmpty) {
+        updated = updated.copyWith(nhanXet: note.trim());
       }
       setState(() => _items[index] = updated);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(approve ? 'Đã duyệt đề cương' : 'Đã từ chối đề cương')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi cập nhật: $e')),
-      );
+      final msg = e.toString();
+      String human = 'Lỗi cập nhật: $msg';
+      if (msg.contains('401')) {
+        human =
+        '401 (Unauthorized):\n'
+            '• Token thiếu/hết hạn → Đăng xuất, đăng nhập lại.\n'
+            '• Tài khoản không đúng vai trò/không phải GV phản biện của đề cương.\n'
+            '• Header Authorization không được gửi đi (kiểm tra log).';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(human)));
     }
   }
 
