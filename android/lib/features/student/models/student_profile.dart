@@ -66,7 +66,7 @@ class StudentProfile {
       cvUrl: s('cvUrl'),
       diaChi: s('diaChi'),
       ngaySinh: s('ngaySinh'),
-      avatarUrl: s('avatarUrl'),
+      avatarUrl: s('duongDanAvt'),
     );
   }
 }

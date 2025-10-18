@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../models/de_nghi_hoan_model.dart';
-import '../services/hoan_do_an_service.dart';
+import 'package:GPMS/features/student/models/de_nghi_hoan_model.dart';
+import 'package:GPMS/features/student/services/hoan_do_an_service.dart';
 
 class HoanDoAnViewModel extends ChangeNotifier {
   final HoanDoAnService service;

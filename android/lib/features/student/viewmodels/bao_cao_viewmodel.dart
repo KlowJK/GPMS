@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/report_item.dart';
-import '../services/bao_cao_service.dart';
+import 'package:GPMS/features/student/models/report_item.dart';
+import 'package:GPMS/features/student/services/bao_cao_service.dart';
 
 class BaoCaoViewModel extends ChangeNotifier {
   final BaoCaoService service;

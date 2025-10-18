@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../models/danh_sach_nhat_ky.dart';
-import '../services/nhat_ky_service.dart';
+import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
+import 'package:GPMS/features/student/services/nhat_ky_service.dart';
 
 class SubmitDiaryViewModel extends ChangeNotifier {
   final NhatKyService service;

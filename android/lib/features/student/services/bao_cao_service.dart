@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/report_item.dart';
+import 'package:GPMS/features/student/models/report_item.dart';
 
 class BaoCaoService {
   final String baseUrl;

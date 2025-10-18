@@ -1,9 +1,8 @@
-// filepath: lib/features/student/services/hoi_dong_service.dart
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../auth/services/auth_service.dart';
-import '../models/hoi_dong_item.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/hoi_dong_item.dart';
 
 class HoiDongService {
   // ===== Aliases / Static helpers (đặt ở đầu class) =====

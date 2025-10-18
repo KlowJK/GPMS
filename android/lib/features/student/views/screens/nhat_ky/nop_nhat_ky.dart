@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:open_file/open_file.dart';
 
-import '../../../viewmodels/nop_nhat_ky_viewmodel.dart';
-import '../../../models/nop_nhat_ki.dart';
+import 'package:GPMS/features/student/viewmodels/nop_nhat_ky_viewmodel.dart';
+import 'package:GPMS/features/student/models/nop_nhat_ki.dart';
 
 /* Local diary model and submit page extracted from nhat_ky.dart */
 

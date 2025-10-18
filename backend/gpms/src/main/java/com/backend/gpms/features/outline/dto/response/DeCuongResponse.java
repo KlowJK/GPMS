@@ -35,6 +35,7 @@ public class DeCuongResponse {
     String tbmDuyet;//
 
     List<NhanXetDeCuongResponse> nhanXets;
+    LocalDateTime createdAt;
 
     // DTO lồng
     public static class NhanXetDeCuongResponse {
