@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import App from '../../App';
 import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
+import StudentLayout from '../../layouts/StudentLayout'
+import LecturerLayout from '../../layouts/LecturerLayout'
 
 export const router = createBrowserRouter([
     {
@@ -69,8 +71,11 @@ export const router = createBrowserRouter([
                         children: [
                             {
                                 path: 'students',
-                                lazy: () =>
-                                    import('@features/students/pages/StudentsListPage').then(m => ({ Component: m.default })),
+                                // Wrap student routes with StudentLayout so Topbar appears for students
+                                element: <StudentLayout />,
+                                children: [
+                                    { index: true, lazy: () => import('@features/students/pages/StudentsListPage').then(m => ({ Component: m.default })) },
+                                ],
                             },
                         ],
                     },
@@ -81,8 +86,8 @@ export const router = createBrowserRouter([
                         children: [
                             {
                                 path: 'lecturers',
-                                // Lecturer area layout (topbar + sidebar). Children routes are nested.
-                                lazy: () => import('@features/lecturers/src/routes/LecturersApp').then(m => ({ Component: m.default })),
+                                // Wrap lecturer routes with LecturerLayout so Topbar appears for lecturers
+                                element: <LecturerLayout />,
                                 children: [
                                     { index: true, lazy: () => import('@features/lecturers/pages/Dashboard').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/list', lazy: () => import('../../features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },

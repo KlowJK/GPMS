@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 
 public class ApprovalSinhVienResponse {
     String maSV;
+    String duongDanCv;
     String hoTen;
     String tenLop;
     String soDienThoai;

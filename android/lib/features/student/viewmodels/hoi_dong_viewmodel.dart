@@ -1,8 +1,7 @@
-// filepath: lib/features/student/viewmodels/hoi_dong_viewmodel.dart
 import 'package:flutter/foundation.dart';
-import '../models/hoi_dong_item.dart';
-import '../services/hoi_dong_service.dart';
-import '../services/do_an_service.dart';
+import 'package:GPMS/features/student/models/hoi_dong_item.dart';
+import 'package:GPMS/features/student/services/hoi_dong_service.dart';
+import 'package:GPMS/features/student/services/do_an_service.dart';
 
 class HoiDongViewModel extends ChangeNotifier {
   final HoiDongService service;

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../widgets/task_tile.dart';
-import '../../widgets/all_tasks_page.dart';
-import '../../widgets/section_header.dart';
-import '../../widgets/noti_tile.dart';
-import '../../widgets/all_noti_page.dart';
-import '../../widgets/news_tile.dart';
-import '../../widgets/all_news_page.dart';
-import '../../widgets/topic_library_card.dart';
+import 'package:GPMS/features/student/views/widgets/task_tile.dart';
+import 'package:GPMS/features/student/views/widgets/all_tasks_page.dart';
+import 'package:GPMS/features/student/views/widgets/section_header.dart';
+import 'package:GPMS/features/student/views/widgets/noti_tile.dart';
+import 'package:GPMS/features/student/views/widgets/all_noti_page.dart';
+import 'package:GPMS/features/student/views/widgets/news_tile.dart';
+import 'package:GPMS/features/student/views/widgets/all_news_page.dart';
+import 'package:GPMS/features/student/views/widgets/topic_library_card.dart';
+import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class TrangChuPage extends StatelessWidget {
   const TrangChuPage({super.key});
@@ -272,6 +275,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: const Color(0xFF2563EB),
       elevation: 1,
       centerTitle: false,

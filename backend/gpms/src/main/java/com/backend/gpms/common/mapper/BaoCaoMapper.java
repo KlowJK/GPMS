@@ -23,6 +23,9 @@ public interface BaoCaoMapper {
     @Mapping(source = "diemHuongDan", target = "diemBaoCao")
     @Mapping(source = "createdAt", target = "ngayNop")
     @Mapping(source = "ghiChu", target = "nhanXet")
+    @Mapping(source = "deTai.sinhVien.hoTen", target = "tenSinhVien")
+    @Mapping(source = "createdAt", target = "createdAt")
+    @Mapping(source = "deTai.sinhVien.lop.tenLop", target = "lop")
     BaoCaoResponse toBaoCaoResponse(BaoCao baoCao);
 
     @Named("multipartFileToString")

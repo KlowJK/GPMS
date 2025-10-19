@@ -1,40 +1,79 @@
 import 'package:flutter/material.dart';
-
-import 'sinh_vien/sinh_vien.dart';        // => chứa class SinhVienScreen
-import 'de_tai/duyet_de_tai.dart';
-import 'de_cuong/duyet_de_cuong.dart';
+import 'package:GPMS/features/lecturer/views/screens/do_an/sinh_vien/sinh_vien.dart'; // => chứa class SinhVienScreen
+import 'package:GPMS/features/lecturer/views/screens/do_an/de_tai/duyet_de_tai.dart';
+import 'package:GPMS/features/lecturer/views/screens/do_an/de_cuong/duyet_de_cuong.dart';
 
 class DoAn extends StatelessWidget {
   const DoAn({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF2F7CD3);
-
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: blue,
-          foregroundColor: Colors.white,
-          centerTitle: true,
-          elevation: 0,
-          automaticallyImplyLeading: false, // ẩn mũi tên back
-          title: const Text('Đồ án', style: TextStyle(fontWeight: FontWeight.w700)),
+          automaticallyImplyLeading: false,
+          backgroundColor: const Color(0xFF2563EB),
+          elevation: 1,
+          centerTitle: false,
+          titleSpacing: 12,
+          title: Row(
+            children: [
+              Container(
+                width: 55,
+                height: 55,
+                child: Image.asset("assets/images/logo.png"),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+
+                  children: [
+                    Text(
+                      'TRƯỜNG ĐẠI HỌC THỦY LỢI',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'THUY LOI UNIVERSITY',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              onPressed: () {},
+              tooltip: 'Thông báo',
+              icon: const Icon(Icons.notifications_outlined),
+              color: Colors.white,
+            ),
+            const SizedBox(width: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                child: const Icon(Icons.person, size: 18),
+              ),
+            ),
+          ],
           bottom: const PreferredSize(
             preferredSize: Size.fromHeight(44),
             child: _TopTabs(),
           ),
         ),
 
-        // ❌ KHÔNG dùng const ở đây
         body: TabBarView(
-          children: const [
-            // đổi SinhVienTab -> SinhVienScreen
-            SinhVienTab(),
-            DuyetDeTai(),
-            DuyetDeCuong(),
-          ],
+          children: const [SinhVienTab(), DuyetDeTai(), DuyetDeCuong()],
         ),
       ),
     );
@@ -49,24 +88,23 @@ class _TopTabs extends StatelessWidget {
     const blue = Color(0xFF2F7CD3);
 
     return Container(
-      color: Colors.white,
+      color: Color(0xFFE3E3E8),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: TabBar(
         labelColor: blue,
-        unselectedLabelColor: const Color(0xFF888888),
+        unselectedLabelColor: Colors.black,
         labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         indicatorSize: TabBarIndicatorSize.label,
         indicator: const UnderlineTabIndicator(
           borderSide: BorderSide(color: blue, width: 2),
           insets: EdgeInsets.symmetric(horizontal: 16),
         ),
-        // Nếu Flutter cũ, thay bằng MaterialStatePropertyAll
         overlayColor: const WidgetStatePropertyAll(Colors.transparent),
         splashFactory: NoSplash.splashFactory,
         tabs: const [
           Tab(text: 'Sinh viên'),
-          Tab(text: 'Duyệt Đề tài'),
-          Tab(text: 'Duyệt Đề cương'),
+          Tab(text: 'Duyệt đề tài'),
+          Tab(text: 'Duyệt đề cương'),
         ],
       ),
     );

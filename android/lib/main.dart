@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'features/auth/views/screens/login.dart';
+import 'package:GPMS/features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
-import 'features/auth/viewmodels/auth_viewmodel.dart';
-import 'shared/models/thong_bao_va_tin_tuc.dart';
-import 'core/services/main_service.dart';
+import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
+import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/core/services/main_service.dart';
 import 'package:intl/intl.dart';
-import 'shared/NewsDetailPage.dart';
-import 'shared/AllNewsPage.dart';
+import 'package:GPMS/shared/NewsDetailPage.dart';
+import 'package:GPMS/shared/AllNewsPage.dart';
 
 void main() {
   runApp(
@@ -46,11 +46,38 @@ class HomeGuestResponsive extends StatefulWidget {
 
 class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
   late Future<List<ThongBaoVaTinTuc>> _notificationsFuture;
+  late DateFormat _dateFormat;
+  bool _didInitDeps = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tải dữ liệu 1 lần duy nhất
+    _notificationsFuture = MainService.listThongBao();
+    // Định dạng mặc định, sẽ cập nhật theo locale trong didChangeDependencies()
+    _dateFormat = DateFormat('dd/MM/yy');
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _notificationsFuture = MainService.listThongBao();
+
+    // Những gì phụ thuộc context: cập nhật DateFormat theo locale hiện tại
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    _dateFormat = DateFormat('dd/MM/yy', localeTag);
+
+    // Nếu bạn cần chạy logic phụ thuộc Provider/InheritedWidget lần đầu
+    if (!_didInitDeps) {
+      _didInitDeps = true;
+      // Ví dụ (nếu cần): final auth = context.read<AuthViewModel>();
+      // if (auth.isLoggedIn) { ... }
+    }
+
+    // Nếu muốn refresh khi dependency thay đổi (vd: auth state), có thể watch provider ở đây
+    final auth = context.watch<AuthViewModel>();
+    if (auth.isLoggedIn) {
+      _notificationsFuture = MainService.listThongBao();
+    }
   }
 
   @override
@@ -103,6 +130,7 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                         },
                       ),
                     ),
+
                     FutureBuilder<List<ThongBaoVaTinTuc>>(
                       future: _notificationsFuture,
                       builder: (context, snapshot) {
@@ -121,6 +149,7 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                         }
 
                         final notifications = snapshot.data!;
+                        final top3 = notifications.take(3).toList();
                         return Card(
                           elevation: 0,
                           clipBehavior: Clip.antiAlias,
@@ -129,10 +158,11 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
-                            children: notifications.take(3).map((notification) {
-                              final formattedDate = DateFormat(
-                                'dd/MM/yy',
-                              ).format(notification.ngayDang);
+                            children: List.generate(top3.length, (i) {
+                              final notification = top3[i];
+                              final formattedDate = _dateFormat.format(
+                                notification.ngayDang,
+                              );
                               return Column(
                                 children: [
                                   _NewsItem(
@@ -149,12 +179,11 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                                       );
                                     },
                                   ),
-                                  if (notifications.take(3).last !=
-                                      notification)
+                                  if (i < top3.length - 1)
                                     const Divider(height: 1),
                                 ],
                               );
-                            }).toList(),
+                            }),
                           ),
                         );
                       },
@@ -217,7 +246,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         children: [
           // Logo placeholder
-          Container(
+          SizedBox(
             width: 55,
             height: 55,
             child: Image.asset("assets/images/logo.png"),
@@ -250,11 +279,9 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: FilledButton.tonal(
-            // Trong _HeaderBar actions:
             onPressed: () {
               Navigator.of(context).pushNamed('/login');
             },
-
             style: FilledButton.styleFrom(
               shape: const StadiumBorder(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -316,17 +343,12 @@ class _NewsItem extends StatelessWidget {
           context,
         ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
-      subtitle: Text(
-        subtitle,
-        maxLines: 1, // Giới hạn hiển thị 1 hàng
-        overflow:
-            TextOverflow.ellipsis, // Cắt bớt nội dung thừa với dấu ba chấm
-      ),
+      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       dense: false,
       trailing: Padding(
-        padding: const EdgeInsets.only(top: 0), // Điều chỉnh khoảng cách trên
+        padding: const EdgeInsets.only(top: 0),
         child: Text(
           date,
           style: Theme.of(
@@ -379,7 +401,7 @@ class _TopicLibraryCard extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [
+              children: const [
                 _FilterChip(label: 'Đợt 2', selected: true),
                 _FilterChip(label: '2023'),
                 _FilterChip(label: 'AI'),
@@ -487,6 +509,18 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Lắng nghe thay đổi text để update danh sách theo thời gian thực
+    _searchController.addListener(() {
+      final q = _searchController.text;
+      if (q != _searchQuery) {
+        setState(() => _searchQuery = q);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -505,7 +539,7 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
           'Tất cả đề tài',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Color(0xFF2563EB),
+        backgroundColor: const Color(0xFF2563EB),
       ),
       body: SafeArea(
         child: Material(
@@ -532,20 +566,14 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
                       ),
                       isDense: true,
                     ),
-                    onChanged: (q) {
-                      setState(() => _searchQuery = q);
-                    },
-                    onSubmitted: (q) {
-                      setState(() => _searchQuery = q);
-                    },
                   ),
                 );
               }
               final (title, subtitle) = _filteredItems[index - 1];
               return ListTile(
-                leading: CircleAvatar(
+                leading: const CircleAvatar(
                   backgroundColor: Color(0xFFF1F3F6),
-                  child: const Icon(Icons.folder, size: 18),
+                  child: Icon(Icons.folder, size: 18),
                 ),
                 title: Text(title),
                 subtitle: Text(subtitle),

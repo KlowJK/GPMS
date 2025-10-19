@@ -1,27 +1,19 @@
-// filepath: lib/features/lecturer/services/sinh_vien_service.dart
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
-
-import '../../auth/services/auth_service.dart';
-import '../models/sinh_vien_item.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/lecturer/models/sinh_vien_item.dart';
 
 class SinhVienService {
-  // -----------------------------
-  // Dio + headers (kèm Bearer)
-  // -----------------------------
-  static Future<Dio> _dio() async {
-    final token = await AuthService.getToken();
-    final options = BaseOptions(
-      baseUrl: AuthService.baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: <String, String>{
-        'accept': '*/*',
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-      },
+  /// GET /api/giang-vien/sinh-vien
+  static Future<List<SinhVienItem>> fetch() async {
+    final uri = Uri.parse(
+      '${AuthService.baseUrl}/api/giang-vien/sinh-vien/list',
     );
-    return Dio(options);
-  }
+    final headers = await _headers();
+
+    final res = await http
+        .get(uri, headers: headers)
+        .timeout(const Duration(seconds: 15));
 
   // -----------------------------
   // Helper: bóc list từ nhiều kiểu response khác nhau
@@ -51,30 +43,9 @@ class SinhVienService {
     return <dynamic>[];
   }
 
-  // -----------------------------
-  // GET danh sách sinh viên
-  // -----------------------------
-  static Future<List<SinhVienItem>> fetch() async {
-    final dio = await _dio();
-    try {
-      final resp = await dio.get('/api/giang-vien/sinh-vien');
-      final list = _extractList(resp.data)
-          .map((e) => SinhVienItem.fromJson(
-        Map<String, dynamic>.from(e as Map),
-      ))
-          .toList();
-      return list;
-    } on DioException catch (e) {
-      if (kDebugMode) {
-        print('[SinhVienService.fetch] DioException ${e.response?.statusCode} - ${e.message}');
-      }
-      final status = e.response?.statusCode;
-      if (status == 401) throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
-      throw Exception(e.response?.data?.toString() ?? e.message ?? 'Lỗi mạng');
-    } catch (e) {
-      if (kDebugMode) print('[SinhVienService.fetch] error: $e');
-      throw Exception('Lỗi khi tải danh sách sinh viên: $e');
-    }
+  static Future<Map<String, String>> _headers() async {
+    final token = await AuthService.getToken();
+    return {'Accept': 'application/json', 'Authorization': 'Bearer $token'};
   }
 
   // -----------------------------

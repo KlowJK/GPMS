@@ -1,261 +1,308 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart' as launcher;
+import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
+import 'package:GPMS/features/student/models/student_profile.dart';
 
-/// ===== Demo model (có thể thay bằng dữ liệu từ backend) =====
-class StudentProfile {
-  final String name;
-  final String faculty;
-  final String email;
-  final String dob;
-  final String phone;
-  final String gender;
-  final String studentId;
-  final String major;
-  final String status;
-  final String avatarUrl;
+import 'package:GPMS/features/student/views/screens/ho_so/LogoutButton.dart';
 
-  const StudentProfile({
-    required this.name,
-    required this.faculty,
-    required this.email,
-    required this.dob,
-    required this.phone,
-    required this.gender,
-    required this.studentId,
-    required this.major,
-    required this.status,
-    required this.avatarUrl,
-  });
+// ======= PAGE chính (đọc VM) =======
+class HoSo extends StatefulWidget {
+  const HoSo({super.key});
+
+  @override
+  State<HoSo> createState() => _HoSoPageState();
 }
 
-const _demo = StudentProfile(
-  name: 'Hà Văn Thắng',
-  faculty: 'Khoa Công nghệ thông tin',
-  email: 'havanthang@e.tlu.vn',
-  dob: '24/09/2003',
-  phone: '0123456789',
-  gender: 'Nữ',
-  studentId: '2251172362',
-  major: 'Kĩ thuật phần mềm',
-  status: 'Đang học tập',
-  avatarUrl:
-      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=256&q=80',
-);
-
-/// ======= PAGE =======
-class HoSo extends StatelessWidget {
-  const HoSo({super.key, this.data = _demo});
-  final StudentProfile data;
+class _HoSoPageState extends State<HoSo> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HoSoViewModel>().loadForCurrentUser();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<HoSoViewModel>();
+    final data = vm.profile;
+
     return Scaffold(
-      // AppBar có thể bỏ nếu bạn hiển thị header riêng cho Trang chủ
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CD3),
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         centerTitle: true,
         title: const Text('Hồ sơ'),
       ),
 
-      body: LayoutBuilder(
-        builder: (context, c) {
-          final w = c.maxWidth;
-          final double maxW = w >= 1200
-              ? 900
-              : w >= 900
-              ? 720
-              : 560;
-          final double pad = w >= 900 ? 24 : 16;
-          final double gap = w >= 900 ? 18 : 12;
-
-          return SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxW),
+      body: Builder(
+        builder: (context) {
+          if (vm.isLoading && data == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (vm.error != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Header xanh + avatar + tên
-                    _ProfileHeader(data: data),
-
-                    // Khối "Thông tin cá nhân"
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SectionTitle('Thông tin cá nhân'),
-                          Card(
-                            elevation: 0,
-                            clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: Theme.of(context).dividerColor,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                _InfoRow(
-                                  icon: Icons.email_outlined,
-                                  label: 'Email',
-                                  value: data.email,
-                                ),
-                                const Divider(height: 1),
-                                _InfoRow(
-                                  icon: Icons.calendar_month_outlined,
-                                  label: 'Ngày sinh',
-                                  value: data.dob,
-                                ),
-                                const Divider(height: 1),
-                                _InfoRow(
-                                  icon: Icons.phone_outlined,
-                                  label: 'Số điện thoại',
-                                  value: data.phone,
-                                ),
-                                const Divider(height: 1),
-                                _InfoRow(
-                                  icon: Icons.wc_outlined,
-                                  label: 'Giới tính',
-                                  value: data.gender,
-                                ),
-                                const Divider(height: 1),
-                                _InfoRow(
-                                  icon: Icons.badge_outlined,
-                                  label: 'Mã sinh viên',
-                                  value: data.studentId,
-                                ),
-                                const Divider(height: 1),
-                                _InfoRow(
-                                  icon: Icons.school_outlined,
-                                  label: 'Ngành',
-                                  value: data.major,
-                                ),
-                                const Divider(height: 1),
-                                _InfoRow(
-                                  icon: Icons.verified_outlined,
-                                  label: 'Trạng thái',
-                                  value: data.status,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(height: gap * 1.5),
-
-                          // Cài đặt
-                          _SectionTitle('Cài đặt'),
-                          Card(
-                            elevation: 0,
-                            clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                              side: BorderSide(
-                                color: Theme.of(context).dividerColor,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.history),
-                                  title: const Text('Lịch sử thao tác'),
-                                  onTap: () {},
-                                ),
-                                const Divider(height: 1),
-                                ListTile(
-                                  leading: const Icon(Icons.help_outline),
-                                  title: const Text('Trợ giúp'),
-                                  onTap: () {},
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(height: gap * 2),
-
-                          // Đăng xuất
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFBF2D2D),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                  horizontal: 24,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                              onPressed: () {},
-                              child: const Text(
-                                'Đăng xuất',
-                                style: TextStyle(fontSize: 18),
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: gap * 2.5),
-                        ],
-                      ),
+                    Text('Lỗi: ${vm.error}', textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => vm.loadForCurrentUser(),
+                      child: const Text('Thử lại'),
                     ),
                   ],
                 ),
               ),
-            ),
-          );
+            );
+          }
+          if (data == null) {
+            return const Center(child: Text('Không có dữ liệu hồ sơ.'));
+          }
+
+          return _HoSoBody(data: data);
         },
       ),
     );
   }
 }
 
-/// ======= HEADER =======
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.data});
+// ======= BODY layout (trước đây là HoSo) =======
+class _HoSoBody extends StatelessWidget {
+  const _HoSoBody({required this.data});
   final StudentProfile data;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        final double maxW = w >= 1200
+            ? 900
+            : w >= 900
+            ? 720
+            : 560;
+        final double pad = w >= 900 ? 24 : 16;
+        final double gap = w >= 900 ? 18 : 12;
 
+        return SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxW),
+              child: Column(
+                children: [
+                  _ProfileHeader(
+                    data: data,
+                    onChangeAvatar: () async {
+                      final url = await context
+                          .read<HoSoViewModel>()
+                          .pickAndUploadAvatar(context);
+                      if (!context.mounted) return;
+                      if (url != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Cập nhật ảnh đại diện thành công'),
+                          ),
+                        );
+                      }
+                    },
+                    onUploadCv: () async {
+                      final url = await context
+                          .read<HoSoViewModel>()
+                          .pickAndUploadCV(context);
+                      if (!context.mounted) return;
+                      if (url != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tải lên CV thành công'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _SectionTitle('Thông tin cá nhân'),
+                        Card(
+                          elevation: 0,
+                          clipBehavior: Clip.antiAlias,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              _InfoRow(
+                                icon: Icons.badge_outlined,
+                                label: 'Mã sinh viên',
+                                value: _v(data.maSV),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.person_outline,
+                                label: 'Họ và tên',
+                                value: _v(data.hoTen),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.email_outlined,
+                                label: 'Email',
+                                value: _v(data.email),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.phone_outlined,
+                                label: 'Số điện thoại',
+                                value: _v(data.soDienThoai),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.calendar_month_outlined,
+                                label: 'Ngày sinh',
+                                value: _formatDateShort(data.ngaySinh),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.home_outlined,
+                                label: 'Địa chỉ',
+                                value: _v(data.diaChi),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.school_outlined,
+                                label: 'Ngành',
+                                value: _v(data.tenNganh),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.class_outlined,
+                                label: 'Lớp',
+                                value: _v(data.tenLop),
+                              ),
+                              const Divider(height: 1),
+                              _InfoRow(
+                                icon: Icons.apartment_outlined,
+                                label: 'Khoa',
+                                value: _v(data.tenKhoa),
+                              ),
+                              const Divider(height: 1),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: gap * 1.5),
+                        const _SectionTitle('Tài liệu'),
+                        _CvCard(cvUrl: data.cvUrl),
+                        SizedBox(height: gap * 2.5),
+
+                        // Đăng xuất
+                        const LogoutButton(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ======= HEADER =======
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({
+    required this.data,
+    this.onChangeAvatar,
+    this.onUploadCv,
+  });
+
+  final StudentProfile data;
+
+  // Cho phép async callback
+  final Future<void> Function()? onChangeAvatar;
+  final Future<void> Function()? onUploadCv;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = data.hoTen ?? '';
+    final initials = _initials(name);
+    final avatarUrl = context.watch<HoSoViewModel>().avatarUrl;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
       decoration: const BoxDecoration(
-        color: Color(0xFF2F7CD3),
+        color: Color(0xFF2563EB),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 34,
-            backgroundImage: NetworkImage(data.avatarUrl),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.black26,
+                backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                    ? NetworkImage(avatarUrl)
+                    : null,
+                child: (avatarUrl == null || avatarUrl.isEmpty)
+                    ? Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      )
+                    : null,
+              ),
+              Positioned(
+                right: -4,
+                bottom: -4,
+                child: Material(
+                  color: Colors.white,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onChangeAvatar, // giờ là async ok
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.edit, size: 18, color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
-            data.name,
+            name.isEmpty ? '—' : name,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            data.faculty,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white),
-          ),
           const SizedBox(height: 8),
           FilledButton.tonal(
+            onPressed: onUploadCv, // async ok
             style: FilledButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black87,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               shape: const StadiumBorder(),
             ),
-            onPressed: () {},
             child: const Text('Tải lên CV'),
           ),
         ],
@@ -264,7 +311,55 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-/// ======= TIÊU ĐỀ NHỎ =======
+// ======= CV card =======
+class _CvCard extends StatelessWidget {
+  const _CvCard({this.cvUrl});
+  final String? cvUrl;
+
+  Future<void> _open(BuildContext context, String url) async {
+    try {
+      final uri = Uri.parse(url);
+      final ok = await launcher.canLaunchUrl(uri);
+      if (!ok) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Không thể mở URL: $url')));
+        return;
+      }
+      await launcher.launchUrl(uri);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final has = (cvUrl ?? '').isNotEmpty;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Theme.of(context).dividerColor),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.description_outlined),
+        title: const Text('CV'),
+        subtitle: Text(has ? 'Đã tải lên' : 'Chưa có'),
+        trailing: has
+            ? TextButton(
+                onPressed: () => _open(context, cvUrl!),
+                child: const Text('Xem CV'),
+              )
+            : const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+// ======= Tiêu đề nhỏ =======
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   final String text;
@@ -283,7 +378,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// ======= DÒNG THÔNG TIN =======
+// ======= Dòng thông tin =======
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.icon,
@@ -311,7 +406,7 @@ class _InfoRow extends StatelessWidget {
       leading: Icon(icon),
       title: Text(label, style: labelStyle),
       trailing: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 200),
+        constraints: const BoxConstraints(maxWidth: 220),
         child: Text(
           value,
           textAlign: TextAlign.right,
@@ -319,7 +414,57 @@ class _InfoRow extends StatelessWidget {
           style: valueStyle,
         ),
       ),
-      onTap: () {}, // có thể mở form chỉnh sửa sau này
     );
+  }
+}
+
+// ======= utils =======
+String _v(String? s) => (s == null || s.trim().isEmpty) ? '—' : s.trim();
+
+String _initials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty) return '';
+  if (parts.length == 1) return parts.first.characters.take(1).toString();
+  return (parts.first.characters.take(1).toString() +
+          parts.last.characters.take(1).toString())
+      .toUpperCase();
+}
+
+// Format date as dd/MM/yyyy (four-digit year). Accepts ISO or common separators; falls back to original or '—'.
+String _formatDateShort(String? s) {
+  if (s == null || s.trim().isEmpty) return '—';
+  final raw = s.trim();
+  // Try ISO parse first
+  try {
+    final d = DateTime.parse(raw);
+    final yyyy = d.year.toString().padLeft(4, '0');
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/$yyyy';
+  } catch (_) {
+    // try splitting common separators (/, -, .)
+    // split on common date separators: /  -  .
+    final parts = raw.split(RegExp(r'[/\-.]'));
+    if (parts.length >= 3) {
+      var day = parts[0].padLeft(2, '0');
+      var month = parts[1].padLeft(2, '0');
+      var year = parts[2].trim();
+
+      // Normalize year to 4 digits
+      if (year.length == 2) {
+        final num = int.tryParse(year);
+        if (num != null)
+          year = (2000 + num).toString();
+        else
+          year = year.padLeft(4, '0');
+      } else if (year.length > 4) {
+        year = year.substring(year.length - 4);
+      } else if (year.length == 3) {
+        year = year.padLeft(4, '0');
+      }
+
+      if (int.tryParse(year) == null) return raw;
+      return '$day/$month/$year';
+    }
+    // fallback: return original trimmed
+    return raw;
   }
 }

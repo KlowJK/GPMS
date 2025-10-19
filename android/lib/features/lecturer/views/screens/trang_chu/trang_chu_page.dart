@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
-import '../../widgets/search_field.dart';
-import '../../widgets/news_tile.dart';
-import '../../widgets/card_list.dart';
-import '../../widgets/chip_pill.dart';
-import '../../widgets/section_header.dart';
-import '../../widgets/task_tile.dart';
-import '../../widgets/notice_tile.dart';
+import 'package:GPMS/features/lecturer/views/widgets/search_field.dart';
+import 'package:GPMS/features/lecturer/views/widgets/news_tile.dart';
+import 'package:GPMS/features/lecturer/views/widgets/card_list.dart';
+import 'package:GPMS/features/lecturer/views/widgets/chip_pill.dart';
+import 'package:GPMS/features/lecturer/views/widgets/section_header.dart';
+import 'package:GPMS/features/lecturer/views/widgets/task_tile.dart';
+import 'package:GPMS/features/lecturer/views/widgets/notice_tile.dart';
 
 class TrangChuPage extends StatelessWidget {
   const TrangChuPage({super.key});

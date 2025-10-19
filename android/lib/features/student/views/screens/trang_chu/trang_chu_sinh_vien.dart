@@ -1,40 +1,22 @@
 import 'package:flutter/material.dart';
-import 'trang_chu_page.dart';
-import '../bao_cao/bao_cao.dart';
-import '../do_an/do_an.dart';
-import '../nhat_ky/nhat_ky.dart';
-import '../hoi_dong/hoi_dong.dart';
-import '../ho_so/ho_so.dart';
+import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_page.dart';
+import 'package:GPMS/features/student/views/screens/bao_cao/bao_cao.dart';
+import 'package:GPMS/features/student/views/screens/do_an/do_an.dart';
+import 'package:GPMS/features/student/views/screens/nhat_ky/nhat_ky.dart';
+import 'package:GPMS/features/student/views/screens/hoi_dong/hoi_dong.dart';
+import 'package:GPMS/features/student/views/screens/ho_so/ho_so.dart';
 import 'package:provider/provider.dart';
-import '../../../viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
+import 'package:GPMS/features/student/services/ho_so_service.dart';
 
-class TrangChuSinhVien extends StatelessWidget {
+class TrangChuSinhVien extends StatefulWidget {
   const TrangChuSinhVien({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF2563EB);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'GPMS',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFDCDEE4),
-      ),
-
-      home: const TrangChuWidget(),
-    );
-  }
+  State<TrangChuSinhVien> createState() => _AfterLoginShellState();
 }
 
-class TrangChuWidget extends StatefulWidget {
-  const TrangChuWidget({super.key});
-  @override
-  State<TrangChuWidget> createState() => _AfterLoginShellState();
-}
-
-class _AfterLoginShellState extends State<TrangChuWidget> {
+class _AfterLoginShellState extends State<TrangChuSinhVien> {
   int _index = 0;
 
   @override
@@ -42,7 +24,7 @@ class _AfterLoginShellState extends State<TrangChuWidget> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => DoAnViewModel()),
-        // Thêm các provider khác nếu cần
+        ChangeNotifierProvider(create: (_) => HoSoViewModel(HoSoService())),
       ],
       child: Scaffold(
         body: _buildPage(_index),

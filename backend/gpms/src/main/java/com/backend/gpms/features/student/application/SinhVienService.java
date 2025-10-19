@@ -202,7 +202,11 @@ public class SinhVienService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
         return sinhVienMapper.toSinhVienInfoResponse(sinhVien);
     }
-
+    public SinhVienInfoResponse getSinhVienInfoById(Long maSV) {
+        SinhVien sinhVien = sinhVienRepository.findById(maSV)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
+        return sinhVienMapper.toSinhVienInfoResponse(sinhVien);
+    }
 
     public List<GetSinhVienWithoutDeTaiResponse> getSinhVienWithoutDeTai() {
         List<SinhVien> sinhVienList = sinhVienRepository.findAllByDeTaiIsNullAndUser_TrangThaiKichHoatTrue();

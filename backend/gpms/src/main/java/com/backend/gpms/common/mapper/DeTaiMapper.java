@@ -27,7 +27,7 @@ public interface DeTaiMapper {
 
     // Entity -> Response
     @Mapping(source = "giangVienHuongDan.id", target = "gvhdId")
-    @Mapping(source = "giangVienHuongDan.hoTen", target = "gvhdTen")
+    @Mapping(source = "giangVienHuongDan",          target = "gvhdTen", qualifiedByName = "gvDisplayName")
     @Mapping(source = "sinhVien.id", target = "sinhVienId")
     @Mapping(source = "noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
     @Mapping(source = "noiDungDeTaiUrl", target = "tongQuanFilename", qualifiedByName = "extractFilenameFromUrl")
@@ -56,5 +56,23 @@ public interface DeTaiMapper {
         if (url == null) return null;
         int lastSlash = url.lastIndexOf('/');
         return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
+    }
+
+    @Named("gvDisplayName")
+    default String gvDisplayName(GiangVien gv) {
+        if (gv == null) return null;
+        StringBuilder sb = new StringBuilder();
+        // thêm học hàm rồi học vị (có khoảng trắng nếu tồn tại)
+        if (gv.getHocHam() != null && !gv.getHocHam().isBlank()) {
+            sb.append(gv.getHocHam().trim()).append(' ');
+        }
+        if (gv.getHocVi() != null && !gv.getHocVi().isBlank()) {
+            sb.append(gv.getHocVi().trim()).append(' ');
+        }
+        if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
+            sb.append(gv.getHoTen().trim());
+        }
+        // gom khoảng trắng thừa & trim cuối
+        return sb.toString().replaceAll("\\s+", " ").trim();
     }
 }

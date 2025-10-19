@@ -63,6 +63,7 @@ public interface SinhVienMapper {
     @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
     @Mapping(source = "deTai.trangThai", target = "trangThai")
     @Mapping(source = "deTai.noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
+    @Mapping(source = "duongDanCv", target = "duongDanCv")
     @Mapping(source = "deTai.nhanXet", target = "nhanXet")
     ApprovalSinhVienResponse toDeTaiSinhVienApprovalResponse(SinhVien sv);
 
@@ -72,6 +73,7 @@ public interface SinhVienMapper {
     @Mapping(source = "lop.nganh.khoa.tenKhoa", target = "tenKhoa")
     @Mapping(source = "lop.nganh.tenNganh", target = "tenNganh")
     @Mapping(source = "duongDanCv", target = "cvUrl")
+    @Mapping(source = "user.duongDanAvt", target = "duongDanAvt")
     SinhVienInfoResponse toSinhVienInfoResponse(SinhVien sv);
 
     @Mapping(source = "maSinhVien" , target = "maSV")

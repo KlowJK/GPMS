@@ -77,68 +77,35 @@ public class GiangVienService {
 
 
     public List<GiangVienLiteResponse> giangVienLiteResponseList() {
-        String accountEmail = getCurrentUsername();
-        SinhVien sinhVien = sinhVienRepository.findByUser_Email(accountEmail)
+        final String email = getCurrentUsername();
+
+        SinhVien sv = sinhVienRepository.findByUser_Email(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
-        
-        if (sinhVien.getLop() == null) return List.of();
-        Nganh nganh = nganhRepository.findById(sinhVien.getLop().getNganh().getId()).orElseThrow(()-> new ApplicationException(ErrorCode.NGANH_NOT_FOUND));
-        if (nganh == null) return List.of();
 
-        Khoa khoa = nganh.getKhoa();
+        if (sv.getLop() == null) return List.of();
 
-        if (khoa == null) return List.of();
+        Long khoaId = nganhRepository.findById(sv.getLop().getNganh().getId())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NGANH_NOT_FOUND))
+                .getKhoa()
+                .getId();
 
-        // Lấy tất cả bộ môn thuộc khoa
-        List<BoMon> boMonList = boMonRepository.findByKhoa_Id(khoa.getId());
-        if (boMonList == null || boMonList.isEmpty()) {
-            throw new ApplicationException(ErrorCode.BO_MON_NOT_FOUND);
-        }
-        // Lấy tất cả giảng viên thuộc các bộ môn này
-        List<GiangVien> giangViens = new ArrayList<>();
-        for (BoMon boMon : boMonList) {
-            List<GiangVien> gvs = giangVienRepository.findByBoMon_Id(boMon.getId());
-            if (gvs != null) giangViens.addAll(gvs);
-        }
-        if (giangViens.isEmpty()) {throw new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND);};
+        // 1 query ra đúng dữ liệu đã tính toán + sắp xếp
+        List<GiangVienLiteProjection> rows = giangVienRepository
+                .findAdvisorsWithRemainingByKhoaId(khoaId, TrangThaiDeTai.DA_DUYET);
 
-        // Đếm số đề tài đang hướng dẫn của từng GV (gom nhóm 1 query)
-        List<Long> gvIds = giangViens.stream().map(GiangVien::getId).toList();
-        Map<Long, Long> currentMap = deTaiRepository.countActiveByGiangVienIds(gvIds)
-                .stream()
-                .collect(Collectors.toMap(GiangVienLoad::getGiangVienId, GiangVienLoad::getSoDeTai));
-
-        // Lọc những GV còn slot (current < quota_huong_dan)
-        return giangViens.stream()
-                .map(gv -> {
-                    long current = currentMap.getOrDefault(gv.getId(), 0L);
-                    int quota = Optional.ofNullable(gv.getQuotaInstruct()).orElse(0);
-                    int remaining = (int) (quota - current);
-                    if (remaining <= 0) return null;
-                    StringBuilder buffer = new StringBuilder();
-                    if (gv.getHocHam() != null && gv.getHocVi() != null) {
-                        buffer.append(gv.getHocHam()).append(gv.getHocVi()).append(" ");
-                    } else if (gv.getHocHam() != null) {
-                        buffer.append(gv.getHocHam()).append(" ");
-                    } else if (gv.getHocVi() != null) {
-                        buffer.append(gv.getHocVi()).append(" ");
-                    }
-                    buffer.append(gv.getHoTen());
-                    String hoTen = buffer.toString();
-                    return GiangVienLiteResponse.builder()
-                            .id(gv.getId())
-                            .hoTen(hoTen)
-                            .boMonId(gv.getBoMon() != null ? gv.getBoMon().getId() : null)
-                            .quotaInstruct(quota)
-                            .currentInstruct(current)
-                            .remaining(remaining)
-                            .build();
-                })
-                .filter(Objects::nonNull)
-                .sorted(Comparator.comparing(GiangVienLiteResponse::getRemaining).reversed()
-                        .thenComparing(GiangVienLiteResponse::getHoTen))
+        // Nếu muốn trả đúng class response (không phải projection), map nhẹ:
+        return rows.stream()
+                .map(r -> GiangVienLiteResponse.builder()
+                        .id(r.getId())
+                        .hoTen(r.getHoTen())
+                        .boMonId(r.getBoMonId())
+                        .quotaInstruct(r.getQuotaInstruct())
+                        .currentInstruct(r.getCurrentInstruct())
+                        .remaining(r.getRemaining())
+                        .build())
                 .toList();
     }
+
 
 
     private String getCurrentUsername() {
@@ -160,6 +127,20 @@ public class GiangVienService {
         return page.map(sinhVienMapper::toSinhVienSupervisedResponse);
     }
 
+    public List<SinhVienSupervisedResponse> getMySinhVienSupervisedList() {
+        String email = currentEmail();
+
+        Long gvhdId = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_A_GVHD))
+                .getId();
+
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+        List<SinhVien> list = sinhVienRepository.findByDeTai_GiangVienHuongDan_IdAndDeTai_DotBaoVeAndDeTai_TrangThaiOrderByHoTenDesc(gvhdId, dotBaoVe, TrangThaiDeTai.DA_DUYET);
+        return list.stream()
+                .map(sinhVienMapper::toSinhVienSupervisedResponse)
+                .toList();
+    }
+
     public Page<ApprovalSinhVienResponse> getDeTaiSinhVienApproval(TrangThaiDeTai status, Pageable pageable) {
         String email = currentEmail();
 
@@ -178,11 +159,11 @@ public class GiangVienService {
 
     public List<DeCuongNhanXetResponse> viewDeCuongLog(String maSinhVien) {
 
-        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVien(maSinhVien);
+        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(maSinhVien);
         if (deCuongs.isEmpty()) throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
 
         List<Long> ids = deCuongs.stream().map(DeCuong::getId).toList();
-        List<NhanXetDeCuong> allComments = deCuongLogRepository.findByDeCuong_IdInOrderByCreatedAtAsc(ids);
+        List<NhanXetDeCuong> allComments = deCuongLogRepository.findByDeCuong_IdInOrderByCreatedAtDesc(ids);
         Map<Long, List<NhanXetDeCuong>> commentsByDeCuongId = allComments.stream().collect(Collectors.groupingBy(c -> c.getDeCuong().getId()));
         List<DeCuongNhanXetResponse> responses = deCuongMapper.toDeCuongNhanXetResponse(deCuongs);
         for (DeCuongNhanXetResponse res : responses) {
@@ -375,6 +356,13 @@ public class GiangVienService {
                 .stream()
                 .map(giangVienMapper::toLite)
                 .toList();
+    }
+
+    public GiangVienProfileResponse getMyProfile() {
+        String email = currentEmail();
+        GiangVien gv = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        return giangVienMapper.toGiangVienProfileResponse(gv);
     }
 
 
