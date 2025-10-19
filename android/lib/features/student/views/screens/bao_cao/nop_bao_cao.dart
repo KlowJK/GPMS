@@ -1,11 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/services.dart' as services;
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
-import '../../../models/report_item.dart';
 import '../../../viewmodels/bao_cao_viewmodel.dart';
 
 class SubmitReportPage extends StatefulWidget {
@@ -86,38 +84,22 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
 
     setState(() => _sending = true);
 
-    // Compute next version using ViewModel (data comes from API)
     final vm = context.read<BaoCaoViewModel>();
-    int version = 1;
-    if (vm.items.isNotEmpty) {
-      int maxVer = 0;
-      for (final e in vm.items) {
-        if (e.version > maxVer) maxVer = e.version;
-      }
-      version = maxVer + 1;
-    }
-
-    final report = ReportItem(
-      fileName: name,
-      createdAt: DateTime.now(),
-      version: version,
-      status: ReportStatus.pending,
-      note: null,
-    );
+    final maxVersion = vm.items.isEmpty ? 0 : vm.items.map((r) => r.version).reduce(math.max);
+    final newVersion = maxVersion + 1;
 
     try {
-      if (kDebugMode) print('[SubmitReportPage] Starting submitReport, filePath=$_pickedPath');
-      // Protect UI from indefinite wait by adding a timeout here as well
-      await vm.submitReport(report, filePath: _pickedPath).timeout(const Duration(seconds: 40), onTimeout: () {
-        // set vm error so UI can react
-        if (kDebugMode) print('[SubmitReportPage] submitReport timed out');
-        // throw to be caught below
+      print(
+          '[SubmitReportPage] Starting submitReport, version: $newVersion, filePath: $_pickedPath, fileName: $name');
+      await vm
+          .submitReport(version: newVersion, filePath: _pickedPath, fileName: name)
+          .timeout(const Duration(seconds: 40), onTimeout: () {
+        print('[SubmitReportPage] submitReport timed out');
         throw TimeoutException('Yêu cầu nộp báo cáo quá thời gian chờ.');
       });
-      if (kDebugMode) print('[SubmitReportPage] submitReport completed');
+      print('[SubmitReportPage] submitReport completed');
 
       if (vm.error != null) {
-        // show friendly error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi khi nộp báo cáo: ${vm.error}')),
         );
@@ -127,53 +109,9 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
 
       if (!mounted) return;
 
-      // If the ViewModel has the raw response, show details dialog
-      final raw = vm.lastSubmittedRaw;
-      if (raw != null) {
-        await showDialog<void>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Kết quả nộp báo cáo'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if ((raw.tenGiangVienHuongDan ?? '').isNotEmpty)
-                  Text('GVHD: ${raw.tenGiangVienHuongDan}'),
-                if (raw.diemBaoCao != null) Text('Điểm: ${raw.diemBaoCao}'),
-                if ((raw.duongDanFile ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  SelectableText('Đường dẫn: ${raw.duongDanFile}'),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  final url = raw.duongDanFile ?? '';
-                  if (url.isNotEmpty) {
-                    await services.Clipboard.setData(services.ClipboardData(text: url));
-                    if (ctx.mounted) Navigator.of(ctx).pop();
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã sao chép đường dẫn')));
-                    return;
-                  }
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text('Sao chép đường dẫn'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Đóng'),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // success — pop true to tell parent to show the success snackbar
       Navigator.pop(context, true);
     } catch (e) {
-      if (kDebugMode) print('[SubmitReportPage] submitReport threw: $e');
+      print('[SubmitReportPage] submitReport threw: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lỗi khi nộp báo cáo: ${e.toString()}')),
@@ -189,10 +127,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     final double maxW = w >= 1200
         ? 800
         : w >= 900
-        ? 700
-        : w >= 600
-        ? 540
-        : w;
+            ? 700
+            : w >= 600
+                ? 540
+                : w;
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
@@ -215,15 +153,14 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
             child: ListView(
               padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
               children: [
-                // Upload progress
                 if (uploading) ...[
-                  LinearProgressIndicator(value: vm.bytesTotal > 0 ? progress : null),
+                  LinearProgressIndicator(
+                      value: vm.bytesTotal > 0 ? progress : null),
                   const SizedBox(height: 8),
                   if (vm.bytesTotal > 0)
                     Text('Đang tải lên: ${(progress * 100).toStringAsFixed(0)}%'),
                   const SizedBox(height: 12),
                 ],
-                // ======= FORM =======
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -235,7 +172,9 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _AttachFileTile(
-                          fileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(),
+                          fileName: _fileCtrl.text.trim().isEmpty
+                              ? null
+                              : _fileCtrl.text.trim(),
                           onPick: uploading ? () {} : _pickFileName,
                           onClear: _fileCtrl.text.trim().isEmpty
                               ? null
@@ -245,7 +184,6 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                                     _pickedPath = null;
                                   }),
                         ),
-
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
@@ -255,7 +193,6 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                                 ? const SizedBox(
                                     width: 16,
                                     height: 16,
-
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                     ),
@@ -268,7 +205,6 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                   ),
                 ),
 
-                // ======= HƯỚNG DẪN =======
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(

@@ -1,4 +1,3 @@
-// filepath: lib/features/student/models/report_item.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
@@ -50,6 +49,7 @@ class ReportItem {
   final String? idDeTai;
   final String? rawStatus; // the original status value from API (debug/inspection)
   final String fileName;
+  final String? fileUrl;
   final DateTime createdAt;
   final int version;
   final ReportStatus status;
@@ -60,6 +60,7 @@ class ReportItem {
     this.idDeTai,
     this.rawStatus,
     required this.fileName,
+    this.fileUrl,
     required this.createdAt,
     required this.version,
     required this.status,
@@ -123,6 +124,7 @@ class ReportItem {
       idDeTai: json['idDeTai']?.toString(),
       rawStatus: statusRaw,
       fileName: fileName,
+      fileUrl: json['duongDanFile']?.toString(),
       createdAt: createdAt,
       version: version,
       status: status,
@@ -135,6 +137,7 @@ class ReportItem {
         if (idDeTai != null) 'idDeTai': idDeTai,
         if (rawStatus != null) 'rawStatus': rawStatus,
         'fileName': fileName,
+        if (fileUrl != null) 'fileUrl': fileUrl,
         'createdAt': createdAt.toIso8601String(),
         'version': version,
         'status': status.toString().split('.').last,

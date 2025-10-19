@@ -1,4 +1,3 @@
-// filepath: lib/features/student/viewmodels/bao_cao_viewmodel.dart
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -52,7 +51,7 @@ class BaoCaoViewModel extends ChangeNotifier {
   /// Whether user can submit a new report: true only when latest report status == rejected
   bool get canSubmitNew {
     final latest = latestReport;
-    if (latest == null) return false; // if no reports, do not allow adding (follow strict rule)
+    if (latest == null) return true;
     return latest.status == ReportStatus.rejected;
   }
 
@@ -71,7 +70,12 @@ class BaoCaoViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> submitReport(ReportItem report, {String? filePath, Uint8List? fileBytes, String? fileName}) async {
+  Future<bool> submitReport({
+    required int version,
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
+  }) async {
     _bytesSent = 0;
     _bytesTotal = 0;
     _error = null;
@@ -79,7 +83,7 @@ class BaoCaoViewModel extends ChangeNotifier {
 
     try {
       final raw = await service.submitReport(
-        report: report,
+        version: version,
         filePath: filePath,
         fileBytes: fileBytes,
         fileName: fileName,
