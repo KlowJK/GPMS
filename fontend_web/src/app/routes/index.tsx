@@ -52,6 +52,18 @@ export const router = createBrowserRouter([
                     {
                         element: <RoleGuard allow={['QUAN_TRI_VIEN', 'TRO_LY_KHOA']} />,
                         children: [
+                             {
+                              path: 'admin',
+                              lazy: () => import('@features/admin/routes/AdminApp').then(m => ({ Component: m.default })),
+                              children: [
+                              { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
+                              { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
+                              { path: 'majors', lazy: () => import('@features/admin/pages/Major').then(m => ({ Component: m.default })) },
+                              { path: 'subjects', lazy: () => import('@features/admin/pages/Subject').then(m => ({ Component: m.default })) },
+                              { path: 'classes', lazy: () => import('@features/admin/pages/Class').then(m => ({ Component: m.default })) },
+                              { path: 'lecturers', lazy: () => import('@features/admin/pages/LecturerAccounts').then(m => ({ Component: m.default })) },
+                              ]
+                            },
                             {
                                 path: 'accounts',
                                 lazy: () =>

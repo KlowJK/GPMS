@@ -39,6 +39,18 @@ export default function LoginPage() {
             if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') navigate('/lecturers', { replace: true })
             else if (role === 'SINH_VIEN') navigate('/students', { replace: true })
             else navigate('/topics', { replace: true })
+            // navigate based on role
+            const role = (user?.role ?? '').toString()
+            if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') {
+                navigate('/lecturers', { replace: true })
+            } else {
+                navigate('/topics', { replace: true })
+            }
+            if (role === 'QUAN_TRI_VIEN' || role === 'TRO_LY_KHOA') {
+                navigate('/admin', { replace: true })
+            } else {
+                navigate('/topics', { replace: true }) // fallback nếu chưa có role
+            }
         } catch (err) {
             const axiosErr = err as AxiosError
             const serverMsg =
