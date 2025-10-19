@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:GPMS/features/lecturer/views/screens/bao_cao/duyet_bao_cao.dart';
 import 'package:GPMS/features/lecturer/views/screens/bao_cao/bao_cao_sinh_vien.dart';
 
-class BaoCao extends StatefulWidget {
+class BaoCao extends StatelessWidget {
   const BaoCao({super.key});
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
