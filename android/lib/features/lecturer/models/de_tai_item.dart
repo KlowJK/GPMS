@@ -3,9 +3,14 @@ enum TopicStatus { pending, approved, rejected }
 
 TopicStatus mapTrangThai(String? s) {
   switch (s) {
-    case 'DA_DUYET': return TopicStatus.approved;
-    case 'TU_CHOI':  return TopicStatus.rejected;
-    default:         return TopicStatus.pending; // CHO_DUYET hoặc null
+    case 'DA_DUYET':
+      return TopicStatus.approved;
+    case 'TU_CHOI':
+      return TopicStatus.rejected;
+    case 'CHO_DUYET':
+      return TopicStatus.pending;
+    default:
+      return TopicStatus.pending;
   }
 }
 
@@ -16,12 +21,12 @@ int _toInt(dynamic v) {
   return 0;
 }
 
-String? _pickStr(Map<String, dynamic> j, List<String> keys) {
+String? _firstString(Map<String, dynamic> j, List<String> keys) {
   for (final k in keys) {
-    final v = j[k];
-    if (v == null) continue;
-    if (v is String && v.trim().isNotEmpty) return v.trim();
-    if (v is num) return v.toString();
+    final val = j[k];
+    if (val == null) continue;
+    final s = val.toString().trim();
+    if (s.isNotEmpty) return s;
   }
   return null;
 }
@@ -31,11 +36,10 @@ class DeTaiItem {
   final String title;
   final TopicStatus status;
   final String? comment;
-
-  // Hiển thị ở UI:
-  final String? studentName;  // hoTen
-  final String? studentId;    // maSV
-  final String? overviewUrl;  // tongQuanDeTaiUrl
+  final String? studentName;
+  final String? studentId;
+  final String? overviewFileName;
+  final String? duongDanCv;
 
   DeTaiItem({
     required this.id,
@@ -44,7 +48,8 @@ class DeTaiItem {
     this.comment,
     this.studentName,
     this.studentId,
-    this.overviewUrl,
+    this.overviewFileName,
+    this.duongDanCv,
   });
 
   DeTaiItem copyWith({TopicStatus? status, String? comment}) => DeTaiItem(
@@ -54,17 +59,73 @@ class DeTaiItem {
     comment: comment ?? this.comment,
     studentName: studentName,
     studentId: studentId,
-    overviewUrl: overviewUrl,
+    overviewFileName: overviewFileName,
+    duongDanCv: duongDanCv,
   );
 
-  factory DeTaiItem.fromJson(Map<String, dynamic> j) => DeTaiItem(
-    // id có thể là "id" (số) hoặc "idDeTai" (string)
-    id: _toInt(j['id'] ?? j['idDeTai']),
-    title: (j['tenDeTai'] ?? '') as String,
-    status: mapTrangThai(j['trangThai'] as String?),
-    comment: j['nhanXet'] as String?,
-    studentName: _pickStr(j, ['hoTen', 'sinhVienTen', 'tenSinhVien']),
-    studentId:   _pickStr(j, ['maSV', 'maSinhVien', 'sinhVienMa']),
-    overviewUrl: _pickStr(j, ['tongQuanDeTaiUrl', 'tongQuanUrl', 'tongQuanFilename']),
-  );
+  factory DeTaiItem.fromJson(Map<String, dynamic> j) {
+    final idVal =
+        j['id'] ??
+        j['idDeTai'] ??
+        j['id_de_tai'] ??
+        j['idDetai'] ??
+        j['idDeTaiString'];
+    final parsedId = _toInt(idVal);
+
+    final title =
+        _firstString(j, [
+          'tenDeTai',
+          'ten_de_tai',
+          'title',
+          'tenDeTaiString',
+        ]) ??
+        '';
+
+    final statusStr = _firstString(j, ['trangThai', 'trang_thai', 'status']);
+
+    final comment = _firstString(j, ['nhanXet', 'nhan_xet', 'comment']);
+
+    final studentId = _firstString(j, [
+      'maSV',
+      'ma_sinh_vien',
+      'studentId',
+      'sinhVienId',
+      'idSinhVien',
+    ]);
+
+    final studentName = _firstString(j, [
+      'hoTen',
+      'ho_ten',
+      'sinhVienTen',
+      'studentName',
+    ]);
+
+    final overview = _firstString(j, [
+      'tongQuanDeTaiUrl',
+      'tongQuanFilename',
+      'tongQuanDeTai',
+      'overviewUrl',
+      'overviewFileName',
+      'tongQuanDeTaiUrlString',
+    ]);
+
+    final duongDanCv = _firstString(j, [
+      'duongDanCv',
+      'cvUrl',
+      'cv_file',
+      'cvFileName',
+      'cvUrlString',
+    ]);
+
+    return DeTaiItem(
+      id: parsedId,
+      title: title,
+      status: mapTrangThai(statusStr),
+      comment: comment,
+      studentId: studentId,
+      studentName: studentName,
+      overviewFileName: overview,
+      duongDanCv: duongDanCv,
+    );
+  }
 }

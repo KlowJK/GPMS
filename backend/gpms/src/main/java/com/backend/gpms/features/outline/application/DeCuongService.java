@@ -170,12 +170,12 @@ public class DeCuongService {
 
     public List<DeCuongNhanXetResponse> viewDeCuongLog() {
         String email = currentUsername();
-        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_User_EmailIgnoreCase(email);
+        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_User_EmailIgnoreCaseOrderByPhienBanDesc(email);
         if (deCuongs.isEmpty()) throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
 
         // Lấy trước toàn bộ nhận xét của các đề cương liên quan (tránh N+1)
         List<Long> ids = deCuongs.stream().map(DeCuong::getId).toList();
-        List<NhanXetDeCuong> allComments = deCuongLogRepository.findByDeCuong_IdInOrderByCreatedAtAsc(ids);
+        List<NhanXetDeCuong> allComments = deCuongLogRepository.findByDeCuong_IdInOrderByCreatedAtDesc(ids);
         Map<Long, List<NhanXetDeCuong>> commentsByDeCuongId = allComments.stream().collect(Collectors.groupingBy(c -> c.getDeCuong().getId()));
         List<DeCuongNhanXetResponse> responses = mapper.toDeCuongNhanXetResponse(deCuongs);
         for (DeCuongNhanXetResponse res : responses) {
@@ -340,7 +340,8 @@ public class DeCuongService {
         } else {
             page = isGV
                 ? deCuongRepository
-                    .findOutlineWithAnyStatus(email, email, email, activeDotIds, status, statusFilter, statusFilter, pageable)
+                    .findOutlinesForUserByRoleAndStatus(
+                            email, activeDotIds, status, statusFilter, statusFilter, pageable)
                 : deCuongRepository
                     .findByDeTai_DotBaoVe_IdIn(activeDotIds, pageable);
         }

@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
-import '../../auth/services/auth_service.dart';
-import '../models/de_nghi_hoan_model.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/de_nghi_hoan_model.dart';
 
 class HoanDoAnService {
   final String baseUrl;

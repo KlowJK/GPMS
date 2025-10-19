@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart'; // Để mở liên kết PDF
-import 'models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
 
 class NewsDetailPage extends StatelessWidget {
   final ThongBaoVaTinTuc notification;
@@ -63,7 +63,7 @@ class NewsDetailPage extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => _launchURL(notification.duongDanFile!),
                     child: Text(
-                      'Tải tài liệu', // Tiêu đề thay cho đường link
+                      'Xem tài liệu đính kèm',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.blue,
                         decoration: TextDecoration.underline,

@@ -1,8 +1,11 @@
+import 'package:GPMS/features/student/views/screens/bao_cao/nop_bao_cao.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../models/report_item.dart';
 import '../../../viewmodels/bao_cao_viewmodel.dart';
 import '../../../services/bao_cao_service.dart';
+import '../../../../auth/services/auth_service.dart';
 
 class BaoCao extends StatelessWidget {
   const BaoCao({super.key});
@@ -10,9 +13,9 @@ class BaoCao extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => BaoCaoViewModel(
-        service: BaoCaoService(baseUrl: 'https://your-backend-url.com/api'),
-      )..fetchReports(),
+      create: (_) =>
+          BaoCaoViewModel(service: BaoCaoService(baseUrl: AuthService.baseUrl))
+            ..fetchReports(),
       child: const _BaoCaoBody(),
     );
   }
@@ -21,15 +24,18 @@ class BaoCao extends StatelessWidget {
 class _BaoCaoBody extends StatelessWidget {
   const _BaoCaoBody();
 
-  Future<void> _goSubmit(BuildContext context, int nextVersion) async {
-    final result = await Navigator.push<ReportItem>(
+  Future<void> _goSubmit(BuildContext context) async {
+    final vm = context.read<BaoCaoViewModel>();
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => SubmitReportPage(nextVersion: nextVersion),
+        builder: (ctx) => ChangeNotifierProvider.value(
+          value: vm,
+          child: const SubmitReportPage(),
+        ),
       ),
     );
-    if (result != null) {
-      await context.read<BaoCaoViewModel>().submitReport(result);
+    if (result == true) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã nộp báo cáo thành công')),
@@ -52,21 +58,62 @@ class _BaoCaoBody extends StatelessWidget {
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
-    int nextVersion() {
-      if (vm.items.isEmpty) return 1;
-      int maxVer = 0;
-      for (final e in vm.items) {
-        if (e.version > maxVer) maxVer = e.version;
-      }
-      return maxVer + 1;
-    }
-
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Báo cáo', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 1,
+        centerTitle: false,
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            Container(
+              width: 55,
+              height: 55,
+              child: Image.asset("assets/images/logo.png"),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+
+                children: [
+                  Text(
+                    'TRƯỜNG ĐẠI HỌC THỦY LỢI',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'THUY LOI UNIVERSITY',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            tooltip: 'Thông báo',
+            icon: const Icon(Icons.notifications_outlined),
+            color: Colors.white,
+          ),
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: const Icon(Icons.person, size: 18),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -77,31 +124,71 @@ class _BaoCaoBody extends StatelessWidget {
               child: vm.loading
                   ? const Center(child: CircularProgressIndicator())
                   : vm.error != null
-                      ? Center(child: Text('Lỗi: ${vm.error}'))
-                      : vm.items.isEmpty
-                          ? const _EmptyState(
-                              icon: Icons.description_outlined,
-                              title: 'Bạn chưa có báo cáo trong hệ thống.',
-                              subtitle: 'Nhấn nút “+” để nộp báo cáo.',
-                            )
-                          : ListView.separated(
-                              itemCount: vm.items.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
-                              itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
-                            ),
+                  ? _ErrorState(
+                      message: 'Không thể tải báo cáo. Vui lòng thử lại.',
+                      onRetry: () => vm.fetchReports(),
+                    )
+                  : !vm.hasTopic
+                  ? const _EmptyState(
+                      icon: Icons.info_outline,
+                      title: 'Bạn chưa có đề tài',
+                      subtitle:
+                          'Vui lòng đăng ký đề tài để có thể nộp báo cáo.',
+                    )
+                  : vm.items.isEmpty
+                  ? const _EmptyState(
+                      icon: Icons.description_outlined,
+                      title: 'Bạn chưa có báo cáo trong hệ thống.',
+                      subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                    )
+                  : ListView.separated(
+                      itemCount: vm.items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
+                    ),
             ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _goSubmit(context, nextVersion()),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: vm.hasTopic
+          ? Tooltip(
+              message: vm.canSubmitNew
+                  ? 'Nộp báo cáo mới'
+                  : 'Chỉ nộp mới khi báo cáo trước bị từ chối',
+              child: FloatingActionButton(
+                onPressed: () {
+                  if (vm.canSubmitNew) {
+                    _goSubmit(context);
+                    return;
+                  }
+                  final latest = vm.latestReport;
+                  String msg;
+                  if (latest == null) {
+                    _goSubmit(context);
+                    return;
+                  } else if (latest.status == ReportStatus.pending) {
+                    msg =
+                        'Báo cáo trước đang trong trạng thái chờ duyệt. Vui lòng chờ phản hồi.';
+                  } else if (latest.status == ReportStatus.approved) {
+                    msg =
+                        'Báo cáo trước đã được duyệt. Không thể nộp báo cáo mới.';
+                  } else {
+                    msg = 'Không thể nộp báo cáo mới.';
+                  }
+
+                  if (ScaffoldMessenger.maybeOf(context) != null) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(msg)));
+                  }
+                },
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
     );
   }
 }
-
-/* ================== CARD HIỂN THỊ BÁO CÁO ================== */
 
 class _ReportCard extends StatelessWidget {
   const _ReportCard({required this.item});
@@ -113,397 +200,132 @@ class _ReportCard extends StatelessWidget {
     _ => 'Chờ duyệt',
   };
 
-  (Color bg, Color fg) get _statusColor => switch (item.status) {
-    ReportStatus.approved => (const Color(0xFFDCFCE7), const Color(0xFF166534)),
-    ReportStatus.rejected => (const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
-    _ => (const Color(0xFFFFF7ED), const Color(0xFF9A3412)),
+  (Color, Color) get _statusColors => switch (item.status) {
+    ReportStatus.approved => (
+      const Color(0xFFF0FDF4),
+      const Color(0xFF22C55E),
+    ), // green
+    ReportStatus.rejected => (
+      const Color(0xFFFEF2F2),
+      const Color(0xFFEF4444),
+    ), // red
+    _ => (const Color(0xFFFFFBEB), const Color(0xFFF59E0B)), // amber
   };
 
-  String _fmt(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/'
-      '${d.month.toString().padLeft(2, '0')}/'
-      '${d.year} • '
-      '${d.hour.toString().padLeft(2, '0')}:'
-      '${d.minute.toString().padLeft(2, '0')}';
+  String _fmtDateOnly(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Widget _buildInfoRow(String label, {String? text, Widget? child}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: Text.rich(
+        TextSpan(
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black87,
+            height: 1.5,
+          ),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            if (child != null)
+              WidgetSpan(child: child, alignment: PlaceholderAlignment.middle)
+            else
+              TextSpan(text: text ?? ''),
+          ],
+        ),
+        maxLines: 1,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final (bg, fg) = _statusColor;
+    final (cardColor, badgeColor) = _statusColors;
     final cs = Theme.of(context).colorScheme;
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: badgeColor.withOpacity(0.5)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: tên file + trạng thái
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Mở tệp: ${item.fileName} (demo)'),
-                      ),
+                Text.rich(
+                  TextSpan(
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      height: 1.5,
                     ),
-                    child: Text(
-                      item.fileName,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: cs.primary,
-                        fontWeight: FontWeight.w600,
+                    children: [
+                      const TextSpan(
+                        text: 'Phiên bản: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      TextSpan(text: '${item.version}'),
+                    ],
                   ),
                 ),
-                _Badge(text: _statusLabel, bg: bg, fg: fg),
+                _Badge(text: _statusLabel, color: badgeColor),
               ],
             ),
-            const SizedBox(height: 6),
-            _meta('Phiên bản', '${item.version}'),
-            _meta('Ngày nộp', _fmt(item.createdAt)),
-            if (item.note != null && item.note!.isNotEmpty)
-              _meta('Phản hồi', item.note!),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Phúc đáp (demo)')),
+            _buildInfoRow(
+              'File',
+              child: InkWell(
+                onTap: () async {
+                  if (item.fileUrl == null) return;
+                  final url = Uri.tryParse(item.fileUrl!);
+                  if (url != null && await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Text(
+                  'Xem chi tiết',
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                    decorationColor: cs.primary,
+                  ),
                 ),
-                child: const Text('Phúc đáp'),
               ),
             ),
+            _buildInfoRow('Ngày nộp', text: _fmtDateOnly(item.createdAt)),
+
+            if (item.note != null && item.note!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text.rich(
+                  TextSpan(
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
+                    children: [
+                      const TextSpan(
+                        text: 'Nhận xét: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(text: item.note!),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _meta(String k, String v) => Padding(
-    padding: const EdgeInsets.only(top: 2),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(k, style: const TextStyle(color: Colors.black54)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(v)),
-      ],
-    ),
-  );
-}
-
-/* ================== NỘP BÁO CÁO (Submit) ================== */
-
-class SubmitReportPage extends StatefulWidget {
-  const SubmitReportPage({super.key, required this.nextVersion});
-  final int nextVersion;
-
-  @override
-  State<SubmitReportPage> createState() => _SubmitReportPageState();
-}
-
-class _SubmitReportPageState extends State<SubmitReportPage> {
-  final TextEditingController _fileCtrl = TextEditingController();
-  final TextEditingController _verCtrl = TextEditingController();
-
-  bool _mienBu = false;
-  bool _sending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _verCtrl.text = widget.nextVersion.toString();
-  }
-
-  @override
-  void dispose() {
-    _fileCtrl.dispose();
-    _verCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickFileName() async {
-    final txt = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Chọn/nhập tên tệp báo cáo'),
-        content: TextField(
-          controller: _fileCtrl,
-          decoration: const InputDecoration(
-            hintText: 'Ví dụ: 2025_Baocao_Nhom05.pdf',
-          ),
-          onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
-            child: const Text('Lưu'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (txt != null) setState(() {}); // refresh UI
-  }
-
-  Future<void> _submit() async {
-    final name = _fileCtrl.text.trim();
-    final ver = int.tryParse(_verCtrl.text.trim()) ?? widget.nextVersion;
-
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn/nhập tệp báo cáo')),
-      );
-      return;
-    }
-    if (!name.toLowerCase().endsWith('.pdf') &&
-        !name.toLowerCase().endsWith('.docx')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chỉ chấp nhận tệp .pdf hoặc .docx')),
-      );
-      return;
-    }
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(
-          Icons.help_outline,
-          size: 40,
-          color: Color(0xFF2563EB),
-        ),
-        title: const Text('Xác nhận nộp báo cáo'),
-        content: Text('Gửi tệp “$name”?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Quay lại'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    setState(() => _sending = true);
-    // TODO: upload thật lên server
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _sending = false);
-
-    Navigator.pop(
-      context,
-      ReportItem(
-        fileName: name,
-        createdAt: DateTime.now(),
-        version: ver,
-        status: ReportStatus.pending,
-        note: _mienBu ? 'Miễn bù đã được ghi nhận' : null,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final double maxW = w >= 1200
-        ? 800
-        : w >= 900
-        ? 700
-        : w >= 600
-        ? 540
-        : w;
-    final double pad = w >= 900 ? 24 : 16;
-    final double gap = w >= 900 ? 16 : 12;
-
-    final border = OutlineInputBorder(
-      borderSide: BorderSide(color: Theme.of(context).dividerColor),
-      borderRadius: BorderRadius.circular(10),
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Nộp báo cáo', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxW),
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
-              children: [
-                // ======= FORM =======
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(gap),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Phiên bản',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: _verCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            border: border,
-                            enabledBorder: border,
-                            focusedBorder: border.copyWith(
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: gap),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Miễn bù?',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                            Switch(
-                              value: _mienBu,
-                              onChanged: (v) => setState(() => _mienBu = v),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: gap),
-
-                        _AttachFileTile(
-                          fileName: _fileCtrl.text.trim().isEmpty
-                              ? null
-                              : _fileCtrl.text.trim(),
-                          onPick: _pickFileName,
-                          onClear: _fileCtrl.text.trim().isEmpty
-                              ? null
-                              : () => setState(_fileCtrl.clear),
-                        ),
-
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: FilledButton(
-                            onPressed: _sending ? null : _submit,
-                            child: _sending
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Nộp báo cáo'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // ======= HƯỚNG DẪN =======
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(gap),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Icon(Icons.info_outline),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Chấp nhận tệp PDF/DOCX. Sau khi nộp, trạng thái là “Chờ duyệt”. '
-                            'Bạn có thể phúc đáp khi giảng viên phản hồi.',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/* ================== COMMON WIDGETS ================== */
-
-class _AttachFileTile extends StatelessWidget {
-  const _AttachFileTile({
-    required this.fileName,
-    required this.onPick,
-    this.onClear,
-  });
-
-  final String? fileName;
-  final VoidCallback onPick;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final has = (fileName != null && fileName!.isNotEmpty);
-    final text = has ? fileName! : 'Chưa chọn tệp (PDF/DOCX)…';
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.insert_drive_file_outlined),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 8),
-          if (has && onClear != null)
-            IconButton(
-              onPressed: onClear,
-              icon: const Icon(Icons.close),
-              tooltip: 'Xóa',
-            ),
-          FilledButton.tonal(
-            onPressed: onPick,
-            child: Text(has ? 'Sửa' : 'Chọn tệp'),
-          ),
-        ],
       ),
     );
   }
@@ -525,7 +347,6 @@ class _EmptyState extends StatelessWidget {
     final h = MediaQuery.of(context).size.height;
 
     return Container(
-      // ➜ ép khung trắng rộng full và cao tối thiểu 62% màn hình
       width: double.infinity,
       constraints: BoxConstraints(minHeight: h * 0.62),
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
@@ -535,7 +356,7 @@ class _EmptyState extends StatelessWidget {
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, // căn giữa đẹp hơn
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 64, color: cs.primary),
           const SizedBox(height: 14),
@@ -554,19 +375,50 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: cs.error),
+          const SizedBox(height: 12),
+          Text(message, style: Theme.of(context).textTheme.bodyLarge),
+          const SizedBox(height: 12),
+          ElevatedButton(onPressed: onRetry, child: const Text('Thử lại')),
+        ],
+      ),
+    );
+  }
+}
+
 class _Badge extends StatelessWidget {
-  const _Badge({required this.text, required this.bg, required this.fg});
+  const _Badge({required this.text, required this.color});
   final String text;
-  final Color bg;
-  final Color fg;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
+      decoration: ShapeDecoration(
+        shape: StadiumBorder(side: BorderSide(color: color)),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

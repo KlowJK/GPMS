@@ -13,9 +13,9 @@ import lombok.experimental.FieldDefaults;
 public class GiangVienLiteResponse {
     Long id;
     String hoTen;  // chỉ trả tên để render Select
-    private Long boMonId;
-    private Integer quotaInstruct;       // tối đa
-    private Long currentInstruct;        // đang hướng dẫn
-    private Integer remaining;
+    Long boMonId;
+    Integer quotaInstruct;       // tối đa
+    Long currentInstruct;        // đang hướng dẫn
+    Integer remaining;
 
 }

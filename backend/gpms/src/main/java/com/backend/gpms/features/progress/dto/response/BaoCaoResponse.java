@@ -17,6 +17,7 @@ public class BaoCaoResponse {
     String idDeTai;
     String tenDeTai;
     String maSinhVien;
+    String tenSinhVien;
     String trangThai;
     int phienBan;
     LocalDateTime ngayNop;
@@ -24,5 +25,6 @@ public class BaoCaoResponse {
     Double diemBaoCao;
     String tenGiangVienHuongDan;
     String nhanXet;
-
+    LocalDateTime createdAt;
+    String lop;
 }

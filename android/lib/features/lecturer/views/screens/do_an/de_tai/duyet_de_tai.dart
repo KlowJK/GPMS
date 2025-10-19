@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:GPMS/features/lecturer/services/de_tai_service.dart';
 import 'package:GPMS/features/lecturer/models/de_tai_item.dart';
 
@@ -16,6 +15,9 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
   bool _loading = false;
   String? _error;
 
+  // new: block duplicate requests while processing an action
+  bool _processing = false;
+
   @override
   void initState() {
     super.initState();
@@ -24,45 +26,63 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
 
   Future<void> _load() async {
     if (_loading) return;
-    setState(() { _loading = true; _error = null; });
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final list = await DeTaiService.fetchApprovalList();
-      setState(() { _items..clear()..addAll(list); });
+      if (!mounted) return; // avoid updating state when widget is gone
+
+      setState(() {
+        _items
+          ..clear()
+          ..addAll(list);
+        _error = null;
+      });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
   }
 
-  Future<void> _onAction({
-    required int index,
-    required bool approve,
-  }) async {
+  Future<void> _onAction({required int index, required bool approve}) async {
+    if (_processing) return; // guard
+    if (index < 0 || index >= _items.length) return;
+    setState(() => _processing = true);
+
     final it = _items[index];
     final note = await _showCommentDialog(context);
-    if (note == null || note.trim().isEmpty) return;
+    if (note == null || note.trim().isEmpty) {
+      if (mounted) setState(() => _processing = false);
+      return;
+    }
 
     try {
-      DeTaiItem updated;
       if (approve) {
-        updated = await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim());
+        await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim());
       } else {
-        updated = await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
+        await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
       }
-      setState(() => _items[index] = updated); // giữ item trong list
+
+      // reload full list from server to reflect changes
+      await _load();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(approve ? 'Đã duyệt đề tài' : 'Đã từ chối đề tài')),
-      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi cập nhật: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -70,60 +90,52 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              const Text('Danh sách đề tài'),
-              const Spacer(),
-              const SizedBox(width: 8),
-              IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
-            ],
-          ),
+          child: Row(children: [const Text('Danh sách đề tài')]),
         ),
         Expanded(
           child: _error != null
               ? _ErrorView(message: _error!, onRetry: _load)
               : RefreshIndicator(
-            onRefresh: _load,
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : (_items.isEmpty
-                ? const _EmptyView(text: 'Không có đề tài.')
-                : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemCount: _items.length,
-              itemBuilder: (_, i) => _TopicCard(
-                item: _items[i],
-                onApprove: _items[i].status == TopicStatus.pending
-                    ? () => _onAction(index: i, approve: true)
-                    : null,
-                onReject: _items[i].status == TopicStatus.pending
-                    ? () => _onAction(index: i, approve: false)
-                    : null,
-              ),
-            )),
-          ),
+                  onRefresh: _load,
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (_items.isEmpty
+                            ? const _EmptyView(text: 'Không có đề tài.')
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  8,
+                                  16,
+                                  16,
+                                ),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemCount: _items.length,
+                                itemBuilder: (_, i) => _TopicCard(
+                                  item: _items[i],
+                                  // disable buttons while processing
+                                  onApprove:
+                                      _items[i].status == TopicStatus.pending &&
+                                          !_processing
+                                      ? () => _onAction(index: i, approve: true)
+                                      : null,
+                                  onReject:
+                                      _items[i].status == TopicStatus.pending &&
+                                          !_processing
+                                      ? () =>
+                                            _onAction(index: i, approve: false)
+                                      : null,
+                                ),
+                              )),
+                ),
         ),
       ],
     );
   }
 }
 
-VoidCallback? _maybeOpen(String? url) {
-  if (url == null || url.isEmpty || !url.startsWith('http')) return null;
-  return () async {
-    final uri = Uri.tryParse(url);
-    if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
-  };
-}
-
-
 class _TopicCard extends StatelessWidget {
-  const _TopicCard({
-    required this.item,
-    this.onApprove,
-    this.onReject,
-  });
+  const _TopicCard({required this.item, this.onApprove, this.onReject});
 
   final DeTaiItem item;
   final VoidCallback? onApprove;
@@ -133,159 +145,211 @@ class _TopicCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pending = item.status == TopicStatus.pending;
 
-    // Lấy URL tổng quan (ưu tiên theo thứ tự bạn đang dùng ở model)
-    final overview = item.overviewUrl;
-    final canOpenOverview = (overview ?? '').startsWith('http');
-    final overviewText = (overview == null || overview.isEmpty)
-        ? '—'
-        : (Uri.tryParse(overview)?.pathSegments.last ?? overview);
-
     return Card(
       elevation: 1,
       color: const Color(0xFFE4F6FF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Header: Avatar + HỌ TÊN + MÃ SV
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CircleAvatar(child: Icon(Icons.person)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Họ tên
-                    Text(
-                      item.studentName?.isNotEmpty == true
-                          ? item.studentName!
-                          : 'Sinh viên',
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    // Mã SV
-                    if ((item.studentId ?? '').isNotEmpty)
-                      Text(item.studentId!,
-                          style: Theme.of(context).textTheme.bodySmall),
-                    // Tổng quan đề tài (URL)
-                    Row(
-                      children: [
-                        Text('Tổng quan: ', style: Theme.of(context).textTheme.bodyMedium),
-                        Flexible(
-                          child: InkWell(
-                            onTap: canOpenOverview
-                                ? () async {
-                              final uri = Uri.tryParse(overview!);
-                              if (uri != null) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              }
-                            }
-                                : null, // chỉ click khi là URL
-                            child: Text(
-                              overviewText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: canOpenOverview
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                decoration: canOpenOverview
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none,
-                                fontWeight: FontWeight.w600,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CircleAvatar(child: Icon(Icons.person)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.studentName ?? 'Sinh viên',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'CV: ',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          Flexible(
+                            child: InkWell(
+                              onTap: _maybeOpen(item.duongDanCv),
+                              child: Text(
+                                (item.duongDanCv ?? '').startsWith('http')
+                                    ? 'Xem chi tiết'
+                                    : '—',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color:
+                                          (item.duongDanCv ?? '').startsWith(
+                                            'http',
+                                          )
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                          : null,
+                                      decoration:
+                                          (item.duongDanCv ?? '').startsWith(
+                                            'http',
+                                          )
+                                          ? TextDecoration.underline
+                                          : TextDecoration.none,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 8),
 
-          const SizedBox(height: 8),
-          Text('Đề tài: ${item.title}',
-              style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 6),
-
-          Row(
-            children: [
-              const Text('Trạng thái: ',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              Text(
-                switch (item.status) {
-                  TopicStatus.approved => 'Đã duyệt',
-                  TopicStatus.rejected => 'Đã từ chối',
-                  TopicStatus.pending => 'Đang chờ duyệt',
-                },
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: switch (item.status) {
-                    TopicStatus.approved => const Color(0xFF16A34A),
-                    TopicStatus.rejected => const Color(0xFFDC2626),
-                    TopicStatus.pending => const Color(0xFFC9B325),
-                  },
-                ),
-              ),
-            ],
-          ),
-          if ((item.comment ?? '').isNotEmpty) ...[
+            Text(
+              'Đề tài: ${item.title}',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 6),
-            Text('Nhận xét: ${item.comment}'),
-          ],
 
-          if (pending) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Wrap(
-                spacing: 8,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'File tổng quan: ',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          Flexible(
+                            child: InkWell(
+                              onTap: _maybeOpen(item.overviewFileName),
+                              child: Text(
+                                (item.overviewFileName ?? '').startsWith('http')
+                                    ? 'Xem chi tiết'
+                                    : '—',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color:
+                                          (item.overviewFileName ?? '')
+                                              .startsWith('http')
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                          : null,
+                                      decoration:
+                                          (item.overviewFileName ?? '')
+                                              .startsWith('http')
+                                          ? TextDecoration.underline
+                                          : TextDecoration.none,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            Row(
+              children: [
+                const Text(
+                  'Trạng thái: ',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  switch (item.status) {
+                    TopicStatus.approved => 'Đã duyệt',
+                    TopicStatus.rejected => 'Đã từ chối',
+                    TopicStatus.pending => 'Đang chờ duyệt',
+                  },
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: switch (item.status) {
+                      TopicStatus.approved => const Color(0xFF16A34A),
+                      TopicStatus.rejected => const Color(0xFFDC2626),
+                      TopicStatus.pending => const Color(0xFFC9B325),
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if ((item.comment ?? '').isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('Nhận xét: ${item.comment}'),
+            ],
+
+            if (pending) ...[
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  SizedBox(
-                    height: 28,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                        elevation: 0,
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        backgroundColor: const Color(0xFFDC2626),
                       ),
                       onPressed: onReject,
-                      child: const Text('Từ chối'),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Từ chối'),
                     ),
                   ),
-                  SizedBox(
-                    height: 28,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF22C55E),
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                        elevation: 0,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        backgroundColor: const Color(0xFF16A34A),
                       ),
                       onPressed: onApprove,
-                      child: const Text('Duyệt'),
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Duyệt'),
                     ),
                   ),
                 ],
               ),
-            ),
-          ]
-        ]),
+            ],
+          ],
+        ),
       ),
     );
   }
-}
 
+  VoidCallback? _maybeOpen(String? url) {
+    if (url == null || url.isEmpty || !url.startsWith('http')) return null;
+    return () async {
+      final uri = Uri.tryParse(url);
+      if (uri != null)
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    };
+  }
+}
 
 class _EmptyView extends StatelessWidget {
   const _EmptyView({required this.text});
@@ -299,7 +363,11 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.info_outline, size: 36, color: Theme.of(context).disabledColor),
+            Icon(
+              Icons.info_outline,
+              size: 36,
+              color: Theme.of(context).disabledColor,
+            ),
             const SizedBox(height: 8),
             Text(text, textAlign: TextAlign.center),
           ],
@@ -320,7 +388,11 @@ class _ErrorView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         const SizedBox(height: 16),
-        Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 32),
+        Icon(
+          Icons.error_outline,
+          color: Theme.of(context).colorScheme.error,
+          size: 32,
+        ),
         const SizedBox(height: 8),
         Text('Lỗi: $message', style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 12),
@@ -334,54 +406,37 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Popup nhận xét (ở giữa, styled giống mock)
+/// Popup nhận xét ở GIỮA màn hình
 Future<String?> _showCommentDialog(BuildContext context) async {
-  final c = TextEditingController();
+  final controller = TextEditingController();
   return showDialog<String>(
     context: context,
-    barrierDismissible: false,
-    builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      title: const Center(
-        child: Text('Nhận xét', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-      ),
-      content: SizedBox(
-        width: 420,
-        child: TextField(
-          controller: c,
-          maxLines: 8,
-          decoration: InputDecoration(
-            hintText: 'Đưa ra nhận xét ...',
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(12),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: Color(0x33000000)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: Color(0xFF2F7CD3), width: 1.2),
-            ),
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Nhận xét'),
+        content: TextField(
+          controller: controller,
+          minLines: 5,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: 'Nhập nhận xét bắt buộc...',
           ),
         ),
-      ),
-      actionsAlignment: MainAxisAlignment.center,
-      actions: [
-        SizedBox(
-          width: 140,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF2F7CD3),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-            ),
-            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final t = controller.text.trim();
+              if (t.isEmpty) return;
+              Navigator.pop(ctx, t);
+            },
             child: const Text('Xác nhận'),
           ),
-        ),
-      ],
-    ),
+        ],
+      );
+    },
   );
 }
-
-

@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:provider/provider.dart';
-import 'hoan_do_an.dart';
-import 'de_tai/dang_ky_de_tai.dart';
-import 'de_cuong/de_cuong.dart';
-import 'de_cuong/nop_de_cuong_screen.dart';
-import '../../../viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/views/screens/do_an/hoan_do_an.dart';
+import 'package:GPMS/features/student/views/screens/do_an/de_tai/dang_ky_de_tai.dart';
+import 'package:GPMS/features/student/views/screens/do_an/de_cuong/de_cuong.dart';
+import 'package:GPMS/features/student/views/screens/do_an/de_cuong/nop_de_cuong_screen.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum DoAnTab { detai, decuong }
@@ -22,12 +22,27 @@ class DoAn extends StatefulWidget {
 class DoAnState extends State<DoAn> {
   DoAnTab _tab = DoAnTab.detai;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vm = context.read<DoAnViewModel>();
+      if (!vm.isLoadingAdvisors && vm.advisors.isEmpty) {
+        vm.fetchAdvisors();
+      }
+    });
+  }
+
   Future<void> _goRegister() async {
-    final vm = Provider.of<DoAnViewModel>(context, listen: false);
-    if (!mounted) return;
+    final vm = context.read<DoAnViewModel>();
+
+    if (vm.advisors.isEmpty && !vm.isLoadingAdvisors) {
+      // Thử nạp ngay
+      await vm.fetchAdvisors();
+    }
+
     if (vm.advisors.isNotEmpty) {
-      // Có danh sách -> điều hướng
-      await Navigator.push<RegisterResult>(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider.value(
@@ -36,21 +51,14 @@ class DoAnState extends State<DoAn> {
           ),
         ),
       );
-    } else {
-      // Không có advisors -> hiển thị lỗi rõ ràng cho user
-      final String message =
-          vm.advisorError != null && vm.advisorError!.isNotEmpty
-          ? vm.advisorError!
-          : 'Không có giảng viên hướng dẫn hoặc không thể tải dữ liệu. Vui lòng thử lại.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-      if (kDebugMode) {
-        print(
-          'Cannot navigate to DangKyDeTai: advisors empty. isLoadingAdvisors=${vm.isLoadingAdvisors}, advisorError=${vm.advisorError}',
-        );
-      }
+      return;
     }
+
+    // Thông báo lỗi/không có dữ liệu
+    final msg = vm.advisorError?.isNotEmpty == true
+        ? vm.advisorError!
+        : 'Không có giảng viên hướng dẫn hoặc không thể tải dữ liệu. Vui lòng thử lại.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   void _goPostpone() {
@@ -90,9 +98,62 @@ class DoAnState extends State<DoAn> {
       builder: (context, vm, _) {
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: const Color(0xFF2563EB),
-            title: const Text('Đồ án', style: TextStyle(color: Colors.white)),
-            centerTitle: true,
+            elevation: 1,
+            centerTitle: false,
+            titleSpacing: 12,
+            title: Row(
+              children: [
+                Container(
+                  width: 55,
+                  height: 55,
+                  child: Image.asset("assets/images/logo.png"),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+
+                    children: [
+                      Text(
+                        'TRƯỜNG ĐẠI HỌC THỦY LỢI',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'THUY LOI UNIVERSITY',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                onPressed: () {},
+                tooltip: 'Thông báo',
+                icon: const Icon(Icons.notifications_outlined),
+                color: Colors.white,
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  child: const Icon(Icons.person, size: 18),
+                ),
+              ),
+            ],
           ),
           body: SafeArea(
             child: Center(
@@ -192,9 +253,9 @@ class DoAnState extends State<DoAn> {
           },
         ),
         SizedBox(height: gap),
-        if (vm.isLoading)
+        if (vm.isLoadingDeTai)
           const Center(child: CircularProgressIndicator())
-        else if (vm.deTaiDetail != null && vm.error == null) ...[
+        else if (vm.deTaiDetail != null && vm.deTaiError == null) ...[
           SizedBox(height: gap * 1),
           Text(
             "Thông tin đề tài",
@@ -250,7 +311,7 @@ class _ProjectInfoCard extends StatelessWidget {
     required this.title,
     required this.advisor,
     this.overviewFile, // <-- String?
-    required this.fileUrl,
+    this.fileUrl,
     required this.status,
     this.nhanXet,
   });
@@ -258,13 +319,13 @@ class _ProjectInfoCard extends StatelessWidget {
   final String title;
   final String advisor;
   final String? overviewFile; // <-- nullable
-  final String fileUrl;
+  final String? fileUrl;
   final String status;
   final String? nhanXet;
 
-  Future<void> _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
+  Future<void> _launchURL(String? url) async {
+    if (await canLaunch(url ?? '')) {
+      await launch(url ?? '');
     } else {
       throw 'Không thể mở liên kết $url';
     }
@@ -282,7 +343,7 @@ class _ProjectInfoCard extends StatelessWidget {
             _InfoRow(label: 'Tên đề tài:', value: title),
             _InfoRow(label: 'GVHD:', value: advisor),
 
-            if (fileUrl != null && fileUrl!.isNotEmpty)
+            if (fileUrl?.isNotEmpty == true)
               _InfoRow(
                 label: 'Tổng quan:',
                 valueWidget: Row(
@@ -381,7 +442,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 144, horizontal: 36),
+      padding: const EdgeInsets.symmetric(vertical: 130, horizontal: 36),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),

@@ -1,11 +1,11 @@
 class NhanXet {
-  final int id;
+  final int idGiangVienNhanXet;
   final String? noiDung;
   final String? nguoiNhanXet;
   final String? thoiGian;
 
   NhanXet({
-    required this.id,
+    required this.idGiangVienNhanXet,
     this.noiDung,
     this.nguoiNhanXet,
     this.thoiGian,
@@ -20,12 +20,12 @@ class NhanXet {
       return fallback;
     }
 
-    final idVal = _parseInt(json['id'], fallback: 0);
+    final idVal = _parseInt(json['idGiangVien'], fallback: 0);
     return NhanXet(
-      id: idVal,
-      noiDung: json['noiDung'],
-      nguoiNhanXet: json['nguoiNhanXet'],
-      thoiGian: json['thoiGian'],
+      idGiangVienNhanXet: idVal,
+      noiDung: json['nhanXet'],
+      nguoiNhanXet: json['hoTenGiangVien'],
+      thoiGian: json['createdAt'],
     );
   }
 }

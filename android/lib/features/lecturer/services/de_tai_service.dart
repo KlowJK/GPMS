@@ -1,36 +1,26 @@
 // filepath: lib/features/lecturer/services/de_tai_service.dart
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:GPMS/features/auth/services/auth_service.dart';
 import 'package:GPMS/features/lecturer/models/de_tai_item.dart';
 
 class DeTaiService {
   static String get _base => AuthService.baseUrl;
 
-  /// Headers có Bearer token (chuẩn hóa, kèm debug ngắn gọn)
-  static Future<Map<String, String>> _headers() async {
-    final raw = await AuthService.getToken();
-    if (kDebugMode) {
-      final short = raw == null
-          ? 'NULL'
-          : '${raw.substring(0, raw.length > 12 ? 12 : raw.length)}... (len=${raw.length})';
-      print('[DeTaiService] token(short) = $short');
-    }
-
-    // Cắt "Bearer " nếu token đã có sẵn
-    String? token = raw;
-    if (token != null && token.startsWith('Bearer ')) {
-      token = token.substring(7);
-    }
-
+  /// Headers có Bearer token
+  static Future<Map<String, String>> _headers({String? status}) async {
+    final token = await AuthService.getToken();
     final h = <String, String>{
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     };
     if (token != null && token.isNotEmpty) {
       h['Authorization'] = 'Bearer $token';
+    }
+    if (status != null && status.isNotEmpty) {
+      h['status'] = status; // pass 'CHO_DUYET' when needed
     }
     return h;
   }
@@ -40,8 +30,7 @@ class DeTaiService {
     if (raw == null) return const [];
     if (raw is List) {
       return raw
-          .map<Map<String, dynamic>>(
-              (e) => Map<String, dynamic>.from(e as Map))
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
           .toList();
     }
     if (raw is Map) {
@@ -53,21 +42,30 @@ class DeTaiService {
     return const [];
   }
 
-  /// Danh sách đề tài (tab Duyệt Đề tài)
   /// GET /api/giang-vien/do-an/xet-duyet-de-tai
+  // dart
   static Future<List<DeTaiItem>> fetchApprovalList() async {
-    final uri = Uri.parse('$_base/api/giang-vien/do-an/xet-duyet-de-tai');
-    final res = await http.get(uri, headers: await _headers());
+    // Use query parameter so backend can filter by status
+    final uri = Uri.parse('$_base/api/giang-vien/do-an/xet-duyet-de-tai')
+        .replace(
+          queryParameters: {'status': 'CHO_DUYET'},
+        ); // or {'trangThai': 'CHO_DUYET'}
+
+    final headers = await _headers(); // keep auth headers here
+    print('GET $uri');
+    final res = await http.get(uri, headers: headers);
+
+    print('RESPONSE ${res.statusCode}: ${res.body}');
     if (res.statusCode != 200) {
-      throw Exception('GET ${uri.path} failed: ${res.statusCode} ${res.body}');
+      throw CustomException(ErrorCode.fromResponse(jsonDecode(res.body)));
     }
+
     final body = jsonDecode(res.body);
     final list = _extractList(body);
     return list.map((e) => DeTaiItem.fromJson(e)).toList();
   }
 
-  /// DUYỆT đề tài (PUT)
-  /// PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/approve
+  /// GET /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/approve?nhanXet=...
   static Future<DeTaiItem> approve({
     required int deTaiId,
     required String nhanXet,
@@ -75,14 +73,12 @@ class DeTaiService {
     final uri = Uri.parse(
       '$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/approve',
     );
+    final headers = await _headers();
     final res = await http.put(
       uri,
-      headers: await _headers(),
+      headers: headers,
       body: jsonEncode({'nhanXet': nhanXet}),
     );
-    if (res.statusCode == 401) {
-      throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
-    }
     if (res.statusCode != 200) {
       throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
     }
@@ -93,8 +89,6 @@ class DeTaiService {
     return DeTaiItem.fromJson(Map<String, dynamic>.from(map));
   }
 
-  /// TỪ CHỐI đề tài (PUT)
-  /// PUT /api/giang-vien/do-an/xet-duyet-de-tai/{deTaiId}/reject
   static Future<DeTaiItem> reject({
     required int deTaiId,
     required String nhanXet,
@@ -102,14 +96,12 @@ class DeTaiService {
     final uri = Uri.parse(
       '$_base/api/giang-vien/do-an/xet-duyet-de-tai/$deTaiId/reject',
     );
+    final headers = await _headers();
     final res = await http.put(
       uri,
-      headers: await _headers(),
+      headers: headers,
       body: jsonEncode({'nhanXet': nhanXet}),
     );
-    if (res.statusCode == 401) {
-      throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
-    }
     if (res.statusCode != 200) {
       throw Exception('PUT ${uri.path} failed: ${res.statusCode} ${res.body}');
     }

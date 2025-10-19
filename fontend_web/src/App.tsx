@@ -8,12 +8,6 @@ export default function App() {
 
     return (
         <div className="min-h-screen">
-            {showNav && (
-                <nav className="p-4 bg-white shadow flex gap-4">
-                    <Link to="/lecturers">Home</Link>
-                    <Link to="/topics">Topics</Link>
-                </nav>
-            )}
             <main>
                 <Outlet />
             </main>
