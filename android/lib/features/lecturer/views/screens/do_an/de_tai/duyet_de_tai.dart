@@ -84,6 +84,7 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -134,6 +135,15 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
   }
 }
 
+VoidCallback? _maybeOpen(String? url) {
+  if (url == null || url.isEmpty || !url.startsWith('http')) return null;
+  return () async {
+    final uri = Uri.tryParse(url);
+    if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+  };
+}
+
+
 class _TopicCard extends StatelessWidget {
   const _TopicCard({required this.item, this.onApprove, this.onReject});
 
@@ -144,6 +154,13 @@ class _TopicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pending = item.status == TopicStatus.pending;
+
+    // Lấy URL tổng quan (ưu tiên theo thứ tự bạn đang dùng ở model)
+    final overview = item.overviewUrl;
+    final canOpenOverview = (overview ?? '').startsWith('http');
+    final overviewText = (overview == null || overview.isEmpty)
+        ? '—'
+        : (Uri.tryParse(overview)?.pathSegments.last ?? overview);
 
     return Card(
       elevation: 1,
@@ -291,8 +308,8 @@ class _TopicCard extends StatelessWidget {
                       TopicStatus.pending => const Color(0xFFC9B325),
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if ((item.comment ?? '').isNotEmpty) ...[
               const SizedBox(height: 6),
@@ -351,6 +368,7 @@ class _TopicCard extends StatelessWidget {
   }
 }
 
+
 class _EmptyView extends StatelessWidget {
   const _EmptyView({required this.text});
   final String text;
@@ -406,9 +424,9 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Popup nhận xét ở GIỮA màn hình
+/// Popup nhận xét (ở giữa, styled giống mock)
 Future<String?> _showCommentDialog(BuildContext context) async {
-  final controller = TextEditingController();
+  final c = TextEditingController();
   return showDialog<String>(
     context: context,
     builder: (ctx) {
@@ -435,8 +453,10 @@ Future<String?> _showCommentDialog(BuildContext context) async {
             },
             child: const Text('Xác nhận'),
           ),
-        ],
-      );
-    },
+        ),
+      ],
+    ),
   );
 }
+
+
