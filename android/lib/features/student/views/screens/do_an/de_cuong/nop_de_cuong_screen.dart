@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 
 class NopDeCuongScreen extends StatelessWidget {
   const NopDeCuongScreen({super.key, required this.submissionCount});
@@ -46,14 +46,16 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy dữ liệu. Vui lòng mở màn này từ trang Đồ án.')),
+          const SnackBar(
+            content: Text(
+              'Không tìm thấy dữ liệu. Vui lòng mở màn này từ trang Đồ án.',
+            ),
+          ),
         );
       return;
     }
 
-    final success = await viewModel.nopDeCuong(
-      fileUrl: _urlController.text,
-    );
+    final success = await viewModel.nopDeCuong(fileUrl: _urlController.text);
 
     if (mounted) {
       if (success) {
@@ -65,7 +67,9 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
-            SnackBar(content: Text(viewModel.error ?? 'Nộp đề cương thất bại.')),
+            SnackBar(
+              content: Text(viewModel.logsError ?? 'Nộp đề cương thất bại.'),
+            ),
           );
       }
     }
@@ -77,10 +81,10 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
     final double maxContentWidth = w >= 1200
         ? 1000
         : w >= 900
-            ? 840
-            : w >= 600
-                ? 560
-                : w;
+        ? 840
+        : w >= 600
+        ? 560
+        : w;
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
@@ -97,7 +101,10 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
       backgroundColor: Colors.blueGrey[50],
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Nộp đề cương', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Nộp đề cương',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -114,7 +121,9 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                     shadowColor: Colors.black12,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: theme.dividerColor.withOpacity(0.5)),
+                      side: BorderSide(
+                        color: theme.dividerColor.withOpacity(0.5),
+                      ),
                     ),
                     child: Padding(
                       padding: EdgeInsets.all(gap * 1.5),
@@ -144,7 +153,10 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                           SizedBox(height: gap * 2),
                           Center(
                             child: FilledButton(
-                              onPressed: (viewModel == null || viewModel.isLoading) ? null : () => _submit(context),
+                              onPressed:
+                                  (viewModel == null || viewModel.isLoadingLogs)
+                                  ? null
+                                  : () => _submit(context),
                               style: FilledButton.styleFrom(
                                 backgroundColor: const Color(0xFF2563EB),
                                 padding: const EdgeInsets.symmetric(
@@ -153,17 +165,19 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                                 ),
                               ),
                               child: viewModel == null
-                                  ? const Text('Không có dữ liệu (mở từ trang Đồ án)')
-                                  : (viewModel.isLoading
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Text('Nộp đề cương')),
+                                  ? const Text(
+                                      'Không có dữ liệu (mở từ trang Đồ án)',
+                                    )
+                                  : (viewModel.isLoadingLogs
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text('Nộp đề cương')),
                             ),
                           ),
                         ],

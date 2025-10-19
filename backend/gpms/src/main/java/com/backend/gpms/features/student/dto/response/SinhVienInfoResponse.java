@@ -20,5 +20,7 @@ public class SinhVienInfoResponse {
     String tenKhoa;
     String tenNganh;
     String cvUrl;
-
+    String diaChi;
+    String ngaySinh;
+    String duongDanAvt;
 }

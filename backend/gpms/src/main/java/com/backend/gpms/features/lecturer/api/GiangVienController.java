@@ -90,6 +90,13 @@ public class GiangVienController {
         return ApiResponse.success(giangVienService.getMySinhVienSupervised(pageable));
     }
 
+    @Operation(summary = "Lấy list sinh viên được giảng viên hướng dẫn - Role giảng viên, trợ lý khoa, trưởng bộ môn")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRO_LY_KHOA', 'ROLE_TRUONG_BO_MON')")
+    @GetMapping("/sinh-vien/list")
+    public ApiResponse<List<SinhVienSupervisedResponse>> getMySupervisedStudents() {
+        return ApiResponse.success(giangVienService.getMySinhVienSupervisedList());
+    }
+
     @Operation(summary = "Lấy danh sách đề tài sinh viên theo trạng thái đề tài - Role giảng viên, trợ lý khoa, trưởng bộ môn")
     @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRO_LY_KHOA', 'ROLE_TRUONG_BO_MON')")
     @GetMapping("/do-an/xet-duyet-de-tai")
@@ -186,8 +193,11 @@ public class GiangVienController {
         return ApiResponse.success(giangVienService.getMySinhVienSupervisedAll(q));
     }
 
-
-
+    @Operation(summary = "Lấy profile giảng viên hiện tại ")
+    @GetMapping("/profile")
+    public ApiResponse<GiangVienProfileResponse> getMyProfile() {
+        return ApiResponse.success(giangVienService.getMyProfile());
+    }
 
 
 }

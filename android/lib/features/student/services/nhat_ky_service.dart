@@ -1,10 +1,9 @@
-// Service để gọi GET /api/nhat-ky-tien-trinh/tuans
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../../auth/services/auth_service.dart';
-import '../models/nhat_ki_tuan.dart';
-import '../models/danh_sach_nhat_ky.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/nhat_ki_tuan.dart';
+import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
 
 class NhatKyService {
   final Dio _dio;

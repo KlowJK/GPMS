@@ -13,7 +13,9 @@ export const axios = Axios.create({
 
 axios.interceptors.request.use((config) => {
     const token = getToken()
-    if (token) {
+    // avoid sending Authorization for the login endpoint
+    const isLoginRequest = typeof config.url === 'string' && /\/auth\/login/i.test(config.url)
+    if (token && !isLoginRequest) {
         // cast to any to avoid AxiosHeaders type incompatibilities in various Axios versions
         ;(config.headers as any) = {
             ...(config.headers || {}),

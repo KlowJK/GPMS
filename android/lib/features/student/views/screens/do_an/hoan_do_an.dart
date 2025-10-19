@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../auth/services/auth_service.dart';
-import '../../../models/de_nghi_hoan_model.dart';
-import '../../../services/hoan_do_an_service.dart';
-import '../../../viewmodels/hoan_do_an_viewmodel.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/de_nghi_hoan_model.dart';
+import 'package:GPMS/features/student/services/hoan_do_an_service.dart';
+import 'package:GPMS/features/student/viewmodels/hoan_do_an_viewmodel.dart';
 
 class HoanDoAn extends StatelessWidget {
   const HoanDoAn({super.key});
@@ -76,14 +76,21 @@ class _HoanDoAnViewState extends State<_HoanDoAnView> {
       return;
     }
 
-    final ok = await showDialog<bool>(
+    final ok =
+        await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Xác nhận gửi'),
             content: const Text('Bạn có chắc chắn muốn gửi đề nghị này không?'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
-              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Gửi')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Hủy'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Gửi'),
+              ),
             ],
           ),
         ) ??
@@ -116,29 +123,34 @@ class _HoanDoAnViewState extends State<_HoanDoAnView> {
         _selectedFileBytes = null;
       });
     } else if (viewModel.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: ${viewModel.error}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: ${viewModel.error}')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final double maxContentWidth = w >= 1200 ? 1000 : (w >= 900 ? 840 : (w >= 600 ? 560 : w));
+    final double maxContentWidth = w >= 1200
+        ? 1000
+        : (w >= 900 ? 840 : (w >= 600 ? 560 : w));
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
     final border = OutlineInputBorder(
       borderSide: BorderSide(color: Theme.of(context).dividerColor),
       borderRadius: BorderRadius.circular(10),
     );
-    
+
     final viewModel = context.watch<HoanDoAnViewModel>();
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Đề nghị hoãn đồ án', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Đề nghị hoãn đồ án',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -150,7 +162,9 @@ class _HoanDoAnViewState extends State<_HoanDoAnView> {
               children: [
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.all(gap),
                     child: Form(
@@ -167,7 +181,9 @@ class _HoanDoAnViewState extends State<_HoanDoAnView> {
                               hintText: 'Trình bày lý do của bạn…',
                               border: border,
                             ),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập lý do' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Vui lòng nhập lý do'
+                                : null,
                           ),
                           SizedBox(height: gap),
                           const _FieldLabel('File minh chứng (tùy chọn):'),
@@ -186,9 +202,21 @@ class _HoanDoAnViewState extends State<_HoanDoAnView> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: FilledButton.icon(
-                              onPressed: viewModel.isLoading ? null : _confirmAndSend,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFF2563EB),
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: viewModel.isLoading
+                                  ? null
+                                  : _confirmAndSend,
                               icon: viewModel.isLoading
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Icon(Icons.send_outlined),
                               label: const Text('Gửi đề nghị'),
                             ),
@@ -199,7 +227,10 @@ class _HoanDoAnViewState extends State<_HoanDoAnView> {
                   ),
                 ),
                 SizedBox(height: gap * 2),
-                const Text('Lịch sử đề nghị', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Lịch sử đề nghị',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: gap),
                 _buildHistoryList(viewModel, gap),
               ],
@@ -246,7 +277,11 @@ class _FilePickerWidget extends StatelessWidget {
   final VoidCallback onPick;
   final VoidCallback onClear;
 
-  const _FilePickerWidget({this.fileName, required this.onPick, required this.onClear});
+  const _FilePickerWidget({
+    this.fileName,
+    required this.onPick,
+    required this.onClear,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +303,11 @@ class _FilePickerWidget extends StatelessWidget {
           child: const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.cloud_upload_outlined, size: 28), SizedBox(height: 6), Text('Chọn tệp tại đây')],
+              children: [
+                Icon(Icons.cloud_upload_outlined, size: 28),
+                SizedBox(height: 6),
+                Text('Chọn tệp tại đây'),
+              ],
             ),
           ),
         ),
@@ -290,10 +329,17 @@ class _FilePickerWidget extends StatelessWidget {
               fileName!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: cs.primary, decoration: TextDecoration.underline),
+              style: TextStyle(
+                color: cs.primary,
+                decoration: TextDecoration.underline,
+              ),
             ),
           ),
-          IconButton(tooltip: 'Xóa tệp', icon: const Icon(Icons.close), onPressed: onClear),
+          IconButton(
+            tooltip: 'Xóa tệp',
+            icon: const Icon(Icons.close),
+            onPressed: onClear,
+          ),
         ],
       ),
     );
@@ -308,7 +354,12 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+      child: Text(
+        text,
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+      ),
     );
   }
 }
@@ -367,7 +418,10 @@ class _DeNghiHistoryCard extends StatelessWidget {
                   style: textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: getStatusColor(deNghi.trangThai).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -384,7 +438,8 @@ class _DeNghiHistoryCard extends StatelessWidget {
             ),
             const Divider(height: 20),
             _InfoRow(label: 'Lý do:', value: deNghi.lyDo),
-            if (deNghi.ghiChuQuyetDinh != null && deNghi.ghiChuQuyetDinh!.isNotEmpty)
+            if (deNghi.ghiChuQuyetDinh != null &&
+                deNghi.ghiChuQuyetDinh!.isNotEmpty)
               _InfoRow(label: 'Phản hồi:', value: deNghi.ghiChuQuyetDinh!),
             if (deNghi.minhChungUrl != null && deNghi.minhChungUrl!.isNotEmpty)
               Padding(
@@ -400,7 +455,13 @@ class _DeNghiHistoryCard extends StatelessWidget {
                     children: const [
                       Icon(Icons.link, color: Colors.blue, size: 16),
                       SizedBox(width: 4),
-                      Text('Xem file minh chứng', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)),
+                      Text(
+                        'Xem file minh chứng',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ],
                   ),
                 ),
