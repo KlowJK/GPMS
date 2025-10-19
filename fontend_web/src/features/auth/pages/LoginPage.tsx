@@ -57,6 +57,11 @@ export default function LoginPage() {
             } else {
                 navigate('/topics', { replace: true })
             }
+            if (role === 'QUAN_TRI_VIEN' || role === 'TRO_LY_KHOA') {
+                navigate('/admin', { replace: true })
+            } else {
+                navigate('/topics', { replace: true }) // fallback nếu chưa có role
+            }
         } catch (err) {
             const axiosErr = err as AxiosError
             const serverMsg =
