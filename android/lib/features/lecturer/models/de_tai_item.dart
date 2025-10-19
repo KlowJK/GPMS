@@ -2,9 +2,14 @@ enum TopicStatus { pending, approved, rejected }
 
 TopicStatus mapTrangThai(String? s) {
   switch (s) {
-    case 'DA_DUYET': return TopicStatus.approved;
-    case 'TU_CHOI':  return TopicStatus.rejected;
-    default:         return TopicStatus.pending;
+    case 'DA_DUYET':
+      return TopicStatus.approved;
+    case 'TU_CHOI':
+      return TopicStatus.rejected;
+    case 'CHO_DUYET':
+      return TopicStatus.pending;
+    default:
+      return TopicStatus.pending;
   }
 }
 
@@ -15,6 +20,16 @@ int _toInt(dynamic v) {
   return 0;
 }
 
+String? _firstString(Map<String, dynamic> j, List<String> keys) {
+  for (final k in keys) {
+    final val = j[k];
+    if (val == null) continue;
+    final s = val.toString().trim();
+    if (s.isNotEmpty) return s;
+  }
+  return null;
+}
+
 class DeTaiItem {
   final int id;
   final String title;
@@ -23,6 +38,7 @@ class DeTaiItem {
   final String? studentName;
   final String? studentId;
   final String? overviewFileName;
+  final String? duongDanCv;
 
   DeTaiItem({
     required this.id,
@@ -32,12 +48,10 @@ class DeTaiItem {
     this.studentName,
     this.studentId,
     this.overviewFileName,
+    this.duongDanCv,
   });
 
-  DeTaiItem copyWith({
-    TopicStatus? status,
-    String? comment,
-  }) => DeTaiItem(
+  DeTaiItem copyWith({TopicStatus? status, String? comment}) => DeTaiItem(
     id: id,
     title: title,
     status: status ?? this.status,
@@ -45,15 +59,72 @@ class DeTaiItem {
     studentName: studentName,
     studentId: studentId,
     overviewFileName: overviewFileName,
+    duongDanCv: duongDanCv,
   );
 
-  factory DeTaiItem.fromJson(Map<String, dynamic> j) => DeTaiItem(
-    id: _toInt(j['id']),
-    title: (j['tenDeTai'] ?? '') as String,
-    status: mapTrangThai(j['trangThai'] as String?),
-    comment: j['nhanXet'] as String?,
-    studentId: j['sinhVienId']?.toString(),
-    studentName: j['sinhVienTen'] as String?,
-    overviewFileName: j['tongQuanFilename'] as String?,
-  );
+  factory DeTaiItem.fromJson(Map<String, dynamic> j) {
+    final idVal =
+        j['id'] ??
+        j['idDeTai'] ??
+        j['id_de_tai'] ??
+        j['idDetai'] ??
+        j['idDeTaiString'];
+    final parsedId = _toInt(idVal);
+
+    final title =
+        _firstString(j, [
+          'tenDeTai',
+          'ten_de_tai',
+          'title',
+          'tenDeTaiString',
+        ]) ??
+        '';
+
+    final statusStr = _firstString(j, ['trangThai', 'trang_thai', 'status']);
+
+    final comment = _firstString(j, ['nhanXet', 'nhan_xet', 'comment']);
+
+    final studentId = _firstString(j, [
+      'maSV',
+      'ma_sinh_vien',
+      'studentId',
+      'sinhVienId',
+      'idSinhVien',
+    ]);
+
+    final studentName = _firstString(j, [
+      'hoTen',
+      'ho_ten',
+      'sinhVienTen',
+      'studentName',
+    ]);
+
+    final overview = _firstString(j, [
+      'tongQuanDeTaiUrl',
+      'tongQuanFilename',
+      'tongQuanDeTai',
+      'overviewUrl',
+      'overviewFileName',
+      'tongQuanDeTaiUrlString',
+    ]);
+
+    final duongDanCv = _firstString(j, [
+      'duongDanCv',
+      'cvUrl',
+      'cv_file',
+      'cvFileName',
+      'cvUrlString',
+    ]);
+
+    return DeTaiItem(
+      id: parsedId,
+      title: title,
+      status: mapTrangThai(statusStr),
+      comment: comment,
+      studentId: studentId,
+      studentName: studentName,
+      overviewFileName: overview,
+      duongDanCv: duongDanCv,
+    );
+  }
 }

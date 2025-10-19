@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:GPMS/features/lecturer/services/de_cuong_service.dart';
 import 'package:GPMS/features/lecturer/models/de_cuong_item.dart';
 
@@ -37,6 +36,38 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
   var _logs = <DeCuongItem>[];
   bool _loading = false;
   String? _error;
+  bool _processing = false;
+  Future<void> _onAction({required int index, required bool approve}) async {
+    if (_processing) return;
+    setState(() => _processing = true);
+
+    final it = _logs[index];
+    final note = await _showCommentDialog(context);
+    if (note == null || note.trim().isEmpty) {
+      if (mounted) setState(() => _processing = false);
+      return;
+    }
+
+    try {
+      if (approve) {
+        await DeCuongService.approve(id: it.id, nhanXet: note.trim());
+      } else {
+        await DeCuongService.reject(id: it.id, nhanXet: note.trim());
+      }
+
+      // reload full list from server to reflect changes
+      await _loadLogs();
+
+      if (!mounted) return;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
 
   @override
   void initState() {
@@ -44,12 +75,8 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
     _loadLogs();
   }
 
-  int? _resolveSinhVienId() {
-    // Ưu tiên id được truyền sẵn
-    if (widget.data.sinhVienId != null) return widget.data.sinhVienId;
-    // Fallback: thử parse từ mã SV (nếu là số)
-    final id = int.tryParse(widget.data.maSV);
-    return id;
+  String? _resolveSinhVienId() {
+    return widget.data.maSV;
   }
 
   Future<void> _loadLogs() async {
@@ -75,47 +102,37 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFF2F7CD3);
+    const primary = Color(0xFF2563EB);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: primary,
         foregroundColor: Colors.white,
         centerTitle: true,
-        title: const Text('Thông tin chi tiết đề tài'),
+        title: const Text('Thông tin chi tiết'),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            // Tiêu đề đề tài (không icon, theo layout giống ảnh 4)
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Đề tài: ${widget.data.tenDeTai.isEmpty ? "—" : widget.data.tenDeTai}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-            Text(
-              'Thông tin sinh viên thực hiện:',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
             const SizedBox(height: 8),
 
             // Thông tin SV (gồm CV ở TRÊN như yêu cầu)
+            // lib/features/lecturer/views/screens/do_an/chi_tiet_de_tai.dart (snippet)
             Card(
               elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    Text(
+                      'Đề tài: ${widget.data.tenDeTai.isEmpty ? "—" : widget.data.tenDeTai}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
                     _infoRow(context, 'Họ tên', widget.data.hoTen),
                     _divider(context),
                     _infoRow(context, 'Mã sinh viên', widget.data.maSV),
@@ -127,25 +144,40 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('CV: ', style: Theme.of(context).textTheme.bodyMedium),
+                        Text(
+                          'CV: ',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: Colors.black),
+                        ),
                         Expanded(
                           child: InkWell(
                             onTap: _maybeOpen(widget.data.cvUrl),
-                            child: Text(
-                              (widget.data.cvUrl ?? '').isEmpty
-                                  ? '—'
-                                  : widget.data.cvUrl!.split('/').last,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: (widget.data.cvUrl ?? '').startsWith('http')
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                decoration: (widget.data.cvUrl ?? '').startsWith('http')
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final url = widget.data.cvUrl ?? '';
+                                final hasHttp = url.startsWith('http');
+                                final display = hasHttp
+                                    ? 'Xem chi tiết'
+                                    : (url.isEmpty ? '—' : url.split('/').last);
+                                return Text(
+                                  display,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: hasHttp
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.primary
+                                            : Colors.black87,
+                                        decoration: hasHttp
+                                            ? TextDecoration.underline
+                                            : TextDecoration.none,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -159,7 +191,9 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
             const SizedBox(height: 12),
             Text(
               'Đề cương của sinh viên:',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
 
@@ -173,21 +207,90 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
                 ),
               )
             else if (_logs.isEmpty)
-                _emptyBox(context, 'Chưa có đề cương nào.')
-              else
-                Column(children: _logs.map((e) => _logItem(context, e)).toList()),
+              _emptyBox(context, 'Chưa có đề cương nào.')
+            else
+              Column(
+                children: _logs
+                    .asMap()
+                    .entries
+                    .map((entry) => _logItem(context, entry.value, entry.key))
+                    .toList(),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _logItem(BuildContext context, DeCuongItem e) {
+  // dart
+  Widget _logItem(BuildContext context, DeCuongItem e, int index) {
     String two(int x) => x.toString().padLeft(2, '0');
-    String fmt(DateTime? d) => d == null ? '—' : '${two(d.day)}/${two(d.month)}/${d.year}';
+    String fmt(DateTime? d) =>
+        d == null ? '—' : '${two(d.day)}/${two(d.month)}/${d.year}';
+    final pending = e.status == DeCuongStatus.pending;
+
+    // assign callbacks based on pending state and index
+    final VoidCallback? onReject = (!_processing && pending)
+        ? () => _onAction(index: index, approve: false)
+        : null;
+    final VoidCallback? onApprove = (!_processing && pending)
+        ? () => _onAction(index: index, approve: true)
+        : null;
 
     final color = deCuongStatusColor(e.status);
     final text = deCuongStatusText(e.status);
+    final colorGVPB = e.gvPhanBienDuyet == null
+        ? Colors.grey
+        : deCuongStatusColor(e.gvPhanBienDuyet!);
+    final textGVPB = e.gvPhanBienDuyet == null
+        ? '—'
+        : deCuongStatusText(e.gvPhanBienDuyet!);
+
+    final colorTBM = e.tbmDuyet == null
+        ? Colors.grey
+        : deCuongStatusColor(e.tbmDuyet!);
+    final textTBM = e.tbmDuyet == null ? '—' : deCuongStatusText(e.tbmDuyet!);
+
+    final hasList = e.nhanXets != null && e.nhanXets!.isNotEmpty;
+    final hasSingle = (e.nhanXet ?? '').isNotEmpty;
+
+    String _detectPrefix(DeCuongItem item, dynamic nx) {
+      final dyn = item as dynamic;
+      final advisor = dyn.hoTenGiangVienHuongDan
+          ?.toString()
+          ?.toLowerCase()
+          .trim();
+      final reviewer = dyn.hoTenGiangVienPhanBien
+          ?.toString()
+          ?.toLowerCase()
+          .trim();
+      final head = dyn.hoTenTruongBoMon?.toString()?.toLowerCase().trim();
+
+      final author = (nx.nguoiNhanXet ?? '').toString().toLowerCase().trim();
+      if (author.isEmpty) return '';
+
+      if (advisor != null && advisor.isNotEmpty && author == advisor)
+        return 'GVHD';
+      if (reviewer != null && reviewer.isNotEmpty && author == reviewer)
+        return 'GVPB';
+      if (head != null && head.isNotEmpty && author == head) return 'TBM';
+
+      if (author.contains('huong') ||
+          author.contains('gvhd') ||
+          author.contains('hd'))
+        return 'GVHD';
+      if (author.contains('phan') ||
+          author.contains('gpb') ||
+          author.contains('pb'))
+        return 'GVPB';
+      if (author.contains('truong') ||
+          author.contains('tbm') ||
+          author.contains('bộ môn') ||
+          author.contains('bo mon'))
+        return 'TBM';
+
+      return '';
+    }
 
     return Card(
       elevation: 1,
@@ -198,7 +301,7 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Số lần nộp: ${e.lanNop ?? '—'}'),
+            Text('Phiên bản: ${e.lanNop ?? '—'}'),
             const SizedBox(height: 2),
             Text('Ngày nộp: ${fmt(e.ngayNop)}'),
             const SizedBox(height: 2),
@@ -209,19 +312,29 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
                 Expanded(
                   child: InkWell(
                     onTap: _maybeOpen(e.fileName),
-                    child: Text(
-                      e.fileName ?? '—',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: (e.fileName ?? '').startsWith('http')
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        decoration: (e.fileName ?? '').startsWith('http')
-                            ? TextDecoration.underline
-                            : TextDecoration.none,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Builder(
+                      builder: (context) {
+                        final url = e.fileName ?? '';
+                        final hasHttp = url.startsWith('http');
+                        final display = hasHttp
+                            ? 'Xem chi tiết'
+                            : (url.isEmpty ? '—' : url.split('/').last);
+                        return Text(
+                          display,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: hasHttp
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                                decoration: hasHttp
+                                    ? TextDecoration.underline
+                                    : TextDecoration.none,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -231,12 +344,121 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
             Row(
               children: [
                 const Text('Trạng thái: '),
-                Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+                Text(
+                  text,
+                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
-            if ((e.nhanXet ?? '').isNotEmpty) ...[
+
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Text('Trạng thái GVPB: '),
+                Text(
+                  textGVPB,
+                  style: TextStyle(
+                    color: colorGVPB,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Text('Trạng thái TBM: '),
+                Text(
+                  textTBM,
+                  style: TextStyle(
+                    color: colorTBM,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+
+            if (hasList || hasSingle) ...[
               const SizedBox(height: 2),
-              Text('Nhận xét: ${e.nhanXet}'),
+              Text('Nhận xét:', style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 6),
+
+              if (hasList)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: e.nhanXets!.map((nx) {
+                    final prefix = _detectPrefix(e, nx);
+                    final content = nx.noiDung ?? '—';
+                    final displayed = prefix.isNotEmpty
+                        ? '$prefix: $content'
+                        : content;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayed,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                )
+              else
+                Builder(
+                  builder: (ctx) {
+                    final fakeNx = {'nguoiNhanXet': '', 'noiDung': e.nhanXet};
+                    final prefix = _detectPrefix(e, fakeNx);
+                    final displayed = prefix.isNotEmpty
+                        ? '$prefix: ${e.nhanXet}'
+                        : (e.nhanXet ?? '—');
+                    return Text(
+                      displayed,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    );
+                  },
+                ),
+            ],
+
+            if (pending) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        backgroundColor: const Color(0xFFDC2626),
+                      ),
+                      onPressed: onReject,
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Từ chối'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        backgroundColor: const Color(0xFF16A34A),
+                      ),
+                      onPressed: onApprove,
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Duyệt'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ],
         ),
@@ -245,21 +467,21 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
   }
 
   Widget _infoRow(BuildContext context, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('$label: ', style: Theme.of(context).textTheme.bodyMedium),
-        Expanded(
-          child: Text(
-            value.isEmpty ? '—' : value,
-            textAlign: TextAlign.right,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF393938)),
-          ),
-        ),
-      ],
+    final styleLabel = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Colors.black87,
+      fontWeight: FontWeight.w600,
+    );
+    final styleValue = Theme.of(context).textTheme.bodyMedium;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 100, child: Text(label, style: styleLabel)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value ?? '', style: styleValue)),
+        ],
+      ),
     );
   }
 
@@ -292,7 +514,11 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
     ),
   );
 
-  Widget _errorBox(BuildContext ctx, String msg, {required VoidCallback onRetry}) => Container(
+  Widget _errorBox(
+    BuildContext ctx,
+    String msg, {
+    required VoidCallback onRetry,
+  }) => Container(
     width: double.infinity,
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
@@ -310,8 +536,42 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
             icon: const Icon(Icons.refresh),
             label: const Text('Thử lại'),
           ),
-        )
+        ),
       ],
     ),
+  );
+}
+
+Future<String?> _showCommentDialog(BuildContext context) async {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Nhận xét'),
+        content: TextField(
+          controller: controller,
+          minLines: 5,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: 'Nhập nhận xét bắt buộc...',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final t = controller.text.trim();
+              if (t.isEmpty) return;
+              Navigator.pop(ctx, t);
+            },
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      );
+    },
   );
 }

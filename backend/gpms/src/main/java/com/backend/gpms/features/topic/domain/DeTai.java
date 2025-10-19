@@ -31,9 +31,6 @@ public class DeTai extends BaseEntity {
     @Column(name="ten_de_tai", nullable=false)
     String tenDeTai;
 
-    @Column(name="mo_ta")
-    String moTa;
-
     @Column(name="noi_dung_de_tai")
     String noiDungDeTaiUrl;
 

@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
-import '../../../../models/giang_vien_huong_dan.dart';
-import '../../../../viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/models/giang_vien_huong_dan.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 
 class RegisterResult {
   final String title;
@@ -160,7 +160,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
-          SnackBar(content: Text(vm.error ?? 'Đăng ký đề tài thất bại.')),
+          SnackBar(content: Text(vm.deTaiError ?? 'Đăng ký đề tài thất bại.')),
         );
     }
   }

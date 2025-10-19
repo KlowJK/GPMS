@@ -5,7 +5,7 @@ import com.backend.gpms.features.outline.domain.TrangThaiDuyetDon;
 import com.backend.gpms.features.progress.application.BaoCaoService;
 import com.backend.gpms.features.progress.dto.request.DuyetBaoCaoRequest;
 import com.backend.gpms.features.progress.dto.response.BaoCaoResponse;
-
+import com.backend.gpms.features.progress.dto.response.SinhVienSupervisedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -57,6 +57,24 @@ public class BaoCaoController {
         return ApiResponse.success(service.getBaoCaoOfGiangVienList(status));
     }
 
+
+    @Operation(summary = "App - Lấy list báo cáo sinh viên của giảng viên hướng dẫn - Role giảng viên, trợ lý khoa, trưởng bộ môn")
+    @GetMapping("/list-bao-cao-sinh-vien")
+    public ApiResponse<List<BaoCaoResponse>> getBaoCaoOfSinhVienList(
+            @RequestParam(name = "maSinhVien", required = false) String maSinhVien
+    ) {
+        return ApiResponse.success(service.getBaoCaoOfSinhVienList(maSinhVien));
+    }
+
+
+    @Operation(summary = "App - Lấy list báo cáo sinh viên của giảng viên hướng dẫn - Role giảng viên, trợ lý khoa, trưởng bộ môn")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRO_LY_KHOA','ROLE_TRUONG_BO_MON')")
+    @GetMapping("/list-sinh-vien-supervised")
+    public ApiResponse<List<SinhVienSupervisedResponse>> getMySinhVienSupervisedList(
+    ) {
+        return ApiResponse.success(service.getMySinhVienSupervisedList());
+    }
+
     @Operation(summary = "Web - Lấy page báo cáo sinh viên của giảng viên hướng dẫn - Role giảng viên, trợ lý khoa, trưởng bộ môn")
     @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRO_LY_KHOA','ROLE_TRUONG_BO_MON')")
     @GetMapping("/page-bao-cao-giang-vien")
@@ -76,17 +94,12 @@ public class BaoCaoController {
     @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRO_LY_KHOA','ROLE_TRUONG_BO_MON')")
     @PutMapping("/duyet")
     public ApiResponse<BaoCaoResponse> duyetBaoCao(
-            @RequestParam(name = "idBaoCao", required = false)
-            Long idBaoCao,
-            @RequestParam(name = "diemHuongDan", required = false)
-            double diemHuongDan,
-             @RequestParam(name = "nhanXet", required = false)
-                    String nhanXet
-            ) {
-
+            @RequestParam(name = "idBaoCao", required = true) Long idBaoCao,
+            @RequestParam(name = "diemHuongDan", required = false) Double diemHuongDan,
+            @RequestParam(name = "nhanXet", required = false) String nhanXet
+    ) {
         DuyetBaoCaoRequest request = new DuyetBaoCaoRequest();
         request.setIdBaoCao(idBaoCao);
-
         request.setDiemHuongDan(diemHuongDan);
         request.setNhanXet(nhanXet);
         BaoCaoResponse response = service.duyetBaoCao(request);
@@ -103,12 +116,8 @@ public class BaoCaoController {
             String nhanXet
             ) {
         DuyetBaoCaoRequest request = new DuyetBaoCaoRequest();
-
-        // Đồng bộ ID từ path vào request
         request.setIdBaoCao(idBaoCao);
         request.setNhanXet(nhanXet);
-
-
         BaoCaoResponse response = service.tuChoiBaoCao(request);
         return ApiResponse.success(response);
     }

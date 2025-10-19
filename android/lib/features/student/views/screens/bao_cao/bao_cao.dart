@@ -57,6 +57,7 @@ class _BaoCaoBody extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         title: const Text('Báo cáo', style: TextStyle(color: Colors.white)),
         centerTitle: true,

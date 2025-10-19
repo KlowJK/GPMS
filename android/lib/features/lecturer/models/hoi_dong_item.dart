@@ -1,4 +1,3 @@
-// lib/features/lecturer/models/hoi_dong_item.dart
 class HoiDongItem {
   final int id;
   final String tenHoiDong;

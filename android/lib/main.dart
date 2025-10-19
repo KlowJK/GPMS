@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'features/auth/views/screens/login.dart';
+import 'package:GPMS/features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
-import 'features/auth/viewmodels/auth_viewmodel.dart';
-import 'shared/models/thong_bao_va_tin_tuc.dart';
-import 'core/services/main_service.dart';
+import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
+import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/core/services/main_service.dart';
 import 'package:intl/intl.dart';
-import 'shared/NewsDetailPage.dart';
-import 'shared/AllNewsPage.dart';
+import 'package:GPMS/shared/NewsDetailPage.dart';
+import 'package:GPMS/shared/AllNewsPage.dart';
 
 void main() {
   runApp(
@@ -74,10 +74,10 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
     }
 
     // Nếu muốn refresh khi dependency thay đổi (vd: auth state), có thể watch provider ở đây
-    // final auth = context.watch<AuthViewModel>();
-    // if (auth.justLoggedIn) {
-    //   _notificationsFuture = MainService.listThongBao();
-    // }
+    final auth = context.watch<AuthViewModel>();
+    if (auth.isLoggedIn) {
+      _notificationsFuture = MainService.listThongBao();
+    }
   }
 
   @override

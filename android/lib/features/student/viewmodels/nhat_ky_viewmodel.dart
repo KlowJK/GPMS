@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/nhat_ki_tuan.dart';
-import '../models/danh_sach_nhat_ky.dart';
-import '../services/nhat_ky_service.dart';
+import 'package:GPMS/features/student/models/nhat_ki_tuan.dart';
+import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
+import 'package:GPMS/features/student/services/nhat_ky_service.dart';
 
 class NhatKyViewModel extends ChangeNotifier {
   final NhatKyService service;

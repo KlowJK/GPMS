@@ -127,6 +127,20 @@ public class GiangVienService {
         return page.map(sinhVienMapper::toSinhVienSupervisedResponse);
     }
 
+    public List<SinhVienSupervisedResponse> getMySinhVienSupervisedList() {
+        String email = currentEmail();
+
+        Long gvhdId = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_A_GVHD))
+                .getId();
+
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+        List<SinhVien> list = sinhVienRepository.findByDeTai_GiangVienHuongDan_IdAndDeTai_DotBaoVeAndDeTai_TrangThaiOrderByHoTenDesc(gvhdId, dotBaoVe, TrangThaiDeTai.DA_DUYET);
+        return list.stream()
+                .map(sinhVienMapper::toSinhVienSupervisedResponse)
+                .toList();
+    }
+
     public Page<ApprovalSinhVienResponse> getDeTaiSinhVienApproval(TrangThaiDeTai status, Pageable pageable) {
         String email = currentEmail();
 
@@ -145,7 +159,7 @@ public class GiangVienService {
 
     public List<DeCuongNhanXetResponse> viewDeCuongLog(String maSinhVien) {
 
-        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVien(maSinhVien);
+        List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(maSinhVien);
         if (deCuongs.isEmpty()) throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
 
         List<Long> ids = deCuongs.stream().map(DeCuong::getId).toList();
@@ -342,6 +356,13 @@ public class GiangVienService {
                 .stream()
                 .map(giangVienMapper::toLite)
                 .toList();
+    }
+
+    public GiangVienProfileResponse getMyProfile() {
+        String email = currentEmail();
+        GiangVien gv = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        return giangVienMapper.toGiangVienProfileResponse(gv);
     }
 
 

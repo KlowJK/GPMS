@@ -37,4 +37,7 @@ public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
     Optional<DeTai> findByNhatKyTienTrinhs_Id(Long nhatKyId);
 
     List<DeTai> findByGiangVienHuongDan_User_EmailIgnoreCase(String email);
+
+    Optional<DeTai> findBySinhVien_MaSinhVienIgnoreCase(String maSinhVien);
+
 }

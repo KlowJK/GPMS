@@ -28,7 +28,7 @@ public interface SinhVienRepository extends JpaRepository<SinhVien, Long> {
 
     Page<SinhVien> findAllByHoTenContainingIgnoreCaseOrMaSinhVienContainingIgnoreCase(String hoTen, String maSV, Pageable pageable);
 
-
+    List<SinhVien> findByDeTai_GiangVienHuongDan_IdAndDeTai_DotBaoVeAndDeTai_TrangThaiOrderByHoTenDesc(Long deTaiGiangVienHuongDanId, DotBaoVe deTaiDotBaoVe, TrangThaiDeTai deTaiTrangThai);
 
 
     List<SinhVien> findAllByDeTaiIsNullAndUser_TrangThaiKichHoatTrue();

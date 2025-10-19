@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
-import '../../../../viewmodels/do_an_viewmodel.dart';
-import '../../../../models/de_cuong_log.dart';
-import '../../../../models/nhan_xet.dart';
+import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
+import 'package:GPMS/features/student/models/de_cuong_log.dart';
+import 'package:GPMS/features/student/models/nhan_xet.dart';
 
 class DeCuong extends StatelessWidget {
   const DeCuong({super.key, required this.gap, required this.onCreate});
@@ -40,7 +40,7 @@ class DeCuong extends StatelessWidget {
     return Consumer<DoAnViewModel>(
       builder: (context, viewModel, child) {
         Widget bodyContent;
-        if (viewModel.isLoading && viewModel.deCuongLogs.isEmpty) {
+        if (viewModel.isLoadingLogs && viewModel.deCuongLogs.isEmpty) {
           bodyContent = const Center(child: CircularProgressIndicator());
         } else if (viewModel.deCuongLogs.isEmpty) {
           bodyContent = ListView(

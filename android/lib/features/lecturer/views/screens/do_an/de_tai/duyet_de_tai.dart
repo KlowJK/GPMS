@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:GPMS/features/lecturer/services/de_tai_service.dart';
 import 'package:GPMS/features/lecturer/models/de_tai_item.dart';
 
@@ -16,6 +15,9 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
   bool _loading = false;
   String? _error;
 
+  // new: block duplicate requests while processing an action
+  bool _processing = false;
+
   @override
   void initState() {
     super.initState();
@@ -24,42 +26,61 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
 
   Future<void> _load() async {
     if (_loading) return;
-    setState(() { _loading = true; _error = null; });
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final list = await DeTaiService.fetchApprovalList();
-      setState(() { _items..clear()..addAll(list); });
+      if (!mounted) return; // avoid updating state when widget is gone
+
+      setState(() {
+        _items
+          ..clear()
+          ..addAll(list);
+        _error = null;
+      });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
   }
 
-  Future<void> _onAction({
-    required int index,
-    required bool approve,
-  }) async {
+  Future<void> _onAction({required int index, required bool approve}) async {
+    if (_processing) return; // guard
+    if (index < 0 || index >= _items.length) return;
+    setState(() => _processing = true);
+
     final it = _items[index];
     final note = await _showCommentDialog(context);
-    if (note == null || note.trim().isEmpty) return;
+    if (note == null || note.trim().isEmpty) {
+      if (mounted) setState(() => _processing = false);
+      return;
+    }
 
     try {
-      DeTaiItem updated;
       if (approve) {
-        updated = await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim());
+        await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim());
       } else {
-        updated = await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
+        await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
       }
-      setState(() => _items[index] = updated); // giữ item trong list
+
+      // reload full list from server to reflect changes
+      await _load();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(approve ? 'Đã duyệt đề tài' : 'Đã từ chối đề tài')),
-      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi cập nhật: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
@@ -69,39 +90,44 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              const Text('Danh sách đề tài'),
-              const Spacer(),
-              IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
-            ],
-          ),
+          child: Row(children: [const Text('Danh sách đề tài')]),
         ),
         Expanded(
           child: _error != null
               ? _ErrorView(message: _error!, onRetry: _load)
               : RefreshIndicator(
-            onRefresh: _load,
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : (_items.isEmpty
-                ? const _EmptyView(text: 'Không có đề tài.')
-                : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              separatorBuilder: (_, __) =>
-              const SizedBox(height: 12),
-              itemCount: _items.length,
-              itemBuilder: (_, i) => _TopicCard(
-                item: _items[i],
-                onApprove: _items[i].status == TopicStatus.pending
-                    ? () => _onAction(index: i, approve: true)
-                    : null,
-                onReject: _items[i].status == TopicStatus.pending
-                    ? () => _onAction(index: i, approve: false)
-                    : null,
-              ),
-            )),
-          ),
+                  onRefresh: _load,
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (_items.isEmpty
+                            ? const _EmptyView(text: 'Không có đề tài.')
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  8,
+                                  16,
+                                  16,
+                                ),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemCount: _items.length,
+                                itemBuilder: (_, i) => _TopicCard(
+                                  item: _items[i],
+                                  // disable buttons while processing
+                                  onApprove:
+                                      _items[i].status == TopicStatus.pending &&
+                                          !_processing
+                                      ? () => _onAction(index: i, approve: true)
+                                      : null,
+                                  onReject:
+                                      _items[i].status == TopicStatus.pending &&
+                                          !_processing
+                                      ? () =>
+                                            _onAction(index: i, approve: false)
+                                      : null,
+                                ),
+                              )),
+                ),
         ),
       ],
     );
@@ -109,11 +135,7 @@ class _DuyetDeTaiState extends State<DuyetDeTai> {
 }
 
 class _TopicCard extends StatelessWidget {
-  const _TopicCard({
-    required this.item,
-    this.onApprove,
-    this.onReject,
-  });
+  const _TopicCard({required this.item, this.onApprove, this.onReject});
 
   final DeTaiItem item;
   final VoidCallback? onApprove;
@@ -129,119 +151,192 @@ class _TopicCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CircleAvatar(child: Icon(Icons.person)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.studentName ?? 'Sinh viên',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CircleAvatar(child: Icon(Icons.person)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.studentName ?? 'Sinh viên',
                         style: Theme.of(context).textTheme.titleMedium,
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                    if ((item.studentId ?? '').isNotEmpty)
-                      Text(item.studentId!,
-                          style: Theme.of(context).textTheme.bodySmall),
-                    Row(
-                      children: [
-                        Text('CV: ', style: Theme.of(context).textTheme.bodyMedium),
-                        Flexible(
-                          child: InkWell(
-                            onTap: _maybeOpen(item.overviewFileName),
-                            child: Text(
-                              item.overviewFileName ?? '—',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: (item.overviewFileName ?? '')
-                                    .startsWith('http')
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                                decoration: (item.overviewFileName ?? '')
-                                    .startsWith('http')
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none,
-                                fontWeight: FontWeight.w600,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'CV: ',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          Flexible(
+                            child: InkWell(
+                              onTap: _maybeOpen(item.duongDanCv),
+                              child: Text(
+                                (item.duongDanCv ?? '').startsWith('http')
+                                    ? 'Xem chi tiết'
+                                    : '—',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color:
+                                          (item.duongDanCv ?? '').startsWith(
+                                            'http',
+                                          )
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                          : null,
+                                      decoration:
+                                          (item.duongDanCv ?? '').startsWith(
+                                            'http',
+                                          )
+                                          ? TextDecoration.underline
+                                          : TextDecoration.none,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          Text('Đề tài: ${item.title}',
-              style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 6),
-
-          Row(
-            children: [
-              const Text('Trạng thái: ',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              Text(
-                switch (item.status) {
-                  TopicStatus.approved => 'Đã duyệt',
-                  TopicStatus.rejected => 'Đã từ chối',
-                  TopicStatus.pending => 'Đang chờ duyệt',
-                },
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: switch (item.status) {
-                    TopicStatus.approved => const Color(0xFF16A34A),
-                    TopicStatus.rejected => const Color(0xFFDC2626),
-                    TopicStatus.pending => const Color(0xFFC9B325),
-                  },
-                ),
-              ),
-            ],
-          ),
-          if ((item.comment ?? '').isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('Nhận xét: ${item.comment}'),
-          ],
-
-          if (pending) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      backgroundColor: const Color(0xFFDC2626),
-                    ),
-                    onPressed: onReject,
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Từ chối'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      backgroundColor: const Color(0xFF16A34A),
-                    ),
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Duyệt'),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+
+            Text(
+              'Đề tài: ${item.title}',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'File tổng quan: ',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          Flexible(
+                            child: InkWell(
+                              onTap: _maybeOpen(item.overviewFileName),
+                              child: Text(
+                                (item.overviewFileName ?? '').startsWith('http')
+                                    ? 'Xem chi tiết'
+                                    : '—',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color:
+                                          (item.overviewFileName ?? '')
+                                              .startsWith('http')
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primary
+                                          : null,
+                                      decoration:
+                                          (item.overviewFileName ?? '')
+                                              .startsWith('http')
+                                          ? TextDecoration.underline
+                                          : TextDecoration.none,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            Row(
+              children: [
+                const Text(
+                  'Trạng thái: ',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  switch (item.status) {
+                    TopicStatus.approved => 'Đã duyệt',
+                    TopicStatus.rejected => 'Đã từ chối',
+                    TopicStatus.pending => 'Đang chờ duyệt',
+                  },
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: switch (item.status) {
+                      TopicStatus.approved => const Color(0xFF16A34A),
+                      TopicStatus.rejected => const Color(0xFFDC2626),
+                      TopicStatus.pending => const Color(0xFFC9B325),
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if ((item.comment ?? '').isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('Nhận xét: ${item.comment}'),
+            ],
+
+            if (pending) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        backgroundColor: const Color(0xFFDC2626),
+                      ),
+                      onPressed: onReject,
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Từ chối'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        backgroundColor: const Color(0xFF16A34A),
+                      ),
+                      onPressed: onApprove,
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Duyệt'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ]),
+        ),
       ),
     );
   }
@@ -250,7 +345,8 @@ class _TopicCard extends StatelessWidget {
     if (url == null || url.isEmpty || !url.startsWith('http')) return null;
     return () async {
       final uri = Uri.tryParse(url);
-      if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (uri != null)
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
     };
   }
 }
@@ -267,8 +363,11 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.info_outline,
-                size: 36, color: Theme.of(context).disabledColor),
+            Icon(
+              Icons.info_outline,
+              size: 36,
+              color: Theme.of(context).disabledColor,
+            ),
             const SizedBox(height: 8),
             Text(text, textAlign: TextAlign.center),
           ],
@@ -289,8 +388,11 @@ class _ErrorView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         const SizedBox(height: 16),
-        Icon(Icons.error_outline,
-            color: Theme.of(context).colorScheme.error, size: 32),
+        Icon(
+          Icons.error_outline,
+          color: Theme.of(context).colorScheme.error,
+          size: 32,
+        ),
         const SizedBox(height: 8),
         Text('Lỗi: $message', style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 12),
@@ -316,11 +418,15 @@ Future<String?> _showCommentDialog(BuildContext context) async {
           controller: controller,
           minLines: 5,
           maxLines: 10,
-          decoration:
-          const InputDecoration(hintText: 'Nhập nhận xét bắt buộc...'),
+          decoration: const InputDecoration(
+            hintText: 'Nhập nhận xét bắt buộc...',
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
           FilledButton(
             onPressed: () {
               final t = controller.text.trim();

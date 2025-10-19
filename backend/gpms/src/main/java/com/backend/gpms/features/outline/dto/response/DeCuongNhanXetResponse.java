@@ -30,6 +30,9 @@ public class  DeCuongNhanXetResponse{
     String hoTenGiangVienPhanBien;
     String hoTenTruongBoMon;
 
+    String gvPhanBienDuyet;//
+    String tbmDuyet;//
+
     List<NhanXetDeCuongResponse> nhanXets; // 0..n
     LocalDateTime createdAt;
 }
