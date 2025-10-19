@@ -121,9 +121,9 @@ public class NhatKyTienTrinhController {
     @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
     @GetMapping("/{id}")
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyListByGiangVien(
-            @RequestParam(name = "idDeTai", defaultValue = "0",required = false) long idDeTai
+            @RequestParam(name = "id", defaultValue = "0",required = false) long id
     ) {
-        return ApiResponse.success(service.getNhatKyListByGiangVien(idDeTai));
+        return ApiResponse.success(service.getNhatKyListByGiangVien(id));
 
     }
 }
