@@ -92,11 +92,7 @@ class _DuyetDeCuongState extends State<DuyetDeCuong> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
-            children: [
-              const Text('Danh sách đề cương'),
-              const Spacer(),
-              IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
-            ],
+            children: [const Text('Danh sách đề cương'), const Spacer()],
           ),
         ),
         Expanded(

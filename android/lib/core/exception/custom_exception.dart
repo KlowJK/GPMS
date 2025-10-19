@@ -1,4 +1,4 @@
-import 'error_code.dart'; // Import the ErrorCode enum
+import 'package:GPMS/core/exception/error_code.dart'; // Import the ErrorCode enum
 
 class CustomException implements Exception {
   final ErrorCode errorCode;

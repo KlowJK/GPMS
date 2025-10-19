@@ -63,13 +63,59 @@ class _HoiDongState extends State<HoiDong> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CD3),
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        title: const Text('Hội đồng', style: TextStyle(fontWeight: FontWeight.w700)),
         automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF2563EB),
+        elevation: 1,
+        centerTitle: false,
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            Container(
+              width: 55,
+              height: 55,
+              child: Image.asset("assets/images/logo.png"),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+
+                children: [
+                  Text(
+                    'TRƯỜNG ĐẠI HỌC THỦY LỢI',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'THUY LOI UNIVERSITY',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: () {},
+            tooltip: 'Thông báo',
+            icon: const Icon(Icons.notifications_outlined),
+            color: Colors.white,
+          ),
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: const Icon(Icons.person, size: 18),
+            ),
+          ),
         ],
       ),
       body: SafeArea(
@@ -81,10 +127,9 @@ class _HoiDongState extends State<HoiDong> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Danh sách hội đồng phản biện:',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -94,29 +139,30 @@ class _HoiDongState extends State<HoiDong> {
                   : _loading
                   ? const Center(child: CircularProgressIndicator())
                   : (_items.isEmpty
-                  ? const Center(child: Text('Không có hội đồng nào.'))
-                  : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView.separated(
-                  padding:
-                  const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                  itemCount: _items.length,
-                  separatorBuilder: (_, __) =>
-                  const SizedBox(height: 10),
-                  itemBuilder: (_, i) {
-                    final c = _items[i];
-                    final status =
-                    _statusOf(c.thoiGianBatDau, c.thoiGianKetThuc);
-                    return _CouncilCard(
-                      name: c.tenHoiDong,
-                      from: c.thoiGianBatDau,
-                      to: c.thoiGianKetThuc,
-                      statusText: status.$1,
-                      statusColor: status.$2,
-                    );
-                  },
-                ),
-              )),
+                        ? const Center(child: Text('Không có hội đồng nào.'))
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                              itemCount: _items.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (_, i) {
+                                final c = _items[i];
+                                final status = _statusOf(
+                                  c.thoiGianBatDau,
+                                  c.thoiGianKetThuc,
+                                );
+                                return _CouncilCard(
+                                  name: c.tenHoiDong,
+                                  from: c.thoiGianBatDau,
+                                  to: c.thoiGianKetThuc,
+                                  statusText: status.$1,
+                                  statusColor: status.$2,
+                                );
+                              },
+                            ),
+                          )),
             ),
           ],
         ),
@@ -151,7 +197,11 @@ class _CouncilCard extends StatelessWidget {
         color: const Color(0xFFE4F6FF),
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(color: Color(0x19000000), blurRadius: 3, offset: Offset(0, 1)),
+          BoxShadow(
+            color: Color(0x19000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
         ],
       ),
       padding: const EdgeInsets.all(12),
@@ -173,13 +223,17 @@ class _CouncilCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Text('Trạng thái: ',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    const Text(
+                      'Trạng thái: ',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     Flexible(
                       child: Text(
                         statusText,
                         style: TextStyle(
-                            color: statusColor, fontWeight: FontWeight.w600),
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -198,9 +252,13 @@ class _CouncilCard extends StatelessWidget {
       style: const TextStyle(color: Colors.black87, fontSize: 14),
       children: [
         TextSpan(
-            text: '$label ', style: const TextStyle(fontWeight: FontWeight.w700)),
+          text: '$label ',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         TextSpan(
-            text: value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          text: value,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
       ],
     ),
   );
@@ -216,15 +274,19 @@ class _ErrorView extends StatelessWidget {
     padding: const EdgeInsets.all(24),
     children: [
       const SizedBox(height: 16),
-      Icon(Icons.error_outline,
-          color: Theme.of(context).colorScheme.error, size: 32),
+      Icon(
+        Icons.error_outline,
+        color: Theme.of(context).colorScheme.error,
+        size: 32,
+      ),
       const SizedBox(height: 8),
       Text('Lỗi: $message', style: Theme.of(context).textTheme.bodyMedium),
       const SizedBox(height: 12),
       FilledButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Thử lại')),
+        onPressed: onRetry,
+        icon: const Icon(Icons.refresh),
+        label: const Text('Thử lại'),
+      ),
     ],
   );
 }

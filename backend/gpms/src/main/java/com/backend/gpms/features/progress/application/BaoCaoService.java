@@ -12,8 +12,10 @@ import com.backend.gpms.features.progress.domain.BaoCao;
 import com.backend.gpms.features.progress.domain.TrangThaiNhatKy;
 import com.backend.gpms.features.progress.dto.request.DuyetBaoCaoRequest;
 import com.backend.gpms.features.progress.dto.response.BaoCaoResponse;
+import com.backend.gpms.features.progress.dto.response.SinhVienSupervisedResponse;
 import com.backend.gpms.features.progress.infra.BaoCaoRepository;
 import com.backend.gpms.features.storage.application.CloudinaryStorageService;
+import com.backend.gpms.features.student.infra.SinhVienRepository;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -58,6 +60,7 @@ public class BaoCaoService {
     LocalDateTime currentDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
     DeCuongRepository deCuongRepository;
+    private final SinhVienRepository sinhVienRepository;
 
     public List<BaoCaoResponse> getBaoCaoOfSinhVien() {
     String username = getCurrentUsername();
@@ -152,6 +155,46 @@ public class BaoCaoService {
 
         return list.stream()
                 .map(baoCaoMapper::toBaoCaoResponse)
+                .collect(Collectors.toList());
+    }
+
+
+    public List<BaoCaoResponse> getBaoCaoOfSinhVienList(String maSinhVien) {
+
+        var sinhVien = sinhVienRepository.findByMaSinhVien(maSinhVien)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
+
+        var deTai  = deTaiRepository.findBySinhVien_MaSinhVienIgnoreCase(maSinhVien)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
+
+        List<BaoCao> list = baoCaoRepository.findByDeTai_IdOrderByCreatedAtDesc(deTai.getId());
+
+        return list.stream()
+                .map(baoCaoMapper::toBaoCaoResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<SinhVienSupervisedResponse> getMySinhVienSupervisedList() {
+        String username = getCurrentUsername();
+        // Tìm giảng viên theo email
+        var giangVien = giangVienRepository.findByUser_EmailIgnoreCase(username)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+
+        List<DeTai> deTaiList = deTaiRepository.findByGiangVienHuongDan_User_EmailIgnoreCase(giangVien.getUser().getEmail());
+
+        return deTaiList.stream()
+                .map(deTai -> {
+                    var sv = deTai.getSinhVien();
+                    var baoCao = baoCaoRepository.findFirstByDeTai_IdOrderByCreatedAtDesc(deTai.getId());
+                    String trangThaiBaoCao = (baoCao.isPresent()) ? baoCao.get().getTrangThai().name() : "CHUA_NOP_BAO_CAO";
+                    return SinhVienSupervisedResponse.builder()
+                            .maSV(sv.getMaSinhVien())
+                            .hoTen(sv.getHoTen())
+                            .tenLop(sv.getLop().getTenLop())
+                            .tenDeTai(deTai.getTenDeTai())
+                            .trangThaiBaoCao(trangThaiBaoCao)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
