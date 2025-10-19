@@ -13,9 +13,9 @@ class BaoCao extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => BaoCaoViewModel(
-        service: BaoCaoService(baseUrl: AuthService.baseUrl),
-      )..fetchReports(),
+      create: (_) =>
+          BaoCaoViewModel(service: BaoCaoService(baseUrl: AuthService.baseUrl))
+            ..fetchReports(),
       child: const _BaoCaoBody(),
     );
   }
@@ -29,7 +29,10 @@ class _BaoCaoBody extends StatelessWidget {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (ctx) => ChangeNotifierProvider.value(value: vm, child: const SubmitReportPage()),
+        builder: (ctx) => ChangeNotifierProvider.value(
+          value: vm,
+          child: const SubmitReportPage(),
+        ),
       ),
     );
     if (result == true) {
@@ -48,10 +51,10 @@ class _BaoCaoBody extends StatelessWidget {
     final double maxW = w >= 1200
         ? 1000
         : w >= 900
-            ? 840
-            : w >= 600
-                ? 560
-                : w;
+        ? 840
+        : w >= 600
+        ? 560
+        : w;
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
@@ -59,9 +62,58 @@ class _BaoCaoBody extends StatelessWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Báo cáo', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 1,
+        centerTitle: false,
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            Container(
+              width: 55,
+              height: 55,
+              child: Image.asset("assets/images/logo.png"),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+
+                children: [
+                  Text(
+                    'TRƯỜNG ĐẠI HỌC THỦY LỢI',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'THUY LOI UNIVERSITY',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            tooltip: 'Thông báo',
+            icon: const Icon(Icons.notifications_outlined),
+            color: Colors.white,
+          ),
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: const Icon(Icons.person, size: 18),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -72,34 +124,37 @@ class _BaoCaoBody extends StatelessWidget {
               child: vm.loading
                   ? const Center(child: CircularProgressIndicator())
                   : vm.error != null
-                      ? _ErrorState(
-                          message: 'Không thể tải báo cáo. Vui lòng thử lại.',
-                          onRetry: () => vm.fetchReports(),
-                        )
-                      : !vm.hasTopic
-                          ? const _EmptyState(
-                              icon: Icons.info_outline,
-                              title: 'Bạn chưa có đề tài',
-                              subtitle: 'Vui lòng đăng ký đề tài để có thể nộp báo cáo.',
-                            )
-                          : vm.items.isEmpty
-                              ? const _EmptyState(
-                                  icon: Icons.description_outlined,
-                                  title: 'Bạn chưa có báo cáo trong hệ thống.',
-                                  subtitle: 'Nhấn nút “+” để nộp báo cáo.',
-                                )
-                              : ListView.separated(
-                                  itemCount: vm.items.length,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                                  itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
-                                ),
+                  ? _ErrorState(
+                      message: 'Không thể tải báo cáo. Vui lòng thử lại.',
+                      onRetry: () => vm.fetchReports(),
+                    )
+                  : !vm.hasTopic
+                  ? const _EmptyState(
+                      icon: Icons.info_outline,
+                      title: 'Bạn chưa có đề tài',
+                      subtitle:
+                          'Vui lòng đăng ký đề tài để có thể nộp báo cáo.',
+                    )
+                  : vm.items.isEmpty
+                  ? const _EmptyState(
+                      icon: Icons.description_outlined,
+                      title: 'Bạn chưa có báo cáo trong hệ thống.',
+                      subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                    )
+                  : ListView.separated(
+                      itemCount: vm.items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
+                    ),
             ),
           ),
         ),
       ),
       floatingActionButton: vm.hasTopic
           ? Tooltip(
-              message: vm.canSubmitNew ? 'Nộp báo cáo mới' : 'Chỉ nộp mới khi báo cáo trước bị từ chối',
+              message: vm.canSubmitNew
+                  ? 'Nộp báo cáo mới'
+                  : 'Chỉ nộp mới khi báo cáo trước bị từ chối',
               child: FloatingActionButton(
                 onPressed: () {
                   if (vm.canSubmitNew) {
@@ -112,15 +167,19 @@ class _BaoCaoBody extends StatelessWidget {
                     _goSubmit(context);
                     return;
                   } else if (latest.status == ReportStatus.pending) {
-                    msg = 'Báo cáo trước đang trong trạng thái chờ duyệt. Vui lòng chờ phản hồi.';
+                    msg =
+                        'Báo cáo trước đang trong trạng thái chờ duyệt. Vui lòng chờ phản hồi.';
                   } else if (latest.status == ReportStatus.approved) {
-                    msg = 'Báo cáo trước đã được duyệt. Không thể nộp báo cáo mới.';
+                    msg =
+                        'Báo cáo trước đã được duyệt. Không thể nộp báo cáo mới.';
                   } else {
                     msg = 'Không thể nộp báo cáo mới.';
                   }
 
                   if (ScaffoldMessenger.maybeOf(context) != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(msg)));
                   }
                 },
                 child: const Icon(Icons.add),
@@ -130,7 +189,6 @@ class _BaoCaoBody extends StatelessWidget {
     );
   }
 }
-
 
 class _ReportCard extends StatelessWidget {
   const _ReportCard({required this.item});
@@ -143,23 +201,35 @@ class _ReportCard extends StatelessWidget {
   };
 
   (Color, Color) get _statusColors => switch (item.status) {
-    ReportStatus.approved => (const Color(0xFFF0FDF4), const Color(0xFF22C55E)), // green
-    ReportStatus.rejected => (const Color(0xFFFEF2F2), const Color(0xFFEF4444)), // red
+    ReportStatus.approved => (
+      const Color(0xFFF0FDF4),
+      const Color(0xFF22C55E),
+    ), // green
+    ReportStatus.rejected => (
+      const Color(0xFFFEF2F2),
+      const Color(0xFFEF4444),
+    ), // red
     _ => (const Color(0xFFFFFBEB), const Color(0xFFF59E0B)), // amber
   };
 
   String _fmtDateOnly(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-
   Widget _buildInfoRow(String label, {String? text, Widget? child}) {
     return Padding(
       padding: const EdgeInsets.only(top: 4.0),
       child: Text.rich(
         TextSpan(
-          style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black87,
+            height: 1.5,
+          ),
           children: [
-            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             if (child != null)
               WidgetSpan(child: child, alignment: PlaceholderAlignment.middle)
             else
@@ -179,7 +249,10 @@ class _ReportCard extends StatelessWidget {
     return Card(
       elevation: 0,
       color: cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: badgeColor.withOpacity(0.5))),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: badgeColor.withOpacity(0.5)),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
@@ -189,49 +262,63 @@ class _ReportCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 Text.rich(
-                    TextSpan(
-                      style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
-                      children: [
-                        const TextSpan(text: 'Phiên bản: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: '${item.version}'),
-                      ],
+                Text.rich(
+                  TextSpan(
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      height: 1.5,
                     ),
+                    children: [
+                      const TextSpan(
+                        text: 'Phiên bản: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(text: '${item.version}'),
+                    ],
                   ),
+                ),
                 _Badge(text: _statusLabel, color: badgeColor),
               ],
             ),
-            _buildInfoRow('File', 
+            _buildInfoRow(
+              'File',
               child: InkWell(
-                 onTap: () async {
-                      if (item.fileUrl == null) return;
-                      final url = Uri.tryParse(item.fileUrl!);
-                      if (url != null && await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                child: Text('Xem chi tiết', 
+                onTap: () async {
+                  if (item.fileUrl == null) return;
+                  final url = Uri.tryParse(item.fileUrl!);
+                  if (url != null && await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Text(
+                  'Xem chi tiết',
                   style: TextStyle(
-                    color: cs.primary, 
+                    color: cs.primary,
                     fontWeight: FontWeight.w600,
                     decoration: TextDecoration.underline,
                     decorationColor: cs.primary,
-                  )
+                  ),
                 ),
               ),
             ),
-             _buildInfoRow('Ngày nộp', text: _fmtDateOnly(item.createdAt)),
+            _buildInfoRow('Ngày nộp', text: _fmtDateOnly(item.createdAt)),
 
             if (item.note != null && item.note!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text.rich(
                   TextSpan(
-                    style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
                     children: [
                       const TextSpan(
-                          text: 'Nhận xét: ',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                        text: 'Nhận xét: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       TextSpan(text: item.note!),
                     ],
                   ),
@@ -243,7 +330,6 @@ class _ReportCard extends StatelessWidget {
     );
   }
 }
-
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
@@ -270,7 +356,7 @@ class _EmptyState extends StatelessWidget {
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, 
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 64, color: cs.primary),
           const SizedBox(height: 14),
@@ -305,10 +391,7 @@ class _ErrorState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(message, style: Theme.of(context).textTheme.bodyLarge),
           const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: onRetry,
-            child: const Text('Thử lại'),
-          ),
+          ElevatedButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
       ),
     );
@@ -328,7 +411,14 @@ class _Badge extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

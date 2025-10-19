@@ -290,7 +290,8 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 12),
           Flexible(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+
               children: [
                 Text(
                   'TRƯỜNG ĐẠI HỌC THỦY LỢI',
