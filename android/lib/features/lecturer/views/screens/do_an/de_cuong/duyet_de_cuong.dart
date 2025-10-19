@@ -4,6 +4,30 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:GPMS/features/lecturer/services/de_cuong_service.dart';
 import 'package:GPMS/features/lecturer/models/de_cuong_item.dart';
 
+Color deCuongStatusColor(DeCuongStatus s) {
+  switch (s) {
+    case DeCuongStatus.approved:
+      return const Color(0xFF16A34A); // xanh lá
+    case DeCuongStatus.rejected:
+      return const Color(0xFFDC2626); // đỏ
+    case DeCuongStatus.pending:
+    default:
+      return const Color(0xFFF59E0B); // vàng
+  }
+}
+
+String deCuongStatusText(DeCuongStatus s) {
+  switch (s) {
+    case DeCuongStatus.approved:
+      return 'Đã duyệt';
+    case DeCuongStatus.rejected:
+      return 'Từ chối';
+    case DeCuongStatus.pending:
+    default:
+      return 'Đang chờ duyệt';
+  }
+}
+
 class DuyetDeCuong extends StatefulWidget {
   const DuyetDeCuong({super.key});
   @override
@@ -227,17 +251,37 @@ class _DeCuongCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // SV (nếu có)
+            // SV
             Row(
               children: [
                 const CircleAvatar(child: Icon(Icons.person)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    item.sinhVienTen ?? 'Sinh viên',
-                    style: Theme.of(context).textTheme.titleMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      // TÊN (ưu tiên width, có ellipsis)
+                      Expanded(
+                        child: Text(
+                          item.sinhVienTen ?? 'Sinh viên',
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if ((item.maSV ?? '').isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        // MÃ SV (xám nhạt, cùng dòng với tên)
+                        Text(
+                          item.maSV!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF6B7280),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if ((item.maSV ?? '').isNotEmpty)
@@ -360,9 +404,11 @@ class _DeCuongCard extends StatelessWidget {
                 ),
             ],
 
+            // Nút chỉ hiện khi đang chờ duyệt
             if (pending) ...[
               const SizedBox(height: 12),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Expanded(
                     child: FilledButton.icon(
@@ -374,8 +420,7 @@ class _DeCuongCard extends StatelessWidget {
                         backgroundColor: const Color(0xFFDC2626),
                       ),
                       onPressed: onReject,
-                      icon: const Icon(Icons.close, size: 18),
-                      label: const Text('Từ chối'),
+                      child: const Text('Từ chối'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -389,8 +434,7 @@ class _DeCuongCard extends StatelessWidget {
                         backgroundColor: const Color(0xFF16A34A),
                       ),
                       onPressed: onApprove,
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text('Duyệt'),
+                      child: const Text('Duyệt'),
                     ),
                   ),
                 ],
@@ -467,9 +511,9 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Popup nhận xét ở GIỮA màn hình
+/// Popup nhận xét
 Future<String?> _showCommentDialog(BuildContext context) async {
-  final controller = TextEditingController();
+  final c = TextEditingController();
   return showDialog<String>(
     context: context,
     builder: (ctx) {
@@ -496,8 +540,8 @@ Future<String?> _showCommentDialog(BuildContext context) async {
             },
             child: const Text('Xác nhận'),
           ),
-        ],
-      );
-    },
+        ),
+      ],
+    ),
   );
 }

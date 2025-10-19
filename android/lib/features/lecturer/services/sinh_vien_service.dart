@@ -15,17 +15,32 @@ class SinhVienService {
         .get(uri, headers: headers)
         .timeout(const Duration(seconds: 15));
 
-    if (res.statusCode != 200) {
-      throw Exception('GET $uri failed: ${res.statusCode} ${res.body}');
+  // -----------------------------
+  // Helper: bóc list từ nhiều kiểu response khác nhau
+  // -----------------------------
+  static List<dynamic> _extractList(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      // Phổ biến kiểu { result: { content: [...] } }
+      final result = data['result'];
+      if (result is Map<String, dynamic>) {
+        if (result['content'] is List) {
+          return List<dynamic>.from(result['content'] as List);
+        }
+        if (result['data'] is List) {
+          return List<dynamic>.from(result['data'] as List);
+        }
+      }
+      // Hoặc { content: [...] } / { data: [...] }
+      if (data['content'] is List) {
+        return List<dynamic>.from(data['content'] as List);
+      }
+      if (data['data'] is List) {
+        return List<dynamic>.from(data['data'] as List);
+      }
+    } else if (data is List) {
+      return data;
     }
-
-    final data = jsonDecode(res.body);
-    final list = _extractList(data);
-
-    // map -> model
-    return list
-        .map((e) => SinhVienItem.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    return <dynamic>[];
   }
 
   static Future<Map<String, String>> _headers() async {
@@ -33,28 +48,30 @@ class SinhVienService {
     return {'Accept': 'application/json', 'Authorization': 'Bearer $token'};
   }
 
-  /// Nhận mọi kiểu trả về thường gặp: List, {result: [...]}, {result:{content:[...]}}, {content:[...]}…
-  static List _extractList(dynamic data) {
-    if (data is List) return data;
+  // -----------------------------
+  // POST/GET nộp danh sách (đổi path nếu backend khác)
+  // -----------------------------
+  static const String _submitPath = '/api/giang-vien/sinh-vien/nop-danh-sach';
 
-    if (data is Map<String, dynamic>) {
-      final r = data['result'];
-
-      if (r is List) return r;
-
-      if (r is Map && r['content'] is List) {
-        return List.from(r['content']);
+  static Future<void> submitDanhSach() async {
+    final dio = await _dio();
+    try {
+      // Nếu server dùng GET, đổi dòng dưới thành: await dio.get(_submitPath);
+      final resp = await dio.post(_submitPath);
+      final code = resp.statusCode ?? 200;
+      if (![200, 201, 204].contains(code)) {
+        throw Exception('HTTP $code: ${resp.data}');
       }
-
-      if (r is Map && r['items'] is List) {
-        return List.from(r['items']);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('[SinhVienService.submitDanhSach] DioException ${e.response?.statusCode} - ${e.message}');
       }
-
-      if (data['content'] is List) return List.from(data['content']);
-      if (data['items'] is List) return List.from(data['items']);
+      final status = e.response?.statusCode;
+      if (status == 401) throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
+      throw Exception(e.response?.data?.toString() ?? e.message ?? 'Lỗi mạng');
+    } catch (e) {
+      if (kDebugMode) print('[SinhVienService.submitDanhSach] error: $e');
+      throw Exception('Gửi danh sách thất bại: $e');
     }
-
-    // Không ném TypeError nữa -> trả list rỗng để UI hiển thị "Không có dữ liệu"
-    return <dynamic>[];
   }
 }

@@ -10,37 +10,43 @@ DeCuongStatus mapDeCuongStatus(String? s) {
     case 'TU_CHOI':
       return DeCuongStatus.rejected;
     default:
-      return DeCuongStatus.pending;
+      return DeCuongStatus.pending; // CHO_DUYET / null
   }
 }
 
-String deCuongStatusText(DeCuongStatus s) {
-  switch (s) {
-    case DeCuongStatus.approved:
-      return 'Đã duyệt';
-    case DeCuongStatus.rejected:
-      return 'Đã từ chối';
-    case DeCuongStatus.pending:
-    default:
-      return 'Đang chờ duyệt';
-  }
+int _toInt(dynamic v) {
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? 0;
+  return 0;
 }
 
-Color deCuongStatusColor(DeCuongStatus s) {
-  switch (s) {
-    case DeCuongStatus.approved:
-      return const Color(0xFF16A34A);
-    case DeCuongStatus.rejected:
-      return const Color(0xFFDC2626);
-    case DeCuongStatus.pending:
-    default:
-      return const Color(0xFFC9B325);
-  }
+class DeCuongComment {
+  final String content;        // nhanXet
+  final String gvName;         // hoTenGiangVien
+  final DateTime? createdAt;   // createdAt
+
+  DeCuongComment({
+    required this.content,
+    required this.gvName,
+    this.createdAt,
+  });
+
+  factory DeCuongComment.fromJson(Map<String, dynamic> j) => DeCuongComment(
+    content: (j['nhanXet'] ?? '') as String,
+    gvName: (j['hoTenGiangVien'] ?? '') as String,
+    createdAt: DateTime.tryParse(j['createdAt']?.toString() ?? ''),
+  );
 }
 
 class DeCuongItem {
   final int id;
-  final String? fileName;
+  final String? fileName;      // deCuongUrl
+  final int? lanNop;           // phienBan
+  final DeCuongStatus status;  // trangThaiDeCuong
+  final String? nhanXet;       // 1 nhận xét đơn lẻ (nếu BE trả)
+  final String? sinhVienTen;   // hoTenSinhVien
+  final String? maSV;          // maSinhVien
   final DateTime? ngayNop;
   final DeCuongStatus status;
   final String? nhanXet; // convenience: first comment text
@@ -66,7 +72,7 @@ class DeCuongItem {
     required this.id,
     required this.status,
     this.fileName,
-    this.ngayNop,
+    this.lanNop,
     this.nhanXet,
     this.nhanXets,
     this.hoTenGiangVienHuongDan,
@@ -81,9 +87,6 @@ class DeCuongItem {
   });
 
   DeCuongItem copyWith({
-    int? id,
-    String? fileName,
-    DateTime? ngayNop,
     DeCuongStatus? status,
     String? nhanXet,
     List<NhanXet>? nhanXets,
@@ -221,4 +224,7 @@ class DeCuongItem {
       tbmDuyet: tbmDuyet != null ? mapDeCuongStatus(tbmDuyet) : null,
     );
   }
+
+  @override
+  String toString() => 'DeCuongItem(id=$id, status=$status, sv=$sinhVienTen)';
 }
