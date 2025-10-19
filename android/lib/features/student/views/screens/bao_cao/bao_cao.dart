@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../../../models/report_item.dart';
 import '../../../viewmodels/bao_cao_viewmodel.dart';
 import '../../../services/bao_cao_service.dart';
+import '../../../../auth/services/auth_service.dart';
+import 'submit_report_page.dart';
 
 class BaoCao extends StatelessWidget {
   const BaoCao({super.key});
@@ -11,7 +15,7 @@ class BaoCao extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => BaoCaoViewModel(
-        service: BaoCaoService(baseUrl: 'https://your-backend-url.com/api'),
+        service: BaoCaoService(baseUrl: AuthService.baseUrl),
       )..fetchReports(),
       child: const _BaoCaoBody(),
     );
@@ -21,15 +25,15 @@ class BaoCao extends StatelessWidget {
 class _BaoCaoBody extends StatelessWidget {
   const _BaoCaoBody();
 
-  Future<void> _goSubmit(BuildContext context, int nextVersion) async {
-    final result = await Navigator.push<ReportItem>(
+  Future<void> _goSubmit(BuildContext context) async {
+    final vm = context.read<BaoCaoViewModel>();
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => SubmitReportPage(nextVersion: nextVersion),
+        builder: (ctx) => ChangeNotifierProvider.value(value: vm, child: SubmitReportPage()),
       ),
     );
-    if (result != null) {
-      await context.read<BaoCaoViewModel>().submitReport(result);
+    if (result == true) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã nộp báo cáo thành công')),
@@ -52,15 +56,6 @@ class _BaoCaoBody extends StatelessWidget {
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
-    int nextVersion() {
-      if (vm.items.isEmpty) return 1;
-      int maxVer = 0;
-      for (final e in vm.items) {
-        if (e.version > maxVer) maxVer = e.version;
-      }
-      return maxVer + 1;
-    }
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF2563EB),
@@ -77,26 +72,67 @@ class _BaoCaoBody extends StatelessWidget {
               child: vm.loading
                   ? const Center(child: CircularProgressIndicator())
                   : vm.error != null
-                      ? Center(child: Text('Lỗi: ${vm.error}'))
-                      : vm.items.isEmpty
+                      ? _ErrorState(
+                          message: 'Không thể tải báo cáo. Vui lòng thử lại.',
+                          onRetry: () => vm.fetchReports(),
+                        )
+                      : !vm.hasTopic
                           ? const _EmptyState(
-                              icon: Icons.description_outlined,
-                              title: 'Bạn chưa có báo cáo trong hệ thống.',
-                              subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                              icon: Icons.info_outline,
+                              title: 'Bạn chưa có đề tài',
+                              subtitle: 'Vui lòng đăng ký đề tài để có thể nộp báo cáo.',
                             )
-                          : ListView.separated(
-                              itemCount: vm.items.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
-                              itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
-                            ),
+                          : vm.items.isEmpty
+                              ? const _EmptyState(
+                                  icon: Icons.description_outlined,
+                                  title: 'Bạn chưa có báo cáo trong hệ thống.',
+                                  subtitle: 'Nhấn nút “+” để nộp báo cáo.',
+                                )
+                              : ListView.separated(
+                                  itemCount: vm.items.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                  itemBuilder: (_, i) => _ReportCard(item: vm.items[i]),
+                                ),
             ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _goSubmit(context, nextVersion()),
-        child: const Icon(Icons.add),
-      ),
+      // Show FAB when user has a topic; if not allowed to submit, show a SnackBar explaining why
+      floatingActionButton: vm.hasTopic
+          ? Tooltip(
+              message: vm.canSubmitNew ? 'Nộp báo cáo mới' : 'Chỉ nộp mới khi báo cáo trước bị từ chối',
+              child: FloatingActionButton(
+                onPressed: () {
+                  if (vm.canSubmitNew) {
+                    _goSubmit(context);
+                    return;
+                  }
+
+                  // Determine message based on latest report status
+                  final latest = vm.latestReport;
+                  String msg;
+                  if (latest == null) {
+                    msg = 'Không thể nộp báo cáo mới.';
+                  } else if (latest.status == ReportStatus.pending) {
+                    msg = 'Báo cáo trước đang trong trạng thái chờ duyệt. Vui lòng chờ phản hồi.';
+                  } else if (latest.status == ReportStatus.approved) {
+                    msg = 'Báo cáo trước đã được duyệt. Không thể nộp báo cáo mới.';
+                  } else if (latest.status == ReportStatus.rejected) {
+                    // should not reach here since canSubmitNew would be true, but handle defensively
+                    _goSubmit(context);
+                    return;
+                  } else {
+                    msg = 'Không thể nộp báo cáo mới.';
+                  }
+
+                  if (ScaffoldMessenger.maybeOf(context) != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+                  }
+                },
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -126,10 +162,37 @@ class _ReportCard extends StatelessWidget {
       '${d.hour.toString().padLeft(2, '0')}:'
       '${d.minute.toString().padLeft(2, '0')}';
 
+  void _showFileDialog(BuildContext ctx, String url) {
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('Đường dẫn tệp'),
+        content: SelectableText(url),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: url));
+              if (ctx.mounted) Navigator.of(ctx).pop();
+              if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Đã sao chép đường dẫn')));
+            },
+            child: const Text('Sao chép'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = _statusColor;
     final cs = Theme.of(context).colorScheme;
+    final vm = context.watch<BaoCaoViewModel>();
+    final raw = vm.lastSubmittedRaw;
+    final bool matched = raw != null && (raw.duongDanFile?.split(RegExp(r"[\\\/]")) .last == item.fileName || (raw.duongDanFile ?? '').contains(item.fileName));
 
     return Card(
       elevation: 0,
@@ -166,18 +229,49 @@ class _ReportCard extends StatelessWidget {
             const SizedBox(height: 6),
             _meta('Phiên bản', '${item.version}'),
             _meta('Ngày nộp', _fmt(item.createdAt)),
+            if (kDebugMode && (item.rawStatus ?? '').isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('rawStatus: ${item.rawStatus}', style: const TextStyle(fontSize: 12, color: Colors.black38)),
+            ],
             if (item.note != null && item.note!.isNotEmpty)
               _meta('Phản hồi', item.note!),
+
+            // show additional fields when we have raw data matching this item
+            if (matched) ...[
+              const SizedBox(height: 8),
+              // raw is non-null here because `matched` checked it; create a local non-nullable alias
+              // so the analyzer knows the fields are non-nullable where appropriate.
+              (() {
+                final r = raw;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if ((r.tenGiangVienHuongDan ?? '').isNotEmpty)
+                      _meta('GVHD', r.tenGiangVienHuongDan!),
+                    if (r.diemBaoCao != null) _meta('Điểm', r.diemBaoCao.toString()),
+                    if ((r.duongDanFile ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 90, child: Text('Tệp', style: TextStyle(color: Colors.black54))),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => _showFileDialog(context, r.duongDanFile!),
+                                child: Text('Mở/Chi tiết', style: TextStyle(color: cs.primary)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              }()),
+            ],
+
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Phúc đáp (demo)')),
-                ),
-                child: const Text('Phúc đáp'),
-              ),
-            ),
+            // 'Phúc đáp' removed for student role
           ],
         ),
       ),
@@ -201,313 +295,7 @@ class _ReportCard extends StatelessWidget {
 
 /* ================== NỘP BÁO CÁO (Submit) ================== */
 
-class SubmitReportPage extends StatefulWidget {
-  const SubmitReportPage({super.key, required this.nextVersion});
-  final int nextVersion;
-
-  @override
-  State<SubmitReportPage> createState() => _SubmitReportPageState();
-}
-
-class _SubmitReportPageState extends State<SubmitReportPage> {
-  final TextEditingController _fileCtrl = TextEditingController();
-  final TextEditingController _verCtrl = TextEditingController();
-
-  bool _mienBu = false;
-  bool _sending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _verCtrl.text = widget.nextVersion.toString();
-  }
-
-  @override
-  void dispose() {
-    _fileCtrl.dispose();
-    _verCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickFileName() async {
-    final txt = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Chọn/nhập tên tệp báo cáo'),
-        content: TextField(
-          controller: _fileCtrl,
-          decoration: const InputDecoration(
-            hintText: 'Ví dụ: 2025_Baocao_Nhom05.pdf',
-          ),
-          onSubmitted: (_) => Navigator.pop(ctx, _fileCtrl.text.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, _fileCtrl.text.trim()),
-            child: const Text('Lưu'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (txt != null) setState(() {}); // refresh UI
-  }
-
-  Future<void> _submit() async {
-    final name = _fileCtrl.text.trim();
-    final ver = int.tryParse(_verCtrl.text.trim()) ?? widget.nextVersion;
-
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn/nhập tệp báo cáo')),
-      );
-      return;
-    }
-    if (!name.toLowerCase().endsWith('.pdf') &&
-        !name.toLowerCase().endsWith('.docx')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chỉ chấp nhận tệp .pdf hoặc .docx')),
-      );
-      return;
-    }
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(
-          Icons.help_outline,
-          size: 40,
-          color: Color(0xFF2563EB),
-        ),
-        title: const Text('Xác nhận nộp báo cáo'),
-        content: Text('Gửi tệp “$name”?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Quay lại'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    setState(() => _sending = true);
-    // TODO: upload thật lên server
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _sending = false);
-
-    Navigator.pop(
-      context,
-      ReportItem(
-        fileName: name,
-        createdAt: DateTime.now(),
-        version: ver,
-        status: ReportStatus.pending,
-        note: _mienBu ? 'Miễn bù đã được ghi nhận' : null,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final double maxW = w >= 1200
-        ? 800
-        : w >= 900
-        ? 700
-        : w >= 600
-        ? 540
-        : w;
-    final double pad = w >= 900 ? 24 : 16;
-    final double gap = w >= 900 ? 16 : 12;
-
-    final border = OutlineInputBorder(
-      borderSide: BorderSide(color: Theme.of(context).dividerColor),
-      borderRadius: BorderRadius.circular(10),
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF2563EB),
-        title: const Text('Nộp báo cáo', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxW),
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
-              children: [
-                // ======= FORM =======
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(gap),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Phiên bản',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: _verCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            border: border,
-                            enabledBorder: border,
-                            focusedBorder: border.copyWith(
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: gap),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Miễn bù?',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                            Switch(
-                              value: _mienBu,
-                              onChanged: (v) => setState(() => _mienBu = v),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: gap),
-
-                        _AttachFileTile(
-                          fileName: _fileCtrl.text.trim().isEmpty
-                              ? null
-                              : _fileCtrl.text.trim(),
-                          onPick: _pickFileName,
-                          onClear: _fileCtrl.text.trim().isEmpty
-                              ? null
-                              : () => setState(_fileCtrl.clear),
-                        ),
-
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: FilledButton(
-                            onPressed: _sending ? null : _submit,
-                            child: _sending
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Nộp báo cáo'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // ======= HƯỚNG DẪN =======
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(gap),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Icon(Icons.info_outline),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Chấp nhận tệp PDF/DOCX. Sau khi nộp, trạng thái là “Chờ duyệt”. '
-                            'Bạn có thể phúc đáp khi giảng viên phản hồi.',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/* ================== COMMON WIDGETS ================== */
-
-class _AttachFileTile extends StatelessWidget {
-  const _AttachFileTile({
-    required this.fileName,
-    required this.onPick,
-    this.onClear,
-  });
-
-  final String? fileName;
-  final VoidCallback onPick;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final has = (fileName != null && fileName!.isNotEmpty);
-    final text = has ? fileName! : 'Chưa chọn tệp (PDF/DOCX)…';
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.insert_drive_file_outlined),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 8),
-          if (has && onClear != null)
-            IconButton(
-              onPressed: onClear,
-              icon: const Icon(Icons.close),
-              tooltip: 'Xóa',
-            ),
-          FilledButton.tonal(
-            onPressed: onPick,
-            child: Text(has ? 'Sửa' : 'Chọn tệp'),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// SubmitReportPage (and _AttachFileTile) moved to submit_report_page.dart
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
@@ -548,6 +336,32 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(subtitle, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: cs.error),
+          const SizedBox(height: 12),
+          Text(message, style: Theme.of(context).textTheme.bodyLarge),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text('Thử lại'),
+          ),
         ],
       ),
     );
