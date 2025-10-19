@@ -102,7 +102,7 @@ class _ChiTietDeTaiState extends State<ChiTietDeTai> {
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFF2F7CD3);
+    const primary = Color(0xFF2563EB);
 
     return Scaffold(
       appBar: AppBar(

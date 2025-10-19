@@ -2,6 +2,7 @@ package com.backend.gpms.features.progress.infra;
 
 import com.backend.gpms.features.outline.domain.TrangThaiDuyetDon;
 import com.backend.gpms.features.progress.domain.BaoCao;
+import org.apache.poi.sl.draw.geom.GuideIf;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,4 +31,9 @@ public interface BaoCaoRepository extends JpaRepository<BaoCao, Long> {
 
     @Query("SELECT b FROM BaoCao b WHERE b.deTai.giangVienHuongDan.id = :giangVienId AND b.createdAt >= :startOfToday ORDER BY b.createdAt DESC")
     List<BaoCao> findTodayReportsByGiangVienHuongDanId(Long giangVienId, LocalDateTime startOfToday);
+
+    Optional<BaoCao> findFirstByDeTai_IdOrderByCreatedAtDesc(Long deTaiId);
+
+    List<BaoCao> findByDeTai_IdOrderByCreatedAtDesc(Long deTaiId);
+
 }

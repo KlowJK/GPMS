@@ -4,7 +4,6 @@ import 'package:GPMS/features/lecturer/models/sinh_vien_item.dart';
 import 'package:GPMS/features/lecturer/services/sinh_vien_service.dart';
 import 'package:GPMS/features/lecturer/views/screens/do_an/chi_tiet_de_tai.dart';
 
-/// Helper: ép String? -> String hiển thị gọn gàng
 String _txt(String? s, {String fb = '—'}) =>
     (s == null || s.trim().isEmpty) ? fb : s.trim();
 
@@ -15,15 +14,44 @@ class SinhVienTab extends StatefulWidget {
   State<SinhVienTab> createState() => _SinhVienTabState();
 }
 
+// dart
 class _SinhVienTabState extends State<SinhVienTab> {
   final _items = <SinhVienItem>[];
   bool _loading = false;
   String? _error;
 
+  // Search state
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
   @override
   void initState() {
     super.initState();
     _load();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<SinhVienItem> get _filteredItems {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _items;
+    return _items.where((it) {
+      final name = (it.hoTen ?? '').toLowerCase();
+      final ma = (it.maSV ?? '').toLowerCase();
+      final lop = (it.tenLop ?? '').toLowerCase();
+      final deTai = (it.tenDeTai ?? '').toLowerCase();
+      return name.contains(q) ||
+          ma.contains(q) ||
+          lop.contains(q) ||
+          deTai.contains(q);
+    }).toList();
   }
 
   Future<void> _load() async {
@@ -50,18 +78,69 @@ class _SinhVienTabState extends State<SinhVienTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Header
+        // Header with search box + title
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
+          child: Column(
             children: [
-              Text(
-                'Danh sách sinh viên (${_items.length}):',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (v) =>
+                            setState(() => _query = v), // update immediately
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.search),
+                          hintText: 'Tìm kiếm sinh viên...',
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                          suffixIcon: _query.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(
+                                      () => _query = '',
+                                    ); // ensure UI updates
+                                  },
+                                )
+                              : null,
+                        ),
+                        onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const Spacer(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Danh sách sinh viên (${_filteredItems.length}):',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
             ],
           ),
         ),
@@ -74,7 +153,7 @@ class _SinhVienTabState extends State<SinhVienTab> {
                   onRefresh: _load,
                   child: _loading
                       ? const Center(child: CircularProgressIndicator())
-                      : (_items.isEmpty
+                      : (_filteredItems.isEmpty
                             ? const _EmptyCenter(text: 'Không có sinh viên.')
                             : ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(
@@ -83,15 +162,14 @@ class _SinhVienTabState extends State<SinhVienTab> {
                                   12,
                                   24,
                                 ),
-                                itemCount: _items.length,
+                                itemCount: _filteredItems.length,
                                 separatorBuilder: (_, __) =>
                                     const SizedBox(height: 10),
                                 itemBuilder: (context, i) {
-                                  final it = _items[i];
+                                  final it = _filteredItems[i];
                                   return _SinhVienCard(
                                     item: it,
                                     onTap: () {
-                                      // Điều hướng sang màn chi tiết đề tài
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
                                           builder: (_) => ChiTietDeTai(
@@ -132,7 +210,7 @@ class _SinhVienCard extends StatelessWidget {
     final canOpenCV = (item.cvUrl ?? '').startsWith('http');
 
     return Material(
-      color: const Color(0xFFE6F2FF),
+      color: const Color(0xFFF1F3F6),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
