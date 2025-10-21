@@ -2,6 +2,8 @@ import 'package:GPMS/features/lecturer/viewmodels/tien_do_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:GPMS/features/lecturer/models/tien_do_sinh_vien.dart';
 import 'package:intl/intl.dart';
+import 'package:GPMS/features/lecturer/views/screens/tien_do/show_review_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProgressDetailScreen extends StatefulWidget {
   const ProgressDetailScreen({
@@ -75,6 +77,7 @@ class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
         tienDoList = list;
         entries = list.map((t) {
           return WeeklyEntry(
+            id: t.id,
             weekLabel: 'Tuần ${t.tuan ?? ''}',
             dateRange:
                 '${formatDateString(t.ngayBatDau)}${(t.ngayKetThuc != null) ? ' - ${formatDateString(t.ngayKetThuc)}' : ''}',
@@ -106,15 +109,26 @@ class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
         children: [
-          const Row(
-            children: [
-              _StatCard(value: '8', label: 'Tuần nộp đúng hạn'),
-              SizedBox(width: 10),
-              _StatCard(value: '1', label: 'Tuần nộp muộn'),
-              SizedBox(width: 10),
-              _StatCard(value: '52%', label: 'Hoàn thành'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              SizedBox(
+                width: 180,
+                child: _StatCard(value: '8', label: 'Tuần nộp đúng hạn'),
+              ),
+              SizedBox(
+                width: 180,
+                child: _StatCard(value: '1', label: 'Tuần nộp muộn'),
+              ),
+              SizedBox(
+                width: 180,
+                child: _StatCard(value: '52%', label: 'Hoàn thành'),
+              ),
             ],
           ),
+
           const SizedBox(height: 14),
           Text(
             'Tiến độ từng tuần:',
@@ -127,8 +141,41 @@ class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
           for (final e in entries) ...[
             _WeekCard(
               entry: e,
-              onReview: () => _showReviewDialog(context, widget.student, e),
+              onReview: () async {
+                if (e.id == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Thiếu id nhật ký')),
+                  );
+                  return;
+                }
+                final ok = await showDialog<bool>(
+                  context: context,
+                  barrierDismissible: true, // hoặc false nếu muốn chắc chắn
+                  builder: (_) => ReviewDialog(
+                    studentName: widget.student.hoTen ?? '',
+                    weekLabel: e.weekLabel,
+                    entryId: e.id!,
+                    initialReview: e.review,
+                    onSubmit: (id, nhanXet) async {
+                      await widget.tienDoViewModel.approveReport(id, nhanXet);
+                    },
+                  ),
+                );
+
+                if (ok == true) {
+                  await _fetchTienDo(); // refresh entries
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Đã lưu nhận xét cho ${widget.student.hoTen} - ${e.weekLabel}',
+                      ),
+                    ),
+                  );
+                }
+              },
             ),
+
             const SizedBox(height: 10),
           ],
         ],
@@ -211,6 +258,12 @@ class _WeekCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
+                if (entry.review != null) ...[
+                  const SizedBox(height: 6),
+                  _rowLabelValue('Nhận xét:  ', entry.review!),
+                ],
+                const SizedBox(height: 2),
+                // dart
                 Row(
                   children: [
                     const Text(
@@ -223,26 +276,82 @@ class _WeekCard extends StatelessWidget {
                         color: Colors.black,
                       ),
                     ),
+
+                    // Single Expanded to provide proper flex constraints
                     Expanded(
-                      child: Text(
-                        entry.fileName,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF0090FF),
-                          fontSize: 14,
-                          decoration: TextDecoration.underline,
-                          fontWeight: FontWeight.w500,
+                      child: InkWell(
+                        onTap: () async {
+                          final file = entry.fileName;
+                          if (file == null ||
+                              file.trim().isEmpty ||
+                              file == '-') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Không có file để xem'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final uri = Uri.tryParse(file.trim());
+                          if (uri != null &&
+                              (uri.scheme == 'http' || uri.scheme == 'https')) {
+                            try {
+                              final launched = await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                              if (!launched) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Không thể mở đường dẫn'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Lỗi khi mở file: ${e.toString()}',
+                                  ),
+                                ),
+                              );
+                            }
+                          } else {
+                            await showDialog<void>(
+                              context: context,
+                              builder: (dCtx) => AlertDialog(
+                                title: const Text('Xem chi tiết'),
+                                content: Text(file),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dCtx).pop(),
+                                    child: const Text('Đóng'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Xem chi tiết',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Color(0xFF0090FF),
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 8),
-                    _ActionButton(label: 'Nhận xét', onTap: onReview),
+
+                    if (entry.status == 'DA_NOP')
+                      _ActionButton(label: 'Nhận xét', onTap: onReview),
                   ],
                 ),
-                if (entry.review != null) ...[
-                  const SizedBox(height: 6),
-                  _rowLabelValue('Nhận xét:  ', entry.review!),
-                ],
               ],
             ),
 
@@ -295,92 +404,6 @@ class _WeekCard extends StatelessWidget {
   }
 }
 
-/* --------------------------------- DIALOG --------------------------------- */
-
-Future<void> _showReviewDialog(
-  BuildContext context,
-  TienDoSinhVien student,
-  WeeklyEntry week,
-) async {
-  final controller = TextEditingController();
-
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: true,
-    builder: (_) => AlertDialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-      contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      title: const Center(
-        child: Text(
-          'Nhận xét',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-        ),
-      ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              minLines: 6,
-              maxLines: 10,
-              decoration: InputDecoration(
-                hintText: 'Đưa ra nhận xét ...',
-                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF94A3B8)),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: 120,
-              height: 34,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF155EEF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Đã lưu nhận xét cho ${student.hoTen} - ${week.weekLabel}',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Xác nhận'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  controller.dispose();
-}
-
 class _ActionButton extends StatelessWidget {
   const _ActionButton({required this.label, required this.onTap});
   final String label;
@@ -417,43 +440,42 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        height: 58,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F1FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF2F6BFF),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+    return Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F1FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF2F6BFF),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF2F6BFF),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF2F6BFF),
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class WeeklyEntry {
+  final int? id;
   final String weekLabel;
   final String dateRange;
   final String work;
@@ -462,6 +484,7 @@ class WeeklyEntry {
   final String? review;
 
   WeeklyEntry({
+    this.id,
     required this.weekLabel,
     required this.dateRange,
     required this.work,

@@ -130,6 +130,7 @@ public enum ErrorCode {
     DE_CUONG_NOT_APPROVED_BY_GVPB(4040, "De cuong chua duoc giang vien phan bien phe duyet.", HttpStatus.BAD_REQUEST),
     DE_CUONG_NOT_PENDING(4041, "De cuong khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
     DE_TAI_NOT_PENDING(4042, "De tai khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
+    NOT_YOUR_DETAI(4043, "Khong phai de tai cua ban huong dan.", HttpStatus.FORBIDDEN),
 
     // Server Errors
     INTERNAL_SERVER_ERROR(5001, "Loi he thong.", HttpStatus.INTERNAL_SERVER_ERROR),

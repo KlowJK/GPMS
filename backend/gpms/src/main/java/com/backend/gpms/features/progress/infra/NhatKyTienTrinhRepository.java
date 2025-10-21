@@ -25,9 +25,9 @@ public interface NhatKyTienTrinhRepository extends JpaRepository<NhatKyTienTrinh
     List<NhatKyTienTrinh> findByGiangVienHuongDan_IdAndTrangThaiNhatKyOrderByCreatedAt(Long aLong, TrangThaiNhatKy trangThaiNhatKy);
     Page<NhatKyTienTrinh> findByGiangVienHuongDan_IdOrderByCreatedAt(Long aLong, Pageable pageable);
 
-    @Query("SELECT n FROM NhatKyTienTrinh n WHERE n.deTai.id = :deTaiId AND n.ngayBatDau <= :currentDate ORDER BY n.createdAt")
-    List<NhatKyTienTrinh> findByDeTai_IdAndNgayBatDauBeforeOrderByCreatedAtDesc(Long deTaiId, LocalDateTime currentDate);
-    List<NhatKyTienTrinh> findByDeTai_IdOrderByCreatedAtDesc(Long deTaiId);
+    @Query("SELECT n FROM NhatKyTienTrinh n WHERE n.deTai.id = :deTaiId AND n.ngayBatDau <= :currentDate ORDER BY n.tuan DESC")
+    List<NhatKyTienTrinh> findByDeTai_IdAndNgayBatDauBeforeOrderByTuanDesc(Long deTaiId, LocalDateTime currentDate);
+    List<NhatKyTienTrinh> findByDeTai_IdOrderByTuanDesc(Long deTaiId);
 
     Page<NhatKyTienTrinh> findByDeTai_IdOrderByCreatedAt(Long deTaiId, Pageable pageable);
 

@@ -86,9 +86,8 @@ class TienDoSinhVienState extends State<SinhVienTab> {
 
     if (refresh) {
       if (!mounted) return;
-      setState(() => _isRefreshing = true);
+      setState(() => _isRefreshing = true); // only set refreshing flag
       try {
-        // Load tuans first so we can resolve a Tuan reliably
         await _vm.loadTuans(includeAll: true);
         final Tuan? tuanToUse = resolveTuan(tuan);
 
@@ -103,13 +102,12 @@ class TienDoSinhVienState extends State<SinhVienTab> {
       return;
     }
 
+    // initial/non-refresh load: use _initialLoad
     if (!mounted) return;
     setState(() => _initialLoad = true);
     try {
-      // Ensure weeks are loaded before loading items that depend on them
       await _vm.loadTuans(includeAll: true);
       final Tuan? tuanToUse = resolveTuan(tuan);
-      debugPrint('tuanToUse: $tuanToUse');
       await _vm.loadAll(tuan: tuanToUse);
     } finally {
       if (mounted) setState(() => _initialLoad = false);
@@ -134,7 +132,7 @@ class TienDoSinhVienState extends State<SinhVienTab> {
         : 'Thời hạn nộp nhật ký Tuần :';
 
     // 1) Loader toàn màn khi vào trang lần đầu
-    if (_initialLoad) {
+    if (_initialLoad && !_isRefreshing) {
       return const Scaffold(
         body: SafeArea(child: Center(child: CircularProgressIndicator())),
       );
@@ -232,11 +230,30 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor(SubmitStatus s) => s == SubmitStatus.DA_NOP
-        ? const Color(0xFF00C409)
-        : const Color(0xFFFFDD00);
-    String statusText(SubmitStatus s) =>
-        s == SubmitStatus.DA_NOP ? 'Đã nộp' : 'Chưa nộp';
+    Color statusColor(SubmitStatus s) {
+      switch (s) {
+        case SubmitStatus.DA_NOP:
+          return const Color(0xFF00C409); // green
+        case SubmitStatus.HOAN_THANH:
+          return const Color(0xFF0090FF); // gray (completed)
+        case SubmitStatus.CHUA_NOP:
+        default:
+          return const Color(0xFFFFDD00); // yellow (not submitted)
+      }
+    }
+
+    String statusText(SubmitStatus s) {
+      switch (s) {
+        case SubmitStatus.DA_NOP:
+          return 'Đã nộp';
+        case SubmitStatus.HOAN_THANH:
+          return 'Hoàn thành';
+        case SubmitStatus.CHUA_NOP:
+        default:
+          return 'Chưa nộp';
+      }
+    }
+
     final name = info.hoTen ?? '';
     final studentId = info.maSinhVien ?? '';
     final className = info.lop ?? '';
@@ -273,7 +290,7 @@ class _StudentCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          className + " " + studentId,
+                          className + " - " + studentId,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 2),

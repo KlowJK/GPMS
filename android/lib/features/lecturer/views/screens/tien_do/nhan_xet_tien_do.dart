@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:GPMS/features/lecturer/views/screens/tien_do/show_review_dialog.dart';
+import 'package:intl/intl.dart';
+import 'package:GPMS/features/lecturer/viewmodels/tien_do_viewmodel.dart';
+import 'package:GPMS/features/lecturer/models/tien_do_sinh_vien.dart';
+import 'package:GPMS/features/lecturer/services/tien_do_service.dart';
 
 class NhanXetTienDo extends StatefulWidget {
   const NhanXetTienDo({super.key});
@@ -8,314 +14,173 @@ class NhanXetTienDo extends StatefulWidget {
 }
 
 class NhanXetTienDoState extends State<NhanXetTienDo> {
-  final students = <StudentProgress>[
-    StudentProgress(
-      name: 'Hà Văn Thắng',
-      studentId: '2251172490',
-      className: '64KTPM4',
-      topic: 'Xây dựng ứng dụng quản lý đồ án tốt nghiệp',
-      status: SubmitStatus.submitted,
-    ),
-    StudentProgress(
-      name: 'Lê Đức Anh',
-      studentId: '2251172491',
-      className: '64KTPM4',
-      topic: 'Xây dựng ứng dụng quản lý đồ án tốt nghiệp',
-      status: SubmitStatus.missing,
-    ),
-    StudentProgress(
-      name: 'Nguyễn Văn A',
-      studentId: '2251172001',
-      className: '64KTPM4',
-      topic: 'Xây dựng ứng dụng quản lý đồ án tốt nghiệp',
-      status: SubmitStatus.submitted,
-    ),
-    StudentProgress(
-      name: 'Trần Thị B',
-      studentId: '2251172333',
-      className: '64KTPM4',
-      topic: 'Xây dựng ứng dụng quản lý đồ án tốt nghiệp',
-      status: SubmitStatus.missing,
-    ),
-  ];
+  List<TienDoSinhVien> tienDoList = [];
+  List<WeeklyEntry> entries = [];
+
+  late final TienDoViewModel _vm;
+  bool _initialLoad = true;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _vm = TienDoViewModel(service: TienDoService());
+    _fetchNhanXetTienDo();
+  }
+
+  Future<void> _fetchNhanXetTienDo() async {
+    if (!_initialLoad && _isRefreshing == false) {
+      // normal fetch guard (optional)
+    }
+    try {
+      final list = await _vm.fetchMySupervisedStudents(status: 'DA_NOP');
+      if (!mounted) return;
+      setState(() {
+        tienDoList = list;
+        entries = list
+            .map(
+              (t) => WeeklyEntry(
+                id: t.id,
+                studentName: t.hoTen,
+                weekLabel: 'Tuần ${t.tuan ?? ''}',
+                dateRange:
+                    '${formatDateString(t.ngayBatDau)}${(t.ngayKetThuc != null) ? ' - ${formatDateString(t.ngayKetThuc)}' : ''}',
+                work: t.noiDung ?? '-',
+                fileName: t.duongDanFile ?? '-',
+                status: t.trangThaiNhatKy,
+                review: t.nhanXet,
+              ),
+            )
+            .toList();
+        _initialLoad = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {});
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      await _fetchNhanXetTienDo();
+    } finally {
+      if (!mounted) return;
+      setState(() => _isRefreshing = false);
+    }
+  }
+
+  Future<void> approveAndRefresh(int id, String nhanXet) async {
+    try {
+      await _vm.approveReport(id, nhanXet);
+      await _fetchNhanXetTienDo();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lưu nhận xét thành công')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi lưu nhận xét: ${e.toString()}')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _vm.dispose();
+    super.dispose();
+  }
+
+  String formatDateString(Object? raw) {
+    if (raw == null) return '';
+    // If it's already a DateTime, format directly
+    if (raw is DateTime) {
+      return DateFormat('dd/MM/yyyy').format(raw);
+    }
+    // If it's a String, try to parse and format
+    if (raw is String) {
+      if (raw.isEmpty) return '';
+      try {
+        final dt = DateTime.parse(raw);
+        return DateFormat('dd/MM/yyyy').format(dt);
+      } catch (_) {
+        try {
+          final parts = raw.split(RegExp(r'[-\/T\s:]'));
+          if (parts.length >= 3) {
+            final year = int.tryParse(parts[0]);
+            final month = int.tryParse(parts[1]);
+            final day = int.tryParse(parts[2]);
+            if (year != null && month != null && day != null) {
+              return DateFormat(
+                'dd/MM/yyyy',
+              ).format(DateTime(year, month, day));
+            }
+          }
+        } catch (_) {}
+      }
+      return raw; // fallback to original string
+    }
+    return raw.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header thời gian nộp
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              sliver: SliverToBoxAdapter(
-                child: _WeekHeader(
-                  from: DateTime(2025, 9, 15, 10, 0, 0),
-                  to: DateTime(2025, 9, 21, 23, 59, 33),
-                  note: 'Thời hạn nộp nhật ký Tuần 2 :',
-                ),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+          children: [
+            const SizedBox(height: 5),
+            Text(
+              'Nhận xét tiến độ sinh viên',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF111827),
               ),
-            ),
-            // Tiêu đề danh sách
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              sliver: SliverToBoxAdapter(
-                child: Text(
-                  'Danh sách sinh viên:',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            ),
-            // List sinh viên
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              sliver: SliverList.separated(
-                itemCount: students.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => _StudentCard(
-                  info: students[i],
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ProgressDetailScreen(student: students[i]),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StudentCard extends StatelessWidget {
-  const _StudentCard({required this.info, this.onTap});
-  final StudentProgress info;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor(SubmitStatus s) => s == SubmitStatus.submitted
-        ? const Color(0xFF00C409)
-        : const Color(0xFFFFDD00);
-    String statusText(SubmitStatus s) =>
-        s == SubmitStatus.submitted ? 'Đã nộp' : 'Chưa nộp';
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Card(
-        elevation: 1,
-        color: const Color(0xFFE4F6FF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: const Color(0xFFDBEAFE),
-                    child: const Icon(Icons.person, color: Colors.black54),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          info.name,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          info.studentId,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: const Color(0xFF6B7280)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        info.className,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-
-                      const SizedBox(height: 2),
-                      RichText(
-                        text: TextSpan(
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          children: [
-                            const TextSpan(text: 'Trạng thái: '),
-                            TextSpan(
-                              text: statusText(info.status),
-                              style: TextStyle(
-                                color: statusColor(info.status),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-
-                child: Text(
-                  'Đề tài: ${info.topic}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                      MÀN 2: CHI TIẾT TIẾN ĐỘ & NHẬN XÉT                   */
-/* -------------------------------------------------------------------------- */
-
-class ProgressDetailScreen extends StatefulWidget {
-  const ProgressDetailScreen({super.key, required this.student});
-  final StudentProgress student;
-
-  @override
-  State<ProgressDetailScreen> createState() => _ProgressDetailScreenState();
-}
-
-class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
-  final weeks = List.generate(15, (i) => 'Tuần ${i + 1}');
-  String selectedWeek = 'Tuần 2';
-
-  // mock dữ liệu 3 tuần giống ảnh
-  late final List<WeeklyEntry> entries = [
-    WeeklyEntry(
-      weekLabel: 'Tuần : 3',
-      dateRange: '22/09/2025 - 28/09/2025',
-      work: 'hoàn thiện đề  - vẽ ERD lần 1',
-      fileName: '225117362_DuongVanHung_3.pdf',
-    ),
-    WeeklyEntry(
-      weekLabel: 'Tuần : 2',
-      dateRange: '22/09/2025 - 28/09/2025',
-      work: 'hoàn thiện đề  - vẽ ERD lần 1',
-      fileName: '225117362_DuongVanHung_2.pdf',
-    ),
-    WeeklyEntry(
-      weekLabel: 'Tuần : 1',
-      dateRange: '15/09/2025 - 21/09/2025',
-      work: 'Tìm tài liệu tham khảo - xây dựng đề cương',
-      fileName: '225117362_DuongVanHung_1.pdf',
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CD3),
-        foregroundColor: Colors.white,
-        centerTitle: true,
-
-        title: const Text(
-          'Tiến độ',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-        children: [
-          // 3 ô thống kê giống ảnh
-          const Row(
-            children: [
-              _StatCard(value: '8', label: 'Tuần nộp đúng hạn'),
-              SizedBox(width: 10),
-              _StatCard(value: '1', label: 'Tuần nộp muộn'),
-              SizedBox(width: 10),
-              _StatCard(value: '52%', label: 'Hoàn thành'),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          Text(
-            'Tiến độ từng tuần:',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF111827),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          // các thẻ tuần
-          for (final e in entries) ...[
-            _WeekCard(
-              entry: e,
-              onReview: () => _showReviewDialog(context, widget.student, e),
             ),
             const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-}
+            for (final e in entries) ...[
+              _WeekCard(
+                entry: e,
+                onReview: () async {
+                  if (e.id == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Thiếu id nhật ký')),
+                    );
+                    return;
+                  }
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    barrierDismissible: true,
+                    builder: (_) => ReviewDialog(
+                      studentName: e.studentName ?? '',
+                      weekLabel: e.weekLabel,
+                      entryId: e.id!,
+                      initialReview: e.review,
+                      onSubmit: (id, nhanXet) async {
+                        await _vm.approveReport(id, nhanXet);
+                      },
+                    ),
+                  );
 
-/* -------------------------------- WIDGET PHỤ ------------------------------- */
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label});
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        height: 58,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F1FF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF2F6BFF),
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+                  if (ok == true) {
+                    await _fetchNhanXetTienDo();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Đã lưu nhận xét cho ${e.studentName ?? ''} - ${e.weekLabel}',
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF2F6BFF),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+              const SizedBox(height: 10),
+            ],
           ],
         ),
       ),
@@ -325,6 +190,7 @@ class _StatCard extends StatelessWidget {
 
 class _WeekCard extends StatelessWidget {
   const _WeekCard({required this.entry, required this.onReview});
+
   final WeeklyEntry entry;
   final VoidCallback onReview;
 
@@ -332,48 +198,62 @@ class _WeekCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const borderColor = Color(0xFFE5E7EB);
 
+    String _statusLabel(String? code) {
+      if (code == null) return '';
+      switch (code) {
+        case 'CHUA_NOP':
+          return 'Chưa nộp';
+        case 'DA_NOP':
+          return 'Đã nộp';
+        case 'HOAN_THANH':
+          return 'Hoàn thành';
+        default:
+          return code;
+      }
+    }
+
+    Color _statusTextColor(String? code) {
+      if (code == null) return Colors.transparent;
+      switch (code) {
+        case 'CHUA_NOP':
+          return const Color(0xFFFFB020); // amber/orange
+        case 'DA_NOP':
+          return const Color(0xFF00C409); // green
+        case 'HOAN_THANH':
+          return const Color(0xFF2563EB); // blue
+        default:
+          return const Color(0xFF6B7280); // gray
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF9FAFB),
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(12),
-
         boxShadow: const [
           BoxShadow(color: Color.fromRGBO(2, 6, 23, .08), blurRadius: 10),
         ],
       ),
-      child: Container(
-        margin: const EdgeInsets.all(8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE4F6FF),
-          borderRadius: BorderRadius.circular(10),
-        ),
-
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Stack(
           children: [
-            _rowLabelValue('', entry.weekLabel, isTitle: true),
-            const SizedBox(height: 6),
-            _rowLabelValue('Thời gian:  ', entry.dateRange),
-            const SizedBox(height: 6),
-            _rowLabelValue('Nội dung công việc đã thực hiện:  ', entry.work),
-            const SizedBox(height: 6),
-            const Text(
-              'Kết quả đã thực hiện:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                height: 1.57,
-                letterSpacing: -0.41,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Row(
+            // main content
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _rowLabelValue('', entry.weekLabel, isTitle: true),
+                const SizedBox(height: 6),
+                _rowLabelValue('Thời gian:  ', entry.dateRange),
+                const SizedBox(height: 6),
+                _rowLabelValue(
+                  'Nội dung công việc đã thực hiện:  ',
+                  entry.work,
+                ),
+                const SizedBox(height: 6),
                 const Text(
-                  'File:  ',
+                  'Kết quả đã thực hiện:',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -382,22 +262,119 @@ class _WeekCard extends StatelessWidget {
                     color: Colors.black,
                   ),
                 ),
-                Expanded(
-                  child: Text(
-                    entry.fileName,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF0090FF),
-                      fontSize: 14,
-                      decoration: TextDecoration.underline,
-                      fontWeight: FontWeight.w500,
+                const SizedBox(height: 2),
+                if (entry.review != null) ...[
+                  const SizedBox(height: 6),
+                  _rowLabelValue('Nhận xét:  ', entry.review!),
+                ],
+                const SizedBox(height: 2),
+                // dart
+                Row(
+                  children: [
+                    const Text(
+                      'File:  ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.57,
+                        letterSpacing: -0.41,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
+
+                    // Single Expanded to provide proper flex constraints
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final file = entry.fileName;
+                          if (file == null ||
+                              file.trim().isEmpty ||
+                              file == '-') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Không có file để xem'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final uri = Uri.tryParse(file.trim());
+                          if (uri != null &&
+                              (uri.scheme == 'http' || uri.scheme == 'https')) {
+                            try {
+                              final launched = await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                              if (!launched) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Không thể mở đường dẫn'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Lỗi khi mở file: ${e.toString()}',
+                                  ),
+                                ),
+                              );
+                            }
+                          } else {
+                            await showDialog<void>(
+                              context: context,
+                              builder: (dCtx) => AlertDialog(
+                                title: const Text('Xem chi tiết'),
+                                content: Text(file),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dCtx).pop(),
+                                    child: const Text('Đóng'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Xem chi tiết',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Color(0xFF0090FF),
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    if (entry.status == 'DA_NOP')
+                      _ActionButton(label: 'Nhận xét', onTap: onReview),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                _ActionButton(label: 'Nhận xét', onTap: onReview),
               ],
             ),
+
+            // positioned status badge (top-right)
+            if (entry.status != null)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Text(
+                  _statusLabel(entry.status),
+                  style: TextStyle(
+                    color: _statusTextColor(entry.status),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -445,12 +422,11 @@ class _ActionButton extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           child: Text(
-            'Nhận xét',
-
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -462,185 +438,65 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _WeekHeader extends StatelessWidget {
-  const _WeekHeader({required this.from, required this.to, required this.note});
-  final DateTime from;
-  final DateTime to;
-  final String note;
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.value, required this.label});
+  final String value;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _BulletList(),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Ngày bắt đầu : ${_fmtDateTime(from)}\n'
-                'Ngày kết thúc : ${_fmtDateTime(to)}\n'
-                '$note',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+    return Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F1FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF2F6BFF),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF2F6BFF),
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }
-
-  String _fmtDateTime(DateTime d) {
-    String two(int x) => x.toString().padLeft(2, '0');
-    return '${two(d.day)}-${two(d.month)}-${d.year} '
-        '${two(d.hour)}:${two(d.minute)}:${two(d.second)}';
-  }
-}
-
-class _BulletList extends StatelessWidget {
-  const _BulletList();
-
-  @override
-  Widget build(BuildContext context) {
-    Widget dot() => Opacity(
-      opacity: 0.5,
-      child: Container(
-        width: 10,
-        height: 10,
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(width: 1.5, color: const Color(0xFFFFDD00)),
-        ),
-      ),
-    );
-    return Column(children: [dot(), dot(), dot()]);
-  }
-}
-
-/* --------------------------------- DIALOG --------------------------------- */
-
-Future<void> _showReviewDialog(
-  BuildContext context,
-  StudentProgress student,
-  WeeklyEntry week,
-) async {
-  final controller = TextEditingController();
-
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: true,
-    builder: (_) => AlertDialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-      contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      title: const Center(
-        child: Text(
-          'Nhận xét',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-        ),
-      ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              minLines: 6,
-              maxLines: 10,
-              decoration: InputDecoration(
-                hintText: 'Đưa ra nhận xét ...',
-                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF94A3B8)),
-                ),
-
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: 120,
-              height: 34,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF155EEF),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Đã lưu nhận xét cho ${student.name} - ${week.weekLabel}',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Xác nhận'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  controller.dispose();
-}
-
-/* --------------------------------- MODELS --------------------------------- */
-
-enum SubmitStatus { submitted, missing }
-
-class StudentProgress {
-  final String name;
-  final String studentId;
-  final String className;
-  final String topic;
-  final SubmitStatus status;
-
-  StudentProgress({
-    required this.name,
-    required this.studentId,
-    required this.className,
-    required this.topic,
-    required this.status,
-  });
 }
 
 class WeeklyEntry {
+  final int? id;
+  final String? studentName;
   final String weekLabel;
   final String dateRange;
   final String work;
   final String fileName;
+  final String? status;
+  final String? review;
 
   WeeklyEntry({
+    this.id,
+    this.studentName,
     required this.weekLabel,
     required this.dateRange,
     required this.work,
     required this.fileName,
+    this.status,
+    this.review,
   });
 }
