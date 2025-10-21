@@ -91,9 +91,17 @@ export default function NhatKy() {
     if (s.includes('DANOP') || s === 'DA' || s.includes('DADUYET') || s.includes('DANOP')) {
       return { label: 'Đã nộp', className: 'text-green-500 font-semibold' }
     }
+    // pending review: CHO, CHODUYET, CHOXET => Chờ duyệt (blue)
+    if (s.includes('CHOXET') || s.includes('CHODUYET') || s === 'CHO') {
+      return { label: 'Chờ duyệt', className: 'text-sky-600 font-semibold' }
+    }
     // variants for not submitted: CHUA, CHUANOP, CHUA_NOP, CHO, CHODUYET => Chưa nộp
-    if (s.includes('CHUA') || s.includes('CHUANOP') || s.includes('CHO') || s.includes('CHODUYET')) {
+    if (s.includes('CHUA') || s.includes('CHUANOP') ) {
       return { label: 'Chưa nộp', className: 'text-yellow-500 font-semibold' }
+    }
+    // rejected
+    if (s.includes('TUCHOI') || s.includes('TUCHOI') || s.includes('REJECT') ) {
+      return { label: 'Từ chối', className: 'text-red-600 font-semibold' }
     }
     // fallback: return original
     return { label: String(raw), className: '' }
