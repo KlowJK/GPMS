@@ -210,7 +210,7 @@ class _SinhVienCard extends StatelessWidget {
     final canOpenCV = (item.cvUrl ?? '').startsWith('http');
 
     return Material(
-      color: const Color(0xFFF1F3F6),
+      color: Color(0xFFF9FAFB),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -228,7 +228,6 @@ class _SinhVienCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Dòng 1: Tên + Mã SV
                     Row(
                       children: [
                         Expanded(
@@ -247,8 +246,6 @@ class _SinhVienCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-
-                    // Dòng 2: Lớp + CV (bên phải)
                     Row(
                       children: [
                         Expanded(

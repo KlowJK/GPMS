@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Department", description = "API for managing departments, faculties, classes, and majors")
+@Tag(name = "CauTrucKhoa")
 @RestController
 @RequestMapping(
         value = "/api/public"

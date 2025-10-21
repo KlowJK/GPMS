@@ -45,16 +45,13 @@ class TienDoViewModel extends ChangeNotifier {
     }
   }
 
-  Future<List<TienDoSinhVien>> fetchNhatKyById(
-    int id, {
-    bool upsertToItems = false,
-  }) async {
+  Future<List<TienDoSinhVien>> fetchNhatKyByIdList(int id) async {
     _setLoading(true);
     try {
       final res = await service.fetchNhatKyByIdList(id: id);
       _error = null;
 
-      if (upsertToItems && res.isNotEmpty) {
+      if (res.isNotEmpty) {
         for (final item in res) {
           final idx = _items.indexWhere((e) => e.id == item.id);
           if (idx != -1) {

@@ -195,17 +195,26 @@ class _BaoCaoApiScreenState extends State<SinhVienTab> {
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
+                            color: Color(0xFFF9FAFB),
                             child: ListTile(
                               leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFDBEAFE),
                                 child: Icon(Icons.person),
                               ),
-                              title: Text(s.hoTen ?? s.maSV ?? '-'),
+                              title: Text(
+                                s.hoTen ?? s.hoTen ?? '-',
+                                style: Theme.of(context).textTheme.titleMedium,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    s.tenLop ?? '-',
+                                    '${s.tenLop ?? ''}${s.maSV ?? ''}'
+                                            .isNotEmpty
+                                        ? '${s.tenLop ?? ''} . ${s.maSV ?? ''}'
+                                        : '-',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodySmall,
