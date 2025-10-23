@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { formatDateTime } from '@shared/utils/format'
+import useDiaryDetailViewModel from '../viewmodels/useDiaryDetailViewModel'
 
 export default function DiaryProgressModal({ open, onClose, data }: { open: boolean; onClose: () => void; data: any[] | null }) {
   if (!open) return null
@@ -44,6 +45,8 @@ export default function DiaryProgressModal({ open, onClose, data }: { open: bool
   const remaining = Math.max(0, totalWeeks - submittedCount)
   const percent = Math.round((submittedCount / totalWeeks) * 100)
 
+  const detailVm = useDiaryDetailViewModel()
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-11/12 md:w-3/4 lg:w-2/3 bg-white rounded shadow-lg p-6">
@@ -86,7 +89,7 @@ export default function DiaryProgressModal({ open, onClose, data }: { open: bool
                     <div className="mt-2 text-sm text-slate-700">Nhận xét: <span className="font-medium">{w.nhanXet ?? 'Chưa nhận xét'}</span></div>
                   </div>
                   <div className="flex items-end">
-                    <button className="px-3 py-1 bg-sky-600 text-white rounded">Nhận xét</button>
+                    <CommentEditor entry={w} detailVm={detailVm} />
                   </div>
                 </div>
               )
@@ -96,9 +99,78 @@ export default function DiaryProgressModal({ open, onClose, data }: { open: bool
 
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded bg-gray-200">Quay lại</button>
-          <button className="px-4 py-2 rounded bg-sky-600 text-white">Lưu</button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function CommentEditor({ entry, detailVm }: { entry: any; detailVm: any }) {
+  const [showForm, setShowForm] = useState(false)
+  const [text, setText] = useState<string>(entry.nhanXet ?? '')
+  const loading = detailVm.review.isLoading
+
+  const _normalize = (raw?: any) => {
+    if (raw == null) return ''
+    let s = String(raw)
+    s = s.normalize && s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    s = s.replace(/Đ/g, 'D').replace(/đ/g, 'd')
+    return s.toUpperCase().replace(/\s+|_|-|\./g, '')
+  }
+
+  const open = () => {
+  // block opening form for 'Chưa nộp' or 'Hoàn thành'
+  const s = _normalize(entry.trangThaiNhatKy ?? entry.trangThai ?? entry.trangthai)
+    if (s.includes('CHUA') || s.includes('CHUANOP')) {
+      // Chưa nộp -> cannot comment
+      window.alert('Không thể nhận xét: tuần chưa nộp.')
+      return
+    }
+    if (s.includes('HOANTHANH') || s.includes('COMPLETED') || s.includes('FINISHED')) {
+      // Hoàn thành -> cannot comment
+      window.alert('Không thể nhận xét: tuần đã hoàn thành.')
+      return
+    }
+
+    setText(entry.nhanXet ?? '')
+    setShowForm(true)
+  }
+
+  const close = () => setShowForm(false)
+
+  const onConfirm = () => {
+    const id = entry.id
+    detailVm.review.mutate(
+      { entryId: id, payload: { id, nhanXet: text } },
+      {
+        onSuccess: () => {
+          setShowForm(false)
+        },
+      }
+    )
+  }
+
+  return (
+    <div>
+      <button onClick={open} className="px-3 py-1 bg-sky-600 text-white rounded">Nhận xét</button>
+
+      {showForm && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40">
+          <div className="w-96 bg-white rounded shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold">Nhận xét</h4>
+              <button onClick={close} className="text-slate-500">✕</button>
+            </div>
+            <textarea placeholder="Đưa ra nhận xét ..." className="border rounded p-2 w-full h-40 mb-3" value={text} onChange={e => setText(e.target.value)} />
+            <div className="flex justify-end gap-2">
+              <button onClick={close} className="px-3 py-1 rounded bg-gray-200">Hủy</button>
+              <button onClick={onConfirm} disabled={loading} className="px-3 py-1 rounded bg-sky-600 text-white">
+                {loading ? 'Đang lưu...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

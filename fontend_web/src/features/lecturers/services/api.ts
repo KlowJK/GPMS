@@ -341,6 +341,33 @@ export async function fetchStudentDiaryByProposal(idDeTai: string | number, stud
   }))
 }
 
+/**
+ * Review (approve) a diary entry by id with a comment (nhanXet)
+ * PUT /api/nhat-ky-tien-trinh/{id}/duyet
+ * Body: { id: number, nhanXet: string }
+ * Returns: resp.data.result (the updated diary item)
+ */
+export async function reviewDiaryEntry(entryId: string | number, payload: { id: number | string; nhanXet: string }) {
+  const url = `/api/nhat-ky-tien-trinh/${encodeURIComponent(String(entryId))}/duyet`
+  try {
+    const resp = await axios.put(url, payload, { headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
 /*
 Usage example (in a component):
 
