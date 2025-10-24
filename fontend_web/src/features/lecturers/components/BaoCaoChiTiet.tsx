@@ -74,15 +74,34 @@ export default function ReportDetail({ open, maSV, onClose }: { open: boolean; m
                     key={v.id}
                     v={v}
                     loadingId={loadingId}
-                    onApprove={(item) => {
+                    onApprove={async (item) => {
                       const ok = window.confirm('Xác nhận duyệt báo cáo này?')
                       if (!ok) return
                       const note = window.prompt('Ghi chú (tuỳ chọn):', '')
-                      vm.approve(item.id, item.phienBan, note ?? '')
+                      // prompt for score (diemHuongDan) — optional
+                      const scoreStr = window.prompt('Nhập điểm hướng dẫn (số) (tùy chọn):', item.diem != null ? String(item.diem) : '')
+                      let score: number | undefined = undefined
+                      if (scoreStr !== null && scoreStr.trim() !== '') {
+                        const n = Number(scoreStr)
+                        if (!Number.isNaN(n)) score = n
+                      }
+
+                      try {
+                        await vm.approve(item.id, score, note ?? '')
+                        try { alert('Duyệt báo cáo thành công') } catch (e) {}
+                      } catch (err: any) {
+                        try { alert('Duyệt không thành công: ' + (err?.message ?? err)) } catch (e) {}
+                      }
                     }}
-                    onReject={(item) => {
+                    onReject={async (item) => {
                       const reason = window.prompt('Lý do từ chối (tùy chọn):', '')
-                      vm.reject(item.id, item.phienBan, reason ?? '')
+                      try {
+                        // await the vm.reject so we ensure the API call was made
+                        await vm.reject(item.id, item.phienBan, reason ?? '')
+                        try { alert('Từ chối báo cáo thành công') } catch (e) {}
+                      } catch (err: any) {
+                        try { alert('Từ chối không thành công: ' + (err?.message ?? err)) } catch (e) {}
+                      }
                     }}
                     isApproved={isApproved}
                     isRejected={isRejected}
@@ -94,7 +113,6 @@ export default function ReportDetail({ open, maSV, onClose }: { open: boolean; m
 
           <div className="mt-6 flex justify-end">
             <button onClick={onClose} className="px-4 py-2 border rounded text-slate-600">Quay lại</button>
-            <button onClick={() => alert('Lưu (giả lập)')} className="px-4 py-2 ml-3 rounded bg-sky-600 text-white">Lưu</button>
           </div>
         </div>
       </div>

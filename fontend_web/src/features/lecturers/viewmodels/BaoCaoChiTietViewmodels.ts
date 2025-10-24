@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { axios } from '@shared/libs/axios'
-import { fetchReportsPage, approveDeCuong, rejectDeCuong } from '../services/api'
+import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao } from '../services/api'
 
 export default function useReportDetailViewModel(maSV?: string | null) {
   const qc = useQueryClient()
@@ -64,44 +64,74 @@ export default function useReportDetailViewModel(maSV?: string | null) {
   // fallback manual approve/reject implementation using service calls + optimistic UI update
   const approve = async (id: string | number, phienBan?: number | string, nhanXet?: string) => {
     setLoadingId(id)
-    // optimistic
+    let result: any = null
     try {
-      qc.setQueryData(['sinh-vien-proposals', maSV], (old: any[] | undefined) => {
-        if (!Array.isArray(old)) return old
-        return old.map(it => it.id === id ? { ...it, trangThai: 'DA_DUYET', nhanXets: Array.isArray(it.nhanXets) ? (nhanXet ? [...it.nhanXets, { nhanXet }] : it.nhanXets) : (nhanXet ? [{ nhanXet }] : []) } : it)
-      })
-    } catch (e) {}
-    setDisplayProposals(prev => prev.map(item => item.id === id ? { ...item, trangThai: 'DA_DUYET', nhanXets: Array.isArray(item.nhanXets) ? (nhanXet ? [...item.nhanXets, { nhanXet }] : item.nhanXets) : (nhanXet ? [{ nhanXet }] : []) } : item))
+      // call report-specific approve endpoint if available, otherwise fallback
+      if (typeof approveBaoCao === 'function') {
+        // If the UI passed `phienBan` as a score, detect numeric score param via name `phienBan` -> try to use as diemHuongDan only when number
+        const diem = typeof phienBan === 'number' ? phienBan : undefined
+        result = await approveBaoCao(id, diem, nhanXet)
+      } else {
+        result = await approveDeCuong(id, phienBan, nhanXet)
+      }
 
-    try {
-      await approveDeCuong(id, phienBan, nhanXet)
-    } catch (err: any) {
-      try { alert('Lỗi khi duyệt: ' + (err?.message ?? err)) } catch (e) {}
-    } finally {
-      setLoadingId(null)
+      // update local display list to reflect confirmed approval
+      setDisplayProposals(prev => prev.map(item => item.id === id ? { ...item, trangThai: 'DA_DUYET', nhanXets: Array.isArray(item.nhanXets) ? (nhanXet ? [...item.nhanXets, { nhanXet }] : item.nhanXets) : (nhanXet ? [{ nhanXet }] : []), diem: (result?.diemBaoCao ?? result?.diem ?? item.diem) } : item))
+
+      try {
+        qc.setQueryData(['sinh-vien-proposals', maSV], (old: any[] | undefined) => {
+          if (!Array.isArray(old)) return old
+          return old.map(it => it.id === id ? { ...it, trangThai: 'DA_DUYET', nhanXets: Array.isArray(it.nhanXets) ? (nhanXet ? [...it.nhanXets, { nhanXet }] : it.nhanXets) : (nhanXet ? [{ nhanXet }] : []), diem: (result?.diemBaoCao ?? result?.diem ?? it.diem) } : it)
+        })
+      } catch (e) {}
+
+      qc.invalidateQueries({ queryKey: ['bao-cao-page', { maSV }] })
       qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] })
+
+      return result
+    } catch (err: any) {
+      try { alert('Lỗi khi duyệt: ' + (err?.message ?? err)) } catch (e) {}
+      throw err
+    } finally {
+      setLoadingId(null)
     }
   }
 
   const reject = async (id: string | number, phienBan?: number | string, nhanXet?: string) => {
     setLoadingId(id)
+    let result: any = null
     try {
-      qc.setQueryData(['sinh-vien-proposals', maSV], (old: any[] | undefined) => {
-        if (!Array.isArray(old)) return old
-        return old.map(it => it.id === id ? { ...it, trangThai: 'TU_CHOI', nhanXets: Array.isArray(it.nhanXets) ? (nhanXet ? [...it.nhanXets, { nhanXet }] : it.nhanXets) : (nhanXet ? [{ nhanXet }] : []) } : it)
-      })
-    } catch (e) {}
-    setDisplayProposals(prev => prev.map(item => item.id === id ? { ...item, trangThai: 'TU_CHOI', nhanXets: Array.isArray(item.nhanXets) ? (nhanXet ? [...item.nhanXets, { nhanXet }] : item.nhanXets) : (nhanXet ? [{ nhanXet }] : []) } : item))
+      // call API first, then update UI on success
+      if (typeof rejectBaoCao === 'function') {
+        result = await rejectBaoCao(id, nhanXet)
+      } else {
+        result = await rejectDeCuong(id, phienBan, nhanXet)
+      }
 
-    try {
-      await rejectDeCuong(id, phienBan, nhanXet)
-    } catch (err: any) {
-      try { alert('Lỗi khi từ chối: ' + (err?.message ?? err)) } catch (e) {}
-    } finally {
-      setLoadingId(null)
+      // update local display list to reflect server-confirmed rejection
+      setDisplayProposals(prev => prev.map(item => item.id === id ? { ...item, trangThai: 'TU_CHOI', nhanXets: Array.isArray(item.nhanXets) ? (nhanXet ? [...item.nhanXets, { nhanXet }] : item.nhanXets) : (nhanXet ? [{ nhanXet }] : []) } : item))
+
+      // update common cached lists if present
+      try {
+        qc.setQueryData(['sinh-vien-proposals', maSV], (old: any[] | undefined) => {
+          if (!Array.isArray(old)) return old
+          return old.map(it => it.id === id ? { ...it, trangThai: 'TU_CHOI', nhanXets: Array.isArray(it.nhanXets) ? (nhanXet ? [...it.nhanXets, { nhanXet }] : it.nhanXets) : (nhanXet ? [{ nhanXet }] : []) } : it)
+        })
+      } catch (e) {}
+
+      // invalidate related queries so other parts of the UI refresh (reports page, student data, reviews list)
+      qc.invalidateQueries({ queryKey: ['bao-cao-page', { maSV }] })
       qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] })
+      qc.invalidateQueries({ queryKey: ['lecturers-reviews'] as any })
+
+      return result
+    } catch (err: any) {
+      try { alert('Lỗi khi từ chối: ' + (err?.message ?? err)) } catch (e) {}
+      throw err
+    } finally {
+      setLoadingId(null)
     }
   }
 

@@ -277,6 +277,61 @@ export async function fetchReportsPage(params: { page?: number; size?: number; s
 }
 
 /**
+ * Reject a report (báo cáo) by id
+ * PUT /api/bao-cao/tu-choi?idBaoCao={id}&nhanXet={nhanXet}
+ * Returns: resp.data.result
+ */
+export async function rejectBaoCao(idBaoCao: string | number, nhanXet?: string) {
+  const params: any = { idBaoCao }
+  if (nhanXet !== undefined) params.nhanXet = nhanXet
+  try {
+    const resp = await axios.put('/api/bao-cao/tu-choi', null, { params, headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
+/**
+ * Approve a report (báo cáo) by id
+ * PUT /api/bao-cao/duyet?idBaoCao={id}&diemHuongDan={number}&nhanXet={nhanXet}
+ * Returns: resp.data.result
+ */
+export async function approveBaoCao(idBaoCao: string | number, diemHuongDan?: number | string, nhanXet?: string) {
+  const params: any = { idBaoCao }
+  if (diemHuongDan !== undefined) params.diemHuongDan = diemHuongDan
+  if (nhanXet !== undefined) params.nhanXet = nhanXet
+  try {
+    const resp = await axios.put('/api/bao-cao/duyet', null, { params, headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
+/**
  * Fetch weeks (tuần) for diary by lecturer
  * GET /api/nhat-ky-tien-trinh/tuans-by-lecturer?includeAll={boolean}
  * Returns: resp.data.result (array of { tuan, ngayBatDau, ngayKetThuc })

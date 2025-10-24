@@ -25,7 +25,8 @@ export default function ReportVersionItem({
             <div className="text-xs text-slate-500">Ngày nộp: {v.ngayNop}{v.phienBan != null ? ` · Phiên bản: ${v.phienBan}` : ''}</div>
           </div>
           <div className="text-right">
-            {v.diem ? (<div className="text-sm font-semibold">Điểm: {v.diem}</div>) : null}
+            {/* Only show score when the report is approved and a score exists */}
+            {(v.diem != null && isApproved(v.trangThai)) ? (<div className="text-sm font-semibold">Điểm: {v.diem}</div>) : null}
             <div className="mt-2">
               {isApproved(v.trangThai) ? (
                 <div className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm">Đã duyệt</div>
