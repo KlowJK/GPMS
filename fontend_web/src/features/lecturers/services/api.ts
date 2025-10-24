@@ -1,5 +1,5 @@
 import { axios } from '@shared/libs/axios'
-import type { PageXetDuyet } from '../models/danh_sach_duyet'
+import type { PageXetDuyet } from '../models/DanhSachDuyetModels'
 import type { AxiosError } from 'axios'
 
 export async function fetchReviewList(params: { status?: string; page?: number; size?: number; sort?: string[] }) {

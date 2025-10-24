@@ -1,7 +1,7 @@
 import React from 'react'
-import useReportDetailViewModel from '../viewmodels/bao-cao-chi-tiet'
-import ReportHeader from './thong_tin_sinh_vien'
-import ReportVersionItem from './danh_sach_bao_cao'
+import useReportDetailViewModel from '../viewmodels/BaoCaoChiTietViewmodels'
+import ReportHeader from './ThongTinSinhVien'
+import ReportVersionItem from './DanhSachBaoCao'
 
 export default function ReportDetail({ open, maSV, onClose }: { open: boolean; maSV?: string | null; onClose: () => void }) {
   if (!open) return null

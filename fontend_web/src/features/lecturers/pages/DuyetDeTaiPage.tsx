@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import BangDuyetDeTai from '../components/BangDuyetDeTai'
 import ModalXacNhan from '../components/ModalXacNhan'
-import { useReviewsViewModel } from '../viewmodels/duyet-de-tai'
+import { useReviewsViewModel } from '../viewmodels/DuyetDeTaiViewmodels'
 
 export default function DuyetDeTaiPage() {
   return <Inner />

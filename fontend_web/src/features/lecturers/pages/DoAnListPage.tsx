@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
-import { useReviewsViewModel } from '../viewmodels/duyet-de-tai'
+import { useReviewsViewModel } from '../viewmodels/DuyetDeTaiViewmodels'
 import { Eye } from 'lucide-react'
-import StudentDetail from '../components/StudentDetail'
+import StudentDetail from '../components/danh_sach_sinh_vien_hd'
 import { useState } from 'react'
 
 export default function DoAnListPage() {

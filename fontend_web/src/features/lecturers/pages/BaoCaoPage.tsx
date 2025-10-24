@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { useReviewsViewModel } from '../viewmodels/duyet-de-tai'
+import { useReviewsViewModel } from '../viewmodels/DuyetDeTaiViewmodels'
 import { Eye } from 'lucide-react'
-import ReportDetail from '../components/bao_cao_chi_tiet'
+import ReportDetail from '../components/BaoCaoChiTiet'
 
 export default function BaoCao() {
   return <Inner />

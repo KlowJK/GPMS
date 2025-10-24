@@ -101,12 +101,12 @@ export const router = createBrowserRouter([
                                 // Wrap lecturer routes with LecturerLayout so Topbar appears for lecturers
                                 element: <LecturerLayout />,
                                 children: [
-                                    { index: true, lazy: () => import('@/features/lecturers/pages/trang_chu').then(m => ({ Component: m.default })) },
+                                    { index: true, lazy: () => import('@/features/lecturers/pages/TrangChuPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/list', lazy: () => import('../../features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
-                                    { path: 'nhat-ky', lazy: () => import('@features/lecturers/pages/NhatKy').then(m => ({ Component: m.default })) },
-                                    { path: 'bao-cao', lazy: () => import('@features/lecturers/pages/BaoCao').then(m => ({ Component: m.default })) },
-                                    { path: 'hoi-dong', lazy: () => import('@features/lecturers/pages/HoiDong').then(m => ({ Component: m.default })) },
+                                    { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
+                                    { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
+                                    { path: 'hoi-dong', lazy: () => import('@/features/lecturers/pages/HoiDongPage').then(m => ({ Component: m.default })) },
                                 ],
                             },
                         ],
