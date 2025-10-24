@@ -1,7 +1,6 @@
 // src/features/admin/services/universityService.ts
 import { axios } from "@shared/libs/axios";
 
-// NOTE: id từ BE có thể rất lớn (vượt 2^53-1), nên để string|number.
 export type Id = string | number;
 export type LecturerRole = 'GIANG_VIEN' | 'TRO_LY_KHOA' | 'TRUONG_BO_MON';
 
@@ -24,7 +23,7 @@ export interface LecturerPayload {
   maGiangVien: string;
   hoTen: string;
   soDienThoai?: string;
-  matKhau?: string; // bắt buộc khi tạo mới, không bắt buộc khi sửa
+  matKhau?: string; 
   hocHam?: string;
   hocVi?: string;
   vaiTro: LecturerRole;
@@ -69,8 +68,6 @@ const deleteClass  = (id: Id) =>
   axios.delete(`/api/public/lop/${id}`);
 
 /* ====================== BỘ MÔN ====================== */
-// Cho phép truyền params để phân trang/tìm kiếm (size, page, q, ...)
-// Thêm khoaId nếu BE hỗ trợ filter theo khoa
 const getSubjects = (params?: { page?: number; size?: number; q?: string; khoaId?: Id }) =>
   axios.get("/api/public/bo-mon", { params });
 

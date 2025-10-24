@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { universityService } from "@features/admin/services/universityService"; // <- adjust if needed
+import { universityService } from "@features/admin/services/universityService";
+import ConfirmDialog from "@features/admin/components/ConfirmDialog";
+import { useToast } from "@features/admin/components/ToastProvider";
 
 type Department = { id: number; tenKhoa: string };
 
@@ -13,10 +15,18 @@ function extractList<T = any>(res: any): T[] {
 }
 
 export default function DepartmentPage() {
+  const { success, error } = useToast();
   const [items, setItems] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [modal, setModal] = useState<{ open: boolean; editing?: Department | null }>({ open: false });
+
+  const [confirm, setConfirm] = useState<{
+    open: boolean; title?: string; description?: string; onConfirm?: () => void | Promise<void>;
+  }>({ open: false });
+
+  const openConfirm = (title: string, description: string, onConfirm: () => void | Promise<void>) =>
+    setConfirm({ open: true, title, description, onConfirm });
 
   async function load() {
     setLoading(true);
@@ -28,9 +38,7 @@ export default function DepartmentPage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -39,9 +47,19 @@ export default function DepartmentPage() {
   }, [items, keyword]);
 
   async function handleDelete(row: Department) {
-    if (!confirm(`Xóa khoa "${row.tenKhoa}"?`)) return;
-    await universityService.deleteDepartment(row.id);
-    await load();
+    openConfirm(
+      "Xóa khoa",
+      `Xóa khoa "${row.tenKhoa}"?`,
+      async () => {
+        try {
+          await universityService.deleteDepartment(row.id);
+          success("Xóa khoa thành công");
+          await load();
+        } catch {
+          error("Không thể xóa khoa");
+        }
+      }
+    );
   }
 
   return (
@@ -103,16 +121,32 @@ export default function DepartmentPage() {
           initial={modal.editing ?? undefined}
           onClose={() => setModal({ open: false })}
           onSubmit={async (payload) => {
-            if (modal.editing) {
-              await universityService.updateDepartment(modal.editing.id, payload);
-            } else {
-              await universityService.addDepartment(payload);
+            try {
+              if (modal.editing) {
+                await universityService.updateDepartment(modal.editing.id, payload);
+                success("Cập nhật khoa thành công");
+              } else {
+                await universityService.addDepartment(payload);
+                success("Thêm khoa thành công");
+              }
+              setModal({ open: false });
+              await load();
+            } catch {
+              error("Lưu khoa thất bại");
             }
-            setModal({ open: false });
-            await load();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        description={confirm.description}
+        confirmText="OK"
+        cancelText="Hủy"
+        onConfirm={confirm.onConfirm}
+        onClose={() => setConfirm(s => ({ ...s, open: false }))}
+      />
     </div>
   );
 }

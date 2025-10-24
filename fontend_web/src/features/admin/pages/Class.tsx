@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { universityService } from "@features/admin/services/universityService";
+import ConfirmDialog from "@features/admin/components/ConfirmDialog";
+import { useToast } from "@features/admin/components/ToastProvider";
 
 type Major = { id: number; tenNganh: string; khoaId: number };
 type ClassItem = { id: number; tenLop: string; nganhId: number };
@@ -14,11 +16,19 @@ function extractList<T = any>(res: any): T[] {
 }
 
 export default function ClassPage() {
+  const { success, error } = useToast();
   const [items, setItems] = useState<ClassItem[]>([]);
   const [majors, setMajors] = useState<Major[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [modal, setModal] = useState<{ open: boolean; editing?: ClassItem | null }>({ open: false });
+
+  const [confirm, setConfirm] = useState<{
+    open: boolean; title?: string; description?: string; onConfirm?: () => void | Promise<void>;
+  }>({ open: false });
+
+  const openConfirm = (title: string, description: string, onConfirm: () => void | Promise<void>) =>
+    setConfirm({ open: true, title, description, onConfirm });
 
   const majorMap = useMemo(
     () => new Map<number, string>(majors.map((m) => [m.id, m.tenNganh])),
@@ -39,9 +49,7 @@ export default function ClassPage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -50,9 +58,19 @@ export default function ClassPage() {
   }, [items, keyword]);
 
   async function handleDelete(row: ClassItem) {
-    if (!confirm(`Xóa lớp "${row.tenLop}"?`)) return;
-    await universityService.deleteClass(row.id);
-    await load();
+    openConfirm(
+      "Xóa lớp",
+      `Xóa lớp "${row.tenLop}"?`,
+      async () => {
+        try {
+          await universityService.deleteClass(row.id);
+          success("Xóa lớp thành công");
+          await load();
+        } catch {
+          error("Không thể xóa lớp");
+        }
+      }
+    );
   }
 
   return (
@@ -84,30 +102,30 @@ export default function ClassPage() {
               <th className="px-4 w-40">Hành động</th>
             </tr>
           </thead>
-        <tbody>
-          {loading ? (
-            <tr><td className="px-4 py-6 text-center" colSpan={4}>Đang tải…</td></tr>
-          ) : filtered.length === 0 ? (
-            <tr><td className="px-4 py-6 text-center" colSpan={4}>Không có dữ liệu lớp.</td></tr>
-          ) : (
-            filtered.map((row, idx) => (
-              <tr key={row.id} className="border-t">
-                <td className="px-4 py-3">{idx + 1}</td>
-                <td className="px-4 py-3">{row.tenLop}</td>
-                <td className="px-4 py-3">{majorMap.get(row.nganhId) || row.nganhId}</td>
-                <td className="px-4 py-3">
-                  <button
-                    className="text-blue-600 mr-4"
-                    onClick={() => setModal({ open: true, editing: row })}
-                  >
-                    Sửa
-                  </button>
-                  <button className="text-red-600" onClick={() => handleDelete(row)}>Xóa</button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
+          <tbody>
+            {loading ? (
+              <tr><td className="px-4 py-6 text-center" colSpan={4}>Đang tải…</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td className="px-4 py-6 text-center" colSpan={4}>Không có dữ liệu lớp.</td></tr>
+            ) : (
+              filtered.map((row, idx) => (
+                <tr key={row.id} className="border-t">
+                  <td className="px-4 py-3">{idx + 1}</td>
+                  <td className="px-4 py-3">{row.tenLop}</td>
+                  <td className="px-4 py-3">{majorMap.get(row.nganhId) || row.nganhId}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      className="text-blue-600 mr-4"
+                      onClick={() => setModal({ open: true, editing: row })}
+                    >
+                      Sửa
+                    </button>
+                    <button className="text-red-600" onClick={() => handleDelete(row)}>Xóa</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
         </table>
       </div>
 
@@ -117,16 +135,32 @@ export default function ClassPage() {
           majors={majors}
           onClose={() => setModal({ open: false })}
           onSubmit={async (payload) => {
-            if (modal.editing) {
-              await universityService.updateClass(modal.editing.id, payload);
-            } else {
-              await universityService.addClass(payload);
+            try {
+              if (modal.editing) {
+                await universityService.updateClass(modal.editing.id, payload);
+                success("Cập nhật lớp thành công");
+              } else {
+                await universityService.addClass(payload);
+                success("Thêm lớp thành công");
+              }
+              setModal({ open: false });
+              await load();
+            } catch {
+              error("Lưu lớp thất bại");
             }
-            setModal({ open: false });
-            await load();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        description={confirm.description}
+        confirmText="OK"
+        cancelText="Hủy"
+        onConfirm={confirm.onConfirm}
+        onClose={() => setConfirm(s => ({ ...s, open: false }))}
+      />
     </div>
   );
 }

@@ -1,5 +1,8 @@
+// src/features/admin/pages/Subject.tsx
 import { useEffect, useMemo, useState } from "react";
 import { universityService } from "@features/admin/services/universityService";
+import ConfirmDialog from "@features/admin/components/ConfirmDialog";
+import { useToast } from "@features/admin/components/ToastProvider";
 
 type Department = { id: number; tenKhoa: string };
 type Subject = { id: number; tenBoMon: string; khoaId: number };
@@ -14,11 +17,26 @@ function extractList<T = any>(res: any): T[] {
 }
 
 export default function SubjectPage() {
+  const { success, error } = useToast();
+
   const [items, setItems] = useState<Subject[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [modal, setModal] = useState<{ open: boolean; editing?: Subject | null }>({ open: false });
+
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    title?: string;
+    description?: string;
+    onConfirm?: () => void | Promise<void>;
+  }>({ open: false });
+
+  const openConfirm = (
+    title: string,
+    description: string,
+    onConfirm: () => void | Promise<void>
+  ) => setConfirm({ open: true, title, description, onConfirm });
 
   const depMap = useMemo(
     () => new Map<number, string>(departments.map((d) => [d.id, d.tenKhoa])),
@@ -49,10 +67,20 @@ export default function SubjectPage() {
     return items.filter((x) => x.tenBoMon?.toLowerCase().includes(k));
   }, [items, keyword]);
 
-  async function handleDelete(row: Subject) {
-    if (!confirm(`Xóa bộ môn "${row.tenBoMon}"?`)) return;
-    await universityService.deleteSubject(row.id);
-    await load();
+  function askDelete(row: Subject) {
+    openConfirm(
+      "Xóa bộ môn",
+      `Xóa bộ môn "${row.tenBoMon}"?`,
+      async () => {
+        try {
+          await universityService.deleteSubject(row.id);
+          success("Xóa bộ môn thành công");
+          await load();
+        } catch {
+          error("Không thể xóa bộ môn");
+        }
+      }
+    );
   }
 
   return (
@@ -86,15 +114,23 @@ export default function SubjectPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td className="px-4 py-6 text-center" colSpan={4}>Đang tải…</td></tr>
+              <tr>
+                <td className="px-4 py-6 text-center" colSpan={4}>
+                  Đang tải…
+                </td>
+              </tr>
             ) : filtered.length === 0 ? (
-              <tr><td className="px-4 py-6 text-center" colSpan={4}>Không có dữ liệu bộ môn.</td></tr>
+              <tr>
+                <td className="px-4 py-6 text-center" colSpan={4}>
+                  Không có dữ liệu bộ môn.
+                </td>
+              </tr>
             ) : (
               filtered.map((row, idx) => (
                 <tr key={row.id} className="border-t">
                   <td className="px-4 py-3">{idx + 1}</td>
                   <td className="px-4 py-3">{row.tenBoMon}</td>
-                  <td className="px-4 py-3">{depMap.get(row.khoaId) || row.khoaId}</td>
+                  <td className="px-4 py-3">{depMap.get(row.khoaId) ?? row.khoaId}</td>
                   <td className="px-4 py-3">
                     <button
                       className="text-blue-600 mr-4"
@@ -102,7 +138,9 @@ export default function SubjectPage() {
                     >
                       Sửa
                     </button>
-                    <button className="text-red-600" onClick={() => handleDelete(row)}>Xóa</button>
+                    <button className="text-red-600" onClick={() => askDelete(row)}>
+                      Xóa
+                    </button>
                   </td>
                 </tr>
               ))
@@ -117,16 +155,32 @@ export default function SubjectPage() {
           departments={departments}
           onClose={() => setModal({ open: false })}
           onSubmit={async (payload) => {
-            if (modal.editing) {
-              await universityService.updateSubject(modal.editing.id, payload);
-            } else {
-              await universityService.addSubject(payload);
+            try {
+              if (modal.editing) {
+                await universityService.updateSubject(modal.editing.id, payload);
+                success("Cập nhật bộ môn thành công");
+              } else {
+                await universityService.addSubject(payload);
+                success("Thêm bộ môn thành công");
+              }
+              setModal({ open: false });
+              await load();
+            } catch {
+              error("Lưu bộ môn thất bại");
             }
-            setModal({ open: false });
-            await load();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        description={confirm.description}
+        confirmText="OK"
+        cancelText="Hủy"
+        onConfirm={confirm.onConfirm}             // <-- truyền HÀM, không gọi trực tiếp
+        onClose={() => setConfirm((s) => ({ ...s, open: false }))}
+      />
     </div>
   );
 }
@@ -148,7 +202,9 @@ function SubjectModal({
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="w-[420px] bg-white rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4">{initial ? "Sửa bộ môn" : "Thêm bộ môn"}</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {initial ? "Sửa bộ môn" : "Thêm bộ môn"}
+        </h2>
 
         <label className="block text-sm text-slate-600 mb-1">Tên bộ môn</label>
         <input
@@ -165,12 +221,16 @@ function SubjectModal({
           onChange={(e) => setKhoaId(Number(e.target.value))}
         >
           {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.tenKhoa}</option>
+            <option key={d.id} value={d.id}>
+              {d.tenKhoa}
+            </option>
           ))}
         </select>
 
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">Quay lại</button>
+          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">
+            Quay lại
+          </button>
           <button
             onClick={() => onSubmit({ tenBoMon, khoaId })}
             className="px-4 h-10 rounded bg-blue-600 text-white"

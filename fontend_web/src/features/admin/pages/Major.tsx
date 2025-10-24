@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { universityService } from "@features/admin/services/universityService";
+import ConfirmDialog from "@features/admin/components/ConfirmDialog";
+import { useToast } from "@features/admin/components/ToastProvider";
 
 type Department = { id: number; tenKhoa: string };
 type Major = { id: number; tenNganh: string; khoaId: number };
@@ -14,11 +16,19 @@ function extractList<T = any>(res: any): T[] {
 }
 
 export default function MajorPage() {
+  const { success, error } = useToast();
   const [items, setItems] = useState<Major[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [modal, setModal] = useState<{ open: boolean; editing?: Major | null }>({ open: false });
+
+  const [confirm, setConfirm] = useState<{
+    open: boolean; title?: string; description?: string; onConfirm?: () => void | Promise<void>;
+  }>({ open: false });
+
+  const openConfirm = (title: string, description: string, onConfirm: () => void | Promise<void>) =>
+    setConfirm({ open: true, title, description, onConfirm });
 
   const depMap = useMemo(
     () => new Map<number, string>(departments.map((d) => [d.id, d.tenKhoa])),
@@ -39,9 +49,7 @@ export default function MajorPage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     const k = keyword.trim().toLowerCase();
@@ -50,9 +58,19 @@ export default function MajorPage() {
   }, [items, keyword]);
 
   async function handleDelete(row: Major) {
-    if (!confirm(`Xóa ngành "${row.tenNganh}"?`)) return;
-    await universityService.deleteMajor(row.id);
-    await load();
+    openConfirm(
+      "Xóa ngành",
+      `Xóa ngành "${row.tenNganh}"?`,
+      async () => {
+        try {
+          await universityService.deleteMajor(row.id);
+          success("Xóa ngành thành công");
+          await load();
+        } catch {
+          error("Không thể xóa ngành");
+        }
+      }
+    );
   }
 
   return (
@@ -117,16 +135,32 @@ export default function MajorPage() {
           departments={departments}
           onClose={() => setModal({ open: false })}
           onSubmit={async (payload) => {
-            if (modal.editing) {
-              await universityService.updateMajor(modal.editing.id, payload);
-            } else {
-              await universityService.addMajor(payload);
+            try {
+              if (modal.editing) {
+                await universityService.updateMajor(modal.editing.id, payload);
+                success("Cập nhật ngành thành công");
+              } else {
+                await universityService.addMajor(payload);
+                success("Thêm ngành thành công");
+              }
+              setModal({ open: false });
+              await load();
+            } catch {
+              error("Lưu ngành thất bại");
             }
-            setModal({ open: false });
-            await load();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        description={confirm.description}
+        confirmText="OK"
+        cancelText="Hủy"
+        onConfirm={confirm.onConfirm}
+        onClose={() => setConfirm(s => ({ ...s, open: false }))}
+      />
     </div>
   );
 }
