@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { fetchTuansByLecturer } from '../services/api'
 import { formatDateTime, parseISOToDate } from '@shared/utils/format'
-import useDiaryViewModel from '../viewmodels/useDiaryViewModel'
+import useDiaryViewModel from '../viewmodels/nhat-ky'
 import DiaryProgressModal from '../components/Nhat_ky_chi_tiet'
-import useDiaryDetailViewModel from '../viewmodels/useDiaryDetailViewModel'
+import useDiaryDetailViewModel from '../viewmodels/nhat-ky-chi-tiet'
 import { useEffect } from 'react'
 
 // static weeks for combobox (1..11)

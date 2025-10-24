@@ -101,7 +101,7 @@ export const router = createBrowserRouter([
                                 // Wrap lecturer routes with LecturerLayout so Topbar appears for lecturers
                                 element: <LecturerLayout />,
                                 children: [
-                                    { index: true, lazy: () => import('@features/lecturers/pages/Dashboard').then(m => ({ Component: m.default })) },
+                                    { index: true, lazy: () => import('@/features/lecturers/pages/trang_chu').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/list', lazy: () => import('../../features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
                                     { path: 'nhat-ky', lazy: () => import('@features/lecturers/pages/NhatKy').then(m => ({ Component: m.default })) },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { formatDateTime } from '@shared/utils/format'
-import useDiaryDetailViewModel from '../viewmodels/useDiaryDetailViewModel'
+import useDiaryDetailViewModel from '../viewmodels/nhat-ky-chi-tiet'
 
 export default function DiaryProgressModal({ open, onClose, data }: { open: boolean; onClose: () => void; data: any[] | null }) {
   if (!open) return null

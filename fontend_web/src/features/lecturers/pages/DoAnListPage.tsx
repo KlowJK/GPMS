@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { useReviewsViewModel } from '../viewmodels/useReviewsViewModel'
+import { useReviewsViewModel } from '../viewmodels/duyet-de-tai'
 import { Eye } from 'lucide-react'
 import StudentDetail from '../components/StudentDetail'
 import { useState } from 'react'
