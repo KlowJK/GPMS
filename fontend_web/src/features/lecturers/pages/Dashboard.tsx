@@ -45,8 +45,9 @@ function Card({
 export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-12 py-10">
-      <div className="grid gap-10 grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 justify-center items-start place-items-center">
-        <Card to="/lecturers/do-an" title="Đồ án" icon={<FileText size={56} />} color="#0071C6" />
+  <div className="grid gap-10 grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 justify-center items-start place-items-center">
+        <Card to="/lecturers/do-an/duyet" title="Duyệt đề tài" icon={<FileText size={56} />} color="#0071C6" />
+        <Card to="/lecturers/do-an/list" title="Danh sách đồ án" icon={<FileText size={56} />} color="#0071C6" />
         <Card to="/lecturers/nhat-ky" title="Nhật ký tiến độ" icon={<CalendarCheck size={56} />} color="#0071C6" />
         <Card to="/lecturers/bao-cao" title="Báo cáo" icon={<ClipboardCheck size={56} />} color="#0071C6" />
         <Card to="/lecturers/hoi-dong" title="Hội đồng" icon={<Building size={56} />} color="#0071C6" />

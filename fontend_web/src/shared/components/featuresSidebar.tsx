@@ -27,7 +27,14 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
             return (
               <div className={`${isSelected ? 'bg-white rounded-[12px]' : ''}`}>
                 <div className={`flex items-center gap-3 px-4 py-3 ${isSelected ? 'text-slate-800' : 'text-white/90'}`}>
+                  <Home size={18} />
                   <span className="text-sm font-medium">Trang chủ</span>
+                  <div className="ml-auto" />
+                  {isSelected ? (
+                    <div className="ml-3 w-4 h-4 rounded-sm bg-slate-200" />
+                  ) : (
+                    <div className="ml-3 w-4 h-4" />
+                  )}
                 </div>
               </div>
             )

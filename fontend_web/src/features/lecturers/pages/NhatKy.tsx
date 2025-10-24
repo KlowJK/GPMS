@@ -13,15 +13,6 @@ import { useEffect } from 'react'
 const WEEKS = Array.from({ length: 11 }, (_, i) => i + 1)
 // fallback week entries used only when API data missing
 const FALLBACK_WEEKS = Array.from({ length: 11 }, (_, i) => ({ tuan: i + 1, ngayBatDau: null, ngayKetThuc: null }));
-const students = [
-  { id: "2251172xxx", name: "Nguyễn Văn A", topic: "Đề tài A", status: "đã nộp" },
-  { id: "2251172xxx", name: "Nguyễn Văn A", topic: "Đề tài A", status: "chưa nộp" },
-  { id: "2251172xxx", name: "Nguyễn Văn A", topic: "Đề tài A", status: "chưa nộp" },
-  { id: "2251172xxx", name: "Nguyễn Văn A", topic: "Đề tài A", status: "đã nộp" },
-  { id: "2251172xxx", name: "Nguyễn Văn A", topic: "Đề tài A", status: "đã nộp" },
-  { id: "2251172xxx", name: "Nguyễn Văn A", topic: "Đề tài A", status: "đã nộp" },
-];
-
 
 
 export default function NhatKy() {
@@ -108,9 +99,9 @@ export default function NhatKy() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#E6F0FA] flex flex-col items-stretch">
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="bg-white shadow rounded p-8">
+    <div className="min-h-[calc(100vh-80px)] flex flex-col items-stretch">
+      <div className="w-full max-w-full mx-auto px-0">
+        <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-[#222]">Danh sách sinh viên:</h1>
             <div className="flex items-center gap-2">
@@ -190,7 +181,7 @@ export default function NhatKy() {
           <DiaryProgressModal open={openDetail} onClose={() => { setOpenDetail(false); detailVm.setProposalId(null); detailVm.setStudentId(null) }} data={detailVm.data} />
 
           {/* Phân trang giả lập */}
-          <div className="flex justify-center items-center gap-1 mt-6">
+          {/* <div className="flex justify-center items-center gap-1 mt-6">
             <button className="px-2 py-1 text-[#2F7CD3] rounded-full disabled:text-gray-300" disabled={page === 1} onClick={() => setPage(1)}>&laquo;</button>
             <button className="px-2 py-1 text-[#2F7CD3] rounded-full disabled:text-gray-300" disabled={page === 1} onClick={() => setPage(page - 1)}>&lsaquo;</button>
             {getPagination().map((p, i) =>
@@ -208,7 +199,7 @@ export default function NhatKy() {
             )}
             <button className="px-2 py-1 text-[#2F7CD3] rounded-full disabled:text-gray-300" disabled={page === totalPages} onClick={() => setPage(page + 1)}>&rsaquo;</button>
             <button className="px-2 py-1 text-[#2F7CD3] rounded-full disabled:text-gray-300" disabled={page === totalPages} onClick={() => setPage(totalPages)}>&raquo;</button>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
