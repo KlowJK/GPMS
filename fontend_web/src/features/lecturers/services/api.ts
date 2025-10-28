@@ -346,6 +346,45 @@ export async function fetchTuansByLecturer(includeAll = false) {
 }
 
 /**
+ * Fetch proposals (đề cương) page filtered by status / roles
+ * GET /api/de-cuong?page=0&size=10&sort=updatedAt,DESC&status=...
+ * Returns resp.data.result (paged)
+ */
+export async function fetchDeCuongPage(params: { page?: number; size?: number; sort?: string[]; status?: string; } = {}) {
+  const search = new URLSearchParams()
+  if (typeof params.page === 'number') search.append('page', String(params.page))
+  if (typeof params.size === 'number') search.append('size', String(params.size))
+  if (params.sort) params.sort.forEach(s => search.append('sort', s))
+  if (params.status) search.append('status', params.status)
+
+  const url = `/api/de-cuong?${search.toString()}`
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  const result = resp.data?.result ?? { content: [] }
+
+  // normalize items slightly for UI convenience
+  if (result && Array.isArray(result.content)) {
+    result.content = result.content.map((it: any) => ({
+      id: it.id,
+      deCuongUrl: it.deCuongUrl ?? it.fileUrl ?? null,
+      trangThaiDeCuong: it.trangThaiDeCuong ?? it.trangThai ?? it.trangthai ?? '',
+      phienBan: it.phienBan,
+      tenDeTai: it.tenDeTai ?? it.title ?? '',
+      maSinhVien: it.maSinhVien ?? it.maSV ?? it.maSV ?? '',
+      hoTenSinhVien: it.hoTenSinhVien ?? it.hoTen ?? it.hoTenSV ?? '',
+      giangVienHuongDan: it.giangVienHuongDan ?? it.gvhd ?? '',
+      giangVienPhanBien: it.giangVienPhanBien ?? it.gvpb ?? '',
+      gvPhanBienDuyet: it.gvPhanBienDuyet ?? it.gvPhanBienDuyet ?? null,
+      truongBoMon: it.truongBoMon ?? it.tbm ?? '',
+      tbmDuyet: it.tbmDuyet ?? it.tbmDuyet ?? null,
+      nhanXets: Array.isArray(it.nhanXets) ? it.nhanXets : (it.nhanXet ? [{ nhanXet: it.nhanXet }] : []),
+      raw: it,
+    }))
+  }
+
+  return result
+}
+
+/**
  * Fetch diary entries (nhật ký) for a given week
  * GET /api/nhat-ky-tien-trinh/all-nhat-ky/list?tuan={tuan}
  * Returns: resp.data.result (array of entries)
