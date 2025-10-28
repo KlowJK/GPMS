@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { axios } from '@shared/libs/axios'
 import { setToken, setUser } from '@shared/libs/storage'
-import { login as loginApi } from '../api'
 import type { AxiosError } from 'axios'
 
 // Ảnh: nền = TLU.png (hình minh hoạ), logo = logo_tlu.png
@@ -20,20 +20,35 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            // call centralized login helper which normalizes server shapes
-            const result = await loginApi({ username, password })
+            const payload = { email: username, matKhau: password }
+            const res = await axios.post('/api/auth/login', payload, {
+                headers: { 'Content-Type': 'application/json' },
+            })
+            // clear previous error
             setError(null)
 
-            // debug
+            // debug log
             // eslint-disable-next-line no-console
-            console.debug('[login] normalized result:', result)
+            console.debug('[login] server response:', res)
 
-            if (!result?.accessToken) {
-                throw new Error('Token not returned from server. Response: ' + JSON.stringify(result?.raw ?? result))
+            // normalize response: some backends wrap payload in `result`
+            const raw = res.data ?? {}
+            const data = raw.result ?? raw
+
+            // try common token locations
+            const possibleToken = (data.accessToken ?? data.token ?? data.access_token ?? data.data?.accessToken) as string | undefined
+            const headerAuth = (res.headers && (res.headers.authorization || res.headers.Authorization)) as string | undefined
+            const accessToken = possibleToken || headerAuth?.replace(/^Bearer\s+/i, '')
+            const user = data.user ?? data
+
+            if (!accessToken) {
+                const serverBody = typeof data === 'string' ? data : JSON.stringify(data)
+                throw new Error(`Token not returned from server. Response body: ${serverBody}`)
             }
 
-            setToken(result.accessToken)
-            if (result.user) setUser(result.user)
+            // store token and user
+            setToken(accessToken)
+            if (user) setUser(user)
 
             // Điều hướng theo role
             const role = (result.user?.role ?? '').toString()
@@ -49,8 +64,7 @@ export default function LoginPage() {
         } catch (err) {
             const axiosErr = err as AxiosError
             const serverMsg =
-                (axiosErr?.response as any)?.data?.message ??
-                (axiosErr?.response as any)?.data ??
+                (axiosErr?.response as any)?.data?.message ??(axiosErr?.response as any)?.data ??
                 (err as Error)?.message ??
                 'Đăng nhập thất bại'
             // show error in UI and log details for debugging
@@ -111,8 +125,7 @@ export default function LoginPage() {
                                 <div className="relative">
                                     <input
                                         type={showPw ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        value={password}onChange={(e) => setPassword(e.target.value)}
                                         className="w-full h-12 rounded-md bg-[#F6F6F6] shadow px-4 pr-12 outline-none
                                focus:ring-2 focus:ring-sky-400"
                                         placeholder="Nhập mật khẩu"
@@ -152,4 +165,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

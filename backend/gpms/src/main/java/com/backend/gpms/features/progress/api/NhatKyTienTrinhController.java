@@ -117,11 +117,11 @@ public class NhatKyTienTrinhController {
 
     }
 
-    @Operation(summary = "Lấy list nhật ký của sinh viên thuộc tuần hiện tại - Role giảng viên")
+    @Operation(summary = "Lấy list nhật ký của sinh viên thuộc tuần hiện tại (Đầu vào idDeTai) - Role giảng viên")
     @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
     @GetMapping("/{id}")
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyListByGiangVien(
-            @RequestParam(name = "id", defaultValue = "0",required = false) long id
+            @PathVariable("id") Long id
     ) {
         return ApiResponse.success(service.getNhatKyListByGiangVien(id));
 

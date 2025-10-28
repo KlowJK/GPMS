@@ -22,10 +22,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+
 
 @Service
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -37,8 +36,6 @@ public class BoMonService{
     BoMonMapper boMonMapper;
     KhoaRepository khoaRepository;
     private final GiangVienRepository giangVienRepository;
-    GiangVienMapper giangVienMapper;
-
 
     public BoMonResponse createBoMon(BoMonRequest boMonRequest) {
         if(boMonRepository.existsByTenBoMonIgnoreCase(boMonRequest.getTenBoMon())) {

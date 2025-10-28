@@ -8,7 +8,6 @@ class TienDoViewModel extends ChangeNotifier {
   TienDoViewModel({TienDoService? service})
     : service = service ?? TienDoService();
 
-  // Data
   List<TienDoSinhVien> _items = [];
   List<Tuan> _tuans = [];
 
@@ -45,16 +44,13 @@ class TienDoViewModel extends ChangeNotifier {
     }
   }
 
-  Future<List<TienDoSinhVien>> fetchNhatKyById(
-    int id, {
-    bool upsertToItems = false,
-  }) async {
+  Future<List<TienDoSinhVien>> fetchNhatKyByIdList(int id) async {
     _setLoading(true);
     try {
       final res = await service.fetchNhatKyByIdList(id: id);
       _error = null;
 
-      if (upsertToItems && res.isNotEmpty) {
+      if (res.isNotEmpty) {
         for (final item in res) {
           final idx = _items.indexWhere((e) => e.id == item.id);
           if (idx != -1) {
@@ -93,19 +89,27 @@ class TienDoViewModel extends ChangeNotifier {
   }
 
   /// Nhật ký SV do GVHD phụ trách (lọc theo trạng thái)
-  Future<void> loadMySupervised({String? status}) async {
+  Future<List<TienDoSinhVien>> fetchMySupervisedStudents({
+    String? status,
+  }) async {
     _setLoading(true);
     try {
       final res = await service.fetchMySupervisedStudents(status: status);
       _items = res;
       statusFilter = status;
       _error = null;
+      return res;
     } catch (e) {
       _error = e.toString();
       _items = [];
+      rethrow;
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> loadMySupervised({String? status}) async {
+    await fetchMySupervisedStudents(status: status);
   }
 
   /// Refresh: nếu không truyền tham số, dùng filter hiện có
