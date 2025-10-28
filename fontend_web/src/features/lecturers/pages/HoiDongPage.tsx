@@ -45,7 +45,6 @@ function Inner() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Hội đồng</h1>
-        <Link to="/lecturers" className="inline-block text-[#2F7CD3] hover:underline">← Về trang chủ</Link>
       </div>
 
       <div className="bg-white shadow rounded p-4">
@@ -63,6 +62,7 @@ function Inner() {
                   <th className="text-left px-6 py-4">Thời gian bắt đầu</th>
                   <th className="text-left px-6 py-4">Thời gian kết thúc</th>
                   <th className="text-left px-6 py-4">Trạng thái</th>
+                  <th className="text-left px-6 py-4">Hành động</th>
                 </tr>
               </thead>
               <tbody>

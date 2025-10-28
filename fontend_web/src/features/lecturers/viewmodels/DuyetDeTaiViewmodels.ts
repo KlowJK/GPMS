@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchReviewList, rejectDeTai, approveDeTai } from '../services/api'
-import type { XetDuyetItem, PageXetDuyet } from '../models/danh_sach_duyet'
+import type { XetDuyetItem, PageXetDuyet } from '../models/DanhSachDuyetModels'
 
 export function useReviewsViewModel(initialPage = 0, initialSize = 10) {
   const [page, setPage] = useState(initialPage)

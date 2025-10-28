@@ -1,6 +1,6 @@
 import React from 'react'
 import { Check, Eye, Trash } from 'lucide-react'
-import type { XetDuyetItem } from '../models/danh_sach_duyet'
+import type { XetDuyetItem } from '../models/DanhSachDuyetModels'
 
 export default function BangDuyetDeTai({ rows, isLoading, onApprove, onReject, onView, approvingId }: { rows: XetDuyetItem[]; isLoading: boolean; onApprove: (id: string) => void; onReject: (id: string) => void; onView: (url?: string | null) => void; approvingId?: string | null }) {
   if (isLoading) return <div className="p-6 text-center">Đang tải...</div>
