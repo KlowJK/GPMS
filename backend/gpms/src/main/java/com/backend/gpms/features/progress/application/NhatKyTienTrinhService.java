@@ -278,14 +278,23 @@ public class NhatKyTienTrinhService {
 
     public List<NhatKyTienTrinhResponse> getNhatKyListByGiangVien(Long idDeTai){
         boolean all = false;
+        DeTai deTai = deTaiRepository.findById(idDeTai)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+        String email = getCurrentUsername();
+        Long gvhdId = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_A_GVHD))
+                .getId();
+        if(!deTai.getGiangVienHuongDan().getId().equals(gvhdId)){
+            throw new ApplicationException(ErrorCode.NOT_YOUR_DETAI);
+        }
         return getNhatKyList(all,idDeTai);
     }
     // Lấy list nhật ký
     public List<NhatKyTienTrinhResponse> getNhatKyList(boolean all, Long idDeTai) {
 
         List<NhatKyTienTrinh> entities = (all) ?
-                nhatKyRepository.findByDeTai_IdOrderByCreatedAtDesc(idDeTai) :
-                nhatKyRepository.findByDeTai_IdAndNgayBatDauBeforeOrderByCreatedAtDesc(idDeTai, currentDate);
+                nhatKyRepository.findByDeTai_IdOrderByTuanDesc(idDeTai) :
+                nhatKyRepository.findByDeTai_IdAndNgayBatDauBeforeOrderByTuanDesc(idDeTai, currentDate);
         return nhatKyTienTrinhMapper.toResponseList(entities);
     }
 

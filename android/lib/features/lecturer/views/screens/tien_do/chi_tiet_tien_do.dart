@@ -1,96 +1,35 @@
-import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:GPMS/features/lecturer/views/screens/tien_do/show_review_dialog.dart';
-import 'package:intl/intl.dart';
 import 'package:GPMS/features/lecturer/viewmodels/tien_do_viewmodel.dart';
+import 'package:flutter/material.dart';
 import 'package:GPMS/features/lecturer/models/tien_do_sinh_vien.dart';
-import 'package:GPMS/features/lecturer/services/tien_do_service.dart';
+import 'package:intl/intl.dart';
+import 'package:GPMS/features/lecturer/views/screens/tien_do/show_review_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class NhanXetTienDo extends StatefulWidget {
-  const NhanXetTienDo({super.key});
+class ProgressDetailScreen extends StatefulWidget {
+  const ProgressDetailScreen({
+    super.key,
+    required this.student,
+    required this.tienDoViewModel,
+  });
+  final TienDoSinhVien student;
+  final TienDoViewModel tienDoViewModel;
 
   @override
-  State<NhanXetTienDo> createState() => NhanXetTienDoState();
+  State<ProgressDetailScreen> createState() => _ProgressDetailScreenState();
 }
 
-class NhanXetTienDoState extends State<NhanXetTienDo> {
+class _ProgressDetailScreenState extends State<ProgressDetailScreen> {
+  final weeks = List.generate(15, (i) => 'Tuần ${i + 1}');
+  String selectedWeek = 'Tuần 2';
   List<TienDoSinhVien> tienDoList = [];
   List<WeeklyEntry> entries = [];
-
-  late final TienDoViewModel _vm;
-  bool _initialLoad = true;
-  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
-    _vm = TienDoViewModel(service: TienDoService());
-    _fetchNhanXetTienDo();
-  }
-
-  Future<void> _fetchNhanXetTienDo() async {
-    if (!_initialLoad && _isRefreshing == false) {
-      // normal fetch guard (optional)
-    }
-    try {
-      final list = await _vm.fetchMySupervisedStudents(status: 'DA_NOP');
-      if (!mounted) return;
-      setState(() {
-        tienDoList = list;
-        entries = list
-            .map(
-              (t) => WeeklyEntry(
-                id: t.id,
-                studentName: t.hoTen,
-                weekLabel: 'Tuần ${t.tuan ?? ''}',
-                dateRange:
-                    '${formatDateString(t.ngayBatDau)}${(t.ngayKetThuc != null) ? ' - ${formatDateString(t.ngayKetThuc)}' : ''}',
-                work: t.noiDung ?? '-',
-                fileName: t.duongDanFile ?? '-',
-                status: t.trangThaiNhatKy,
-                review: t.nhanXet,
-              ),
-            )
-            .toList();
-        _initialLoad = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {});
-    }
-  }
-
-  Future<void> _onRefresh() async {
-    if (_isRefreshing) return;
-    setState(() => _isRefreshing = true);
-    try {
-      await _fetchNhanXetTienDo();
-    } finally {
-      if (!mounted) return;
-      setState(() => _isRefreshing = false);
-    }
-  }
-
-  Future<void> approveAndRefresh(int id, String nhanXet) async {
-    try {
-      await _vm.approveReport(id, nhanXet);
-      await _fetchNhanXetTienDo();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Lưu nhận xét thành công')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi lưu nhận xét: ${e.toString()}')),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _vm.dispose();
-    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchTienDo();
+    });
   }
 
   String formatDateString(Object? raw) {
@@ -122,67 +61,124 @@ class NhanXetTienDoState extends State<NhanXetTienDo> {
       }
       return raw; // fallback to original string
     }
+    // Fallback for other types
     return raw.toString();
+  }
+
+  Future<void> _fetchTienDo() async {
+    if (widget.student.idDeTai == null) return;
+    try {
+      final list = await widget.tienDoViewModel.fetchNhatKyByIdList(
+        widget.student.idDeTai,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        tienDoList = list;
+        entries = list.map((t) {
+          return WeeklyEntry(
+            id: t.id,
+            weekLabel: 'Tuần ${t.tuan ?? ''}',
+            dateRange:
+                '${formatDateString(t.ngayBatDau)}${(t.ngayKetThuc != null) ? ' - ${formatDateString(t.ngayKetThuc)}' : ''}',
+            work: t.noiDung ?? '-',
+            fileName: t.duongDanFile ?? '-',
+            status: t.trangThaiNhatKy,
+            review: t.nhanXet,
+          );
+        }).toList();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-          children: [
-            const SizedBox(height: 5),
-            Text(
-              'Nhận xét tiến độ sinh viên',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2F7CD3),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        title: const Text(
+          'Tiến độ',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+        children: [
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: const [
+              SizedBox(
+                width: 180,
+                child: _StatCard(value: '8', label: 'Tuần nộp đúng hạn'),
               ),
+              SizedBox(
+                width: 180,
+                child: _StatCard(value: '1', label: 'Tuần nộp muộn'),
+              ),
+              SizedBox(
+                width: 180,
+                child: _StatCard(value: '52%', label: 'Hoàn thành'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+          Text(
+            'Tiến độ từng tuần:',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF111827),
             ),
-            const SizedBox(height: 10),
-            for (final e in entries) ...[
-              _WeekCard(
-                entry: e,
-                onReview: () async {
-                  if (e.id == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Thiếu id nhật ký')),
-                    );
-                    return;
-                  }
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (_) => ReviewDialog(
-                      studentName: e.studentName ?? '',
-                      weekLabel: e.weekLabel,
-                      entryId: e.id!,
-                      initialReview: e.review,
-                      onSubmit: (id, nhanXet) async {
-                        await _vm.approveReport(id, nhanXet);
-                      },
+          ),
+          const SizedBox(height: 10),
+          for (final e in entries) ...[
+            _WeekCard(
+              entry: e,
+              onReview: () async {
+                if (e.id == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Thiếu id nhật ký')),
+                  );
+                  return;
+                }
+                final ok = await showDialog<bool>(
+                  context: context,
+                  barrierDismissible: true, // hoặc false nếu muốn chắc chắn
+                  builder: (_) => ReviewDialog(
+                    studentName: widget.student.hoTen ?? '',
+                    weekLabel: e.weekLabel,
+                    entryId: e.id!,
+                    initialReview: e.review,
+                    onSubmit: (id, nhanXet) async {
+                      await widget.tienDoViewModel.approveReport(id, nhanXet);
+                    },
+                  ),
+                );
+
+                if (ok == true) {
+                  await _fetchTienDo(); // refresh entries
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Đã lưu nhận xét cho ${widget.student.hoTen} - ${e.weekLabel}',
+                      ),
                     ),
                   );
+                }
+              },
+            ),
 
-                  if (ok == true) {
-                    await _fetchNhanXetTienDo();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Đã lưu nhận xét cho ${e.studentName ?? ''} - ${e.weekLabel}',
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
+            const SizedBox(height: 10),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -190,7 +186,6 @@ class NhanXetTienDoState extends State<NhanXetTienDo> {
 
 class _WeekCard extends StatelessWidget {
   const _WeekCard({required this.entry, required this.onReview});
-
   final WeeklyEntry entry;
   final VoidCallback onReview;
 
@@ -481,7 +476,6 @@ class _StatCard extends StatelessWidget {
 
 class WeeklyEntry {
   final int? id;
-  final String? studentName;
   final String weekLabel;
   final String dateRange;
   final String work;
@@ -491,7 +485,6 @@ class WeeklyEntry {
 
   WeeklyEntry({
     this.id,
-    this.studentName,
     required this.weekLabel,
     required this.dateRange,
     required this.work,
