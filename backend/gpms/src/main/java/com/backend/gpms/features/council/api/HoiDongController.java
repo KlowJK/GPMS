@@ -24,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-@Tag(name = "Hội đồng", description = "API quản lý hội đồng")
+@Tag(name = "HoiDong")
 @RestController
 @RequestMapping("/api/hoi-dong")
 @RequiredArgsConstructor

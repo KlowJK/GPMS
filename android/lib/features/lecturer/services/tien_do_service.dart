@@ -55,6 +55,7 @@ class TienDoService {
 
     List<dynamic> rawList = <dynamic>[];
     if (decoded is Map && decoded['result'] is List) {
+      debugPrint(res.body);
       rawList = List<dynamic>.from(decoded['result'] as List);
     } else if (decoded is List) {
       rawList = List<dynamic>.from(decoded);

@@ -65,8 +65,7 @@ export default function LoginPage() {
         } catch (err) {
             const axiosErr = err as AxiosError
             const serverMsg =
-                (axiosErr?.response as any)?.data?.message ??
-                (axiosErr?.response as any)?.data ??
+                (axiosErr?.response as any)?.data?.message ??(axiosErr?.response as any)?.data ??
                 (err as Error)?.message ??
                 'Đăng nhập thất bại'
             // show error in UI and log details for debugging
@@ -127,8 +126,7 @@ export default function LoginPage() {
                                 <div className="relative">
                                     <input
                                         type={showPw ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        value={password}onChange={(e) => setPassword(e.target.value)}
                                         className="w-full h-12 rounded-md bg-[#F6F6F6] shadow px-4 pr-12 outline-none
                                focus:ring-2 focus:ring-sky-400"
                                         placeholder="Nhập mật khẩu"
@@ -168,4 +166,3 @@ export default function LoginPage() {
         </div>
     );
 }
-
