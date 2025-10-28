@@ -23,6 +23,7 @@ public enum ErrorCode {
     NOT_A_GVHD(1009, "Tai khoan khong phai giang vien huong dan.", HttpStatus.FORBIDDEN),
     OLD_PASSWORD(1010, "Mat khau cu khong duoc su dung.", HttpStatus.FORBIDDEN),
 
+
     // Validation Errors
     INVALID_VALIDATION(2001, "Du lieu dau vao khong hop le.", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(2002, "Email khong hop le.", HttpStatus.BAD_REQUEST),
@@ -86,6 +87,7 @@ public enum ErrorCode {
     DOT_BAO_VE_NOT_FOUND(3013, "Dot bao ve khong ton tai.", HttpStatus.NOT_FOUND),
     THOI_GIAN_THUC_HIEN_NOT_FOUND(3014, "Thoi gian thuc hien khong ton tai.", HttpStatus.NOT_FOUND),
     BAO_CAO_NOT_FOUND(3015, "Bao cao khong ton tai.", HttpStatus.NOT_FOUND),
+    TRO_LY_KHOA_NOT_FOUND(1011, "Tro ly khoa khong ton tai.", HttpStatus.NOT_FOUND),
 
     // Business Logic Errors
     DUPLICATED_KHOA(4001, "Ten khoa da ton tai.", HttpStatus.CONFLICT),
