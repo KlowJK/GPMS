@@ -63,7 +63,10 @@ export default function DepartmentPage() {
     });
   }
 
-  const from = page * size + 1;
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const canPrev = page > 0;
+  const canNext = page + 1 < totalPages;
+  const from = total ? page * size + 1 : 0;
   const to = Math.min(total, page * size + items.length);
 
   return (
@@ -99,7 +102,7 @@ export default function DepartmentPage() {
               const stt = page * size + idx + 1;
               const canDel = adminService.canDeleteDepartment(row);
               return (
-                <tr key={`${row.id}`} className="border-t">
+                <tr key={row.id as any} className="border-t">
                   <td className="px-4 py-3">{stt}</td>
                   <td className="px-4 py-3">{row.tenKhoa}</td>
                   <td className="px-4 py-3">
@@ -114,7 +117,7 @@ export default function DepartmentPage() {
                     </button>
 
                     <button
-                      onClick={() => canDel && askDelete(row)}  // ✅ dùng askDelete
+                      onClick={() => canDel && askDelete(row)}
                       disabled={!canDel}
                       aria-label="Xóa khoa"
                       title={!canDel ? 'Khoa có sẵn – không thể xóa' : 'Xóa'}
@@ -132,14 +135,25 @@ export default function DepartmentPage() {
           </tbody>
         </table>
 
+        {/* Pagination */}
         <div className="flex items-center justify-end gap-3 p-3">
-          <button className="px-3 py-1 border rounded disabled:opacity-40"
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}>Trước</button>
-          <span className="text-sm">{page + 1}</span>
-          <button className="px-3 py-1 border rounded disabled:opacity-40"
-                  onClick={() => setPage(p => (from + size <= total ? p + 1 : p))}
-                  disabled={from + size > total}>Sau</button>
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-40"
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={!canPrev}
+          >
+            Trước
+          </button>
+
+          <span className="text-sm">{page + 1}/{totalPages}</span>
+
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-40"
+            onClick={() => setPage(p => (p + 1 < totalPages ? p + 1 : p))}
+            disabled={!canNext}
+          >
+            Sau
+          </button>
         </div>
       </div>
 
@@ -155,7 +169,7 @@ export default function DepartmentPage() {
               } else {
                 await adminService.createDepartment(payload);
                 success('Thêm khoa thành công.');
-                setPage(0); // record mới lên đầu
+                setPage(0); // đưa về trang đầu để thấy record mới
               }
               setModal({ open: false });
               await load();
@@ -168,7 +182,7 @@ export default function DepartmentPage() {
 
       <ConfirmDialog
         open={confirm.open}
-        title={confirm.title ?? ''}   // ✅ ép string
+        title={confirm.title ?? ''}
         description={confirm.description}
         confirmText="Xóa"
         cancelText="Hủy"

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { KhoaAssistant } from '@features/admin/services/adminService';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Payloads đúng yêu cầu BE
 export type AssistantCreatePayload = {
@@ -28,7 +29,8 @@ export default function AssistantFormModal({ initial, onClose, onSubmit }: Props
   const [email, setEmail] = useState(initial?.email ?? '');
   const [soDienThoai, setSoDienThoai] = useState(initial?.soDienThoai ?? '');
   const [diaChi, setDiaChi] = useState(initial?.diaChi ?? '');
-  const [matKhau, setMatKhau] = useState(''); // chỉ hiển thị khi tạo mới
+  const [matKhau, setMatKhau] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [emailErr, setEmailErr] = useState<string | undefined>(undefined);
 
   function validateEmailFormat(v: string) {
@@ -103,18 +105,31 @@ export default function AssistantFormModal({ initial, onClose, onSubmit }: Props
           </div>
 
           {!isEdit && (
-            <div className="col-span-2">
-              <label className="block text-sm text-slate-600 mb-1">Mật khẩu</label>
-              {/* không giới hạn độ dài */}
-              <input
-                type="password"
-                className="w-full h-11 rounded border px-3"
-                value={matKhau}
-                onChange={(e) => setMatKhau(e.target.value)}
-                placeholder="Nhập mật khẩu"
-              />
-            </div>
-          )}
+  <div className="col-span-2">
+    <label className="block text-sm text-slate-600 mb-1">Mật khẩu</label>
+    <div className="relative">
+      <input
+        type={showPwd ? 'text' : 'password'}
+        className="w-full h-11 rounded border px-3 pr-10"
+        value={matKhau}
+        onChange={(e) => setMatKhau(e.target.value)}
+        placeholder="••••••••"
+        autoComplete="new-password"
+        spellCheck={false}
+      />
+      <button
+        type="button"
+        onClick={() => setShowPwd((s) => !s)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700"
+        aria-label={showPwd ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+        title={showPwd ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+      >
+        {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
+    </div>
+  </div>
+)}
+
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
