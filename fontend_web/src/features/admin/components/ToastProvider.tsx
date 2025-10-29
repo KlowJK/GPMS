@@ -1,54 +1,67 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
-type ToastItem = { id: number; type: 'success' | 'error' | 'info'; message: string; };
-type Ctx = { toast: (type: ToastItem['type'], message: string) => void; success: (m:string)=>void; error:(m:string)=>void; info:(m:string)=>void; };
+type ToastKind = 'success' | 'error' | 'info';
+type ToastItem = { id: string; kind: ToastKind; text: string; duration?: number };
 
-const ToastCtx = createContext<Ctx | null>(null);
-export const useToast = () => {
-  const ctx = useContext(ToastCtx);
-  if (!ctx) throw new Error('useToast must be used inside <ToastProvider/>');
-  return ctx;
+type ToastCtx = {
+  success: (text: string, durationMs?: number) => void;
+  error:   (text: string, durationMs?: number) => void;
+  info:    (text: string, durationMs?: number) => void;
 };
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
+const Ctx = createContext<ToastCtx | null>(null);
 
-  const api = useMemo<Ctx>(() => {
-    const push = (type: ToastItem['type'], message: string) => {
-      const id = Date.now() + Math.random();
-      setItems(prev => [...prev, { id, type, message }]);
-      setTimeout(() => setItems(prev => prev.filter(x => x.id !== id)), 2500);
-    };
-    return {
-      toast: push,
-      success: (m) => push('success', m),
-      error: (m) => push('error', m),
-      info: (m) => push('info', m),
-    };
+export function useToast() {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
+  return ctx;
+}
+
+export default function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timers = useRef<Record<string, any>>({});
+
+  const remove = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+    if (timers.current[id]) { clearTimeout(timers.current[id]); delete timers.current[id]; }
   }, []);
 
+  const push = useCallback((kind: ToastKind, text: string, duration = 3000) => {
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const t: ToastItem = { id, kind, text, duration };
+    setToasts(prev => [t, ...prev]); // toast mới hiện trên cùng
+    timers.current[id] = setTimeout(() => remove(id), duration);
+  }, [remove]);
+
+  const api = useMemo<ToastCtx>(() => ({
+    success: (text, d) => push('success', text, d),
+    error:   (text, d) => push('error', text, d),
+    info:    (text, d) => push('info', text, d),
+  }), [push]);
+
   return (
-    <ToastCtx.Provider value={api}>
+    <Ctx.Provider value={api}>
       {children}
-      {createPortal(
-        <div className="fixed top-5 right-5 z-[10001] space-y-2">
-          {items.map(t => (
-            <div
-              key={t.id}
-              className={
-                'min-w-[260px] max-w-[380px] rounded-xl px-4 py-3 shadow ' +
-                (t.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                 t.type === 'error'   ? 'bg-red-50 text-red-700 border border-red-200' :
-                                        'bg-slate-50 text-slate-700 border')
-              }
-            >
-              {t.message}
-            </div>
-          ))}
-        </div>,
-        document.body
-      )}
-    </ToastCtx.Provider>
+      {/* Stack góc phải trên */}
+      <div className="pointer-events-none fixed top-4 right-4 z-[9999] space-y-2 w-[320px]">
+        {toasts.map(t => (
+          <div
+            key={t.id}
+            className={[
+              'pointer-events-auto rounded-lg shadow-lg border px-4 py-3 text-sm animate-fade-in',
+              t.kind === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+              t.kind === 'error'   ? 'bg-red-50 border-red-200 text-red-800' :
+                                     'bg-slate-50 border-slate-200 text-slate-800'
+            ].join(' ')}
+            onClick={() => remove(t.id)}
+            role="status"
+          >
+            {t.text}
+          </div>
+        ))}
+      </div>
+    </Ctx.Provider>
   );
 }
+
+

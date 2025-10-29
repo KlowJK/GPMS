@@ -58,10 +58,7 @@ export const router = createBrowserRouter([
                               children: [
                               { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
                               { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
-                              { path: 'majors', lazy: () => import('@features/admin/pages/Major').then(m => ({ Component: m.default })) },
-                              { path: 'subjects', lazy: () => import('@features/admin/pages/Subject').then(m => ({ Component: m.default })) },
-                              { path: 'classes', lazy: () => import('@features/admin/pages/Class').then(m => ({ Component: m.default })) },
-                              { path: 'lecturers', lazy: () => import('@features/admin/pages/LecturerAccounts').then(m => ({ Component: m.default })) },
+                              { path: 'assistants',  lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
                               ]
                             },
                             {

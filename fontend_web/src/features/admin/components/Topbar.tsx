@@ -36,7 +36,7 @@ export default function Topbar({ onOpenSidebar }: Props) {
           <Menu size={20} />
         </button>
 
-        <img src="/assets/logo_tlu.png" alt="TLU" className="h-12 w-12 object-contain" />
+        <img src="@assets/logo_tlu.png" alt="TLU" className="h-12 w-12 object-contain" />
         <div className="hidden sm:block">
           <h1 className="text-lg font-semibold uppercase">Trường Đại học Thủy Lợi</h1>
           <p className="text-xs text-gray-500 uppercase">Khoa Công Nghệ Thông Tin</p>
