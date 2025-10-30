@@ -2,13 +2,22 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
-# Copy Maven wrapper & config để tận dụng cache
+# CÀI dos2unix ĐỂ FIX CRLF
+RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
+
+# Copy Maven wrapper
 COPY mvnw ./
 COPY .mvn .mvn
 COPY pom.xml ./
 
-# Tải dependencies để cache
-RUN chmod +x mvnw && ./mvnw -q -DskipTests dependency:go-offline
+# DEBUG + FIX LINE ENDING + RUN
+RUN echo "=== FILES IN /app ===" && ls -la && \
+    echo "=== FIRST LINE OF mvnw (raw) ===" && head -c 20 mvnw | cat -v && \
+    echo "=== FIX LINE ENDING ===" && \
+    dos2unix mvnw && \
+    chmod +x mvnw && \
+    echo "=== RUN MAVEN ===" && \
+    ./mvnw -q -DskipTests dependency:go-offline
 
 # Copy source và build
 COPY src src
@@ -18,19 +27,15 @@ RUN ./mvnw -q -DskipTests package
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Tạo user non-root
 RUN useradd -m spring
 
-# Copy jar đã build
 COPY --from=build /app/target/*.jar app.jar
 
-# Thư mục mount secret.yml (tùy chọn)
 RUN mkdir -p /app/config && chown -R spring:spring /app
 USER spring
 
 EXPOSE 8080
 
-# Các biến mặc định; có thể override trong docker-compose/.env
 ENV SPRING_CONFIG_IMPORT=optional:file:/app/config/secret.yml \
     SPRING_PROFILES_ACTIVE=prod \
     JAVA_OPTS=""

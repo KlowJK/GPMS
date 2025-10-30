@@ -14,6 +14,8 @@ export type User = {
     enabled?: boolean
     teacherId?: number | null
     studentId?: number | null
+    aadminId?: number | null
+    assistantId?: number | null
     [key: string]: any
 }
 

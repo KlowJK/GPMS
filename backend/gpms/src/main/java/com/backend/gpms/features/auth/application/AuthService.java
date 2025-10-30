@@ -4,6 +4,8 @@ import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.security.JwtUtils;
 import com.backend.gpms.common.util.HashUtils;
+import com.backend.gpms.features.account.infra.QuanTriVienRepository;
+import com.backend.gpms.features.account.infra.TroLyKhoaRepository;
 import com.backend.gpms.features.auth.domain.TokenBlacklist;
 import com.backend.gpms.features.auth.domain.TokenPurpose;
 import com.backend.gpms.features.auth.domain.User;
@@ -50,6 +52,8 @@ public class AuthService {
     JwtUtils jwt;
     SinhVienRepository studentRepo;
     GiangVienRepository lecturerRepo;
+    TroLyKhoaRepository troLyKhoaRepository;
+    QuanTriVienRepository quanTriVienRepository;
     TokenBlacklistRepository tokenBlacklistRepository;
     CloudinaryStorageService cloudinaryStorageService;
     PasswordEncoder passwordEncoder;
@@ -74,8 +78,9 @@ public class AuthService {
                     .map(GrantedAuthority::getAuthority)
                     .toList();
 
-            Long studentId = null, teacherId = null;
+            Long studentId = null, teacherId = null, adminId = null, assistantId = null;
             String fullName = null;
+
 
             var svOpt = studentRepo.findByUserId(domainUser.getId());
             if (svOpt.isPresent()) {
@@ -90,9 +95,37 @@ public class AuthService {
                 var gv = gvOpt.get();
                 teacherId = gv.getId();
                 if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
-                    fullName = gv.getHoTen(); // Ưu tiên tên GV nếu có
+                    StringBuilder sb = new StringBuilder();
+                    if (gv.getHocHam() != null && !gv.getHocHam().isBlank()) {
+                        sb.append(gv.getHocHam()).append(' ');
+                    }
+                    if (gv.getHocVi() != null && !gv.getHocVi().isBlank()) {
+                        sb.append(gv.getHocVi()).append(' ');
+                    }
+                    if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
+                        sb.append(gv.getHoTen());
+                    }
+                    fullName = sb.toString().trim();
                 }
 
+            }
+
+            var quanTriVienOpt = quanTriVienRepository.findByUserId(domainUser.getId());
+            if (quanTriVienOpt.isPresent()) {
+                var qtv = quanTriVienOpt.get();
+                adminId = qtv.getId();
+                if (qtv.getHoTen() != null && !qtv.getHoTen().isBlank()) {
+                    fullName = qtv.getHoTen(); // Ưu tiên tên QTV nếu có
+                }
+            }
+
+            var troLyKhoaOpt = troLyKhoaRepository.findByUserId(domainUser.getId());
+            if (troLyKhoaOpt.isPresent()) {
+                var tLK = troLyKhoaOpt.get();
+                assistantId = tLK.getId();
+                if (tLK.getHoTen() != null && !tLK.getHoTen().isBlank()) {
+                    fullName = tLK.getHoTen(); // Ưu tiên tên TLK nếu có
+                }
             }
 
             String token = jwt.generate(domainUser.getEmail(), Map.of("roles", roles));
@@ -106,7 +139,10 @@ public class AuthService {
                     domainUser.getDuongDanAvt(),
                     domainUser.getTrangThaiKichHoat(),
                     teacherId,
-                    studentId
+                    studentId,
+                    adminId,
+                    assistantId
+
             );
 
             return AuthResponse.of(token, expiresAt, userResp);
@@ -235,7 +271,7 @@ public class AuthService {
         String anhDaiDienUrl = cloudinaryStorageService.upload(file);
         taiKhoan.setDuongDanAvt(anhDaiDienUrl);
         usersRepository.save(taiKhoan);
-        return "Upload anh dai dien thanh cong";
+        return anhDaiDienUrl;
     }
 
 }

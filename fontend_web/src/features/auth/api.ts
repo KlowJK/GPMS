@@ -1,39 +1,24 @@
 import { axios } from '@shared/libs/axios'
 import { ApiResponse, PageResponse } from '@shared/types/apiResponse'
 import { setToken, setUser } from '@shared/libs/storage'
+import { AuthResponse } from '@shared/hooks/useAuth'  // Import từ file chun
 
 export type LoginPayload = {
 	email: string
 	matKhau: string
 }
 
-export type LoginResponse = {
-	accessToken: string
-	tokenType: string
-	expiresAt: number
-	user: {
-		id: number | string
-		fullName: string
-		email: string
-		role: string
-		duongDanAvt?: string
-		enabled?: boolean
-		teacherId?: number | null
-		studentId?: number | null
-	}
-}
 const unwrap = (r: any) => {
 	if (!r) return r
 	const data = r.data ?? r
-	// prefer result if backend wraps payload
 	return data.result ?? data
 }
 
-export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
-	const res = await axios.post<ApiResponse<LoginResponse>>('/api/auth/login', payload)
+export const login = async (payload: LoginPayload): Promise<AuthResponse> => {
+	const res = await axios.post<ApiResponse<AuthResponse>>('/api/auth/login', payload)
 	const data = res.data
 
-	if (data.code !== 200 && data.code !== 1073741824) {
+	if (data.code !== 200) {
 		throw new Error(data.message || 'Đăng nhập thất bại')
 	}
 
@@ -47,10 +32,30 @@ export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
 
 	return result
 }
+
+
 export const me = () => axios.get<ApiResponse<any>>('/api/auth/me').then(r => r.data.result)
 
 export const logout = async () => {
-	// call server logout to invalidate token/session if backend supports it
 	const resp = await axios.post('/api/auth/logout', {}, { headers: { Accept: '*/*' } })
 	return unwrap(resp)
+}
+
+export const changePassword = async (currentPassword: string, newPassword: string, confirmNewPassword: string) => {
+	const resp = await axios.post<ApiResponse<any>>('/api/auth/change-password', {
+		currentPassword,
+		newPassword,
+		confirmNewPassword
+	})
+	return unwrap(resp)
+}
+
+export async function uploadAvatar(file: File): Promise<{ imageUrl?: string; user?: AuthResponse['user'] }> {
+	const form = new FormData();
+	form.append('file', file);
+	const res = await axios.post<ApiResponse<any>>('/api/auth/update-avt', form, {
+		headers: { 'Content-Type': 'multipart/form-data' },
+	});
+
+	return unwrap(res);
 }
