@@ -1,67 +1,42 @@
-// src/features/admin/components/DepartmentFormModal.tsx
-import { useEffect, useState } from "react";
-import ModalBase from "./ui/ModalBase";
+import { useState } from 'react';
+import type { Department } from '@features/admin/services/adminService';
 
-export type DepartmentPayload = { tenKhoa: string };
 type Props = {
-  open: boolean;
-  mode: "create" | "edit";
-  initial?: DepartmentPayload;
+  initial?: Department;
   onClose: () => void;
-  onSubmit: (payload: DepartmentPayload) => Promise<void> | void;
+  onSubmit: (data: { tenKhoa: string }) => Promise<any>;
 };
 
-export default function DepartmentFormModal({
-  open, mode, initial, onClose, onSubmit,
-}: Props) {
-  const [tenKhoa, setTenKhoa] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setTenKhoa(initial?.tenKhoa ?? "");
-  }, [initial, open]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await onSubmit({ tenKhoa });
-      onClose();
-    } finally {
-      setLoading(false);
-    }
-  }
+export default function DepartmentFormModal({ initial, onClose, onSubmit }: Props) {
+  const [tenKhoa, setTenKhoa] = useState(initial?.tenKhoa ?? '');
 
   return (
-    <ModalBase open={open} onClose={loading ? () => {} : onClose}
-      title={mode === "create" ? "Thêm khoa" : "Sửa khoa"}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-2">Tên khoa</label>
-          <input
-            value={tenKhoa}
-            onChange={(e) => setTenKhoa(e.target.value)}
-            className="w-full h-11 rounded-md bg-[#F6F6F6] shadow px-4 outline-none focus:ring-2 focus:ring-sky-400"
-            placeholder="Ví dụ: Công nghệ thông tin"
-            required
-          />
-        </div>
+    <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
+      <div className="bg-white rounded-2xl p-6 w-[420px]">
+        <h2 className="text-xl font-semibold mb-4">
+          {initial ? 'Sửa khoa' : 'Thêm khoa'}
+        </h2>
 
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <button type="button" onClick={onClose}
-            disabled={loading}
-            className="px-6 h-11 rounded-lg bg-gray-200 text-gray-600 disabled:opacity-60"
-          >
+        <label className="block text-sm text-slate-600 mb-1">Tên khoa</label>
+        <input
+          className="w-full h-11 rounded border px-3 mb-6"
+          value={tenKhoa}
+          onChange={(e) => setTenKhoa(e.target.value)}
+          placeholder="Nhập tên khoa"
+        />
+
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">
             Quay lại
           </button>
-          <button type="submit" disabled={loading}
-            className="px-6 h-11 rounded-lg bg-[#2F7CD3] text-white disabled:opacity-60"
+          <button
+            onClick={() => onSubmit({ tenKhoa })}
+            className="px-4 h-10 rounded bg-blue-600 text-white"
           >
-            {mode === "create" ? "Thêm mới" : "Cập nhật"}
+            {initial ? 'Cập nhật' : 'Thêm'}
           </button>
         </div>
-      </form>
-    </ModalBase>
+      </div>
+    </div>
   );
 }
