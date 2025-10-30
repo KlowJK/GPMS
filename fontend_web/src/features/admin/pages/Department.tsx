@@ -1,66 +1,87 @@
-import { useEffect, useMemo, useState } from "react";
-import { universityService } from "@features/admin/services/universityService"; // <- adjust if needed
+import { useEffect, useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
+import adminService, { Department } from '@features/admin/services/adminService';
+import DepartmentFormModal from '@features/admin/components/DepartmentFormModal';
+import ConfirmDialog from '@features/admin/components/ConfirmDialog';
+import { useToast } from '@features/admin/components/ToastProvider';
 
-type Department = { id: number; tenKhoa: string };
-
-function extractList<T = any>(res: any): T[] {
-  const d = res?.data ?? res;
-  const r = d?.result ?? d;
-  if (Array.isArray(r)) return r as T[];
-  if (Array.isArray(r?.content)) return r.content as T[];
-  if (Array.isArray(d?.content)) return d.content as T[];
-  return [];
-}
+type ModalState = { open: boolean; editing?: Department | null };
 
 export default function DepartmentPage() {
+  const { success, error } = useToast();
   const [items, setItems] = useState<Department[]>([]);
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
-  const [keyword, setKeyword] = useState("");
-  const [modal, setModal] = useState<{ open: boolean; editing?: Department | null }>({ open: false });
+  const [modal, setModal] = useState<ModalState>({ open: false });
+
+  const [confirm, setConfirm] = useState<{
+    open: boolean; title?: string; description?: string; onConfirm?: () => void | Promise<void>;
+  }>({ open: false });
+
+  const keyword = q.trim();
 
   async function load() {
     setLoading(true);
     try {
-      const res = await universityService.getDepartments();
-      setItems(extractList<Department>(res));
+      const res = await adminService.listDepartments({ page, size, q: keyword || undefined });
+      const pg = adminService.toPage<Department>(res, { page, size });
+      setItems(pg.content);
+      setTotal(pg.totalElements);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, [page, size, keyword]);
 
-  const filtered = useMemo(() => {
-    const k = keyword.trim().toLowerCase();
-    if (!k) return items;
-    return items.filter((x) => x.tenKhoa?.toLowerCase().includes(k));
-  }, [items, keyword]);
+  function openCreate() { setModal({ open: true, editing: null }); }
+  function openEdit(row: Department) { setModal({ open: true, editing: row }); }
 
-  async function handleDelete(row: Department) {
-    if (!confirm(`Xóa khoa "${row.tenKhoa}"?`)) return;
-    await universityService.deleteDepartment(row.id);
-    await load();
+  function askDelete(row: Department) {
+    if (!adminService.canDeleteDepartment(row)) {
+      error('Khoa có sẵn không thể xóa.');
+      return;
+    }
+    setConfirm({
+      open: true,
+      title: 'Xóa khoa',
+      description: `Bạn có chắc chắn muốn xóa khoa "${row.tenKhoa}" không?`,
+      onConfirm: async () => {
+        try {
+          await adminService.deleteDepartment(row.id);
+          success('Xóa khoa thành công.');
+          setConfirm(s => ({ ...s, open: false }));
+          await load();
+        } catch {
+          error('Không thể xóa khoa.');
+          setConfirm(s => ({ ...s, open: false }));
+        }
+      },
+    });
   }
 
-  return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl font-semibold text-center mb-8">Quản lý khoa</h1>
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const canPrev = page > 0;
+  const canNext = page + 1 < totalPages;
+  const from = total ? page * size + 1 : 0;
+  const to = Math.min(total, page * size + items.length);
 
-      <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => setModal({ open: true, editing: null })}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-        >
-          + Thêm khoa
-        </button>
+  return (
+    <div className="max-w-6xl mx-auto space-y-4">
+      <h1 className="text-3xl font-semibold text-center">Quản lý khoa</h1>
+
+      <div className="flex items-center gap-3">
+        <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg">+ Thêm khoa</button>
         <input
           className="h-10 px-3 rounded border w-72"
           placeholder="Tìm theo tên khoa…"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
+          value={q}
+          onChange={(e) => { setPage(0); setQ(e.target.value); }}
         />
+        <div className="ml-auto text-sm text-slate-600">{total ? `${from}–${to}/${total}` : ''}</div>
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -75,80 +96,99 @@ export default function DepartmentPage() {
           <tbody>
             {loading ? (
               <tr><td className="px-4 py-6 text-center" colSpan={3}>Đang tải…</td></tr>
-            ) : filtered.length === 0 ? (
+            ) : items.length === 0 ? (
               <tr><td className="px-4 py-6 text-center" colSpan={3}>Không có dữ liệu khoa.</td></tr>
-            ) : (
-              filtered.map((row, idx) => (
-                <tr key={row.id} className="border-t">
-                  <td className="px-4 py-3">{idx + 1}</td>
+            ) : items.map((row, idx) => {
+              const stt = page * size + idx + 1;
+              const canDel = adminService.canDeleteDepartment(row);
+              return (
+                <tr key={row.id as any} className="border-t">
+                  <td className="px-4 py-3">{stt}</td>
                   <td className="px-4 py-3">{row.tenKhoa}</td>
                   <td className="px-4 py-3">
                     <button
-                      className="text-blue-600 mr-4"
-                      onClick={() => setModal({ open: true, editing: row })}
+                      onClick={() => openEdit(row)}
+                      aria-label="Sửa khoa"
+                      title="Sửa"
+                      className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
                     >
-                      Sửa
+                      <Pencil size={16} />
+                      <span className="sr-only">Sửa</span>
                     </button>
-                    <button className="text-red-600" onClick={() => handleDelete(row)}>Xóa</button>
+
+                    <button
+                      onClick={() => canDel && askDelete(row)}
+                      disabled={!canDel}
+                      aria-label="Xóa khoa"
+                      title={!canDel ? 'Khoa có sẵn – không thể xóa' : 'Xóa'}
+                      className={`ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50 ${
+                        !canDel ? 'opacity-40 pointer-events-none' : ''
+                      }`}
+                    >
+                      <Trash2 size={16} />
+                      <span className="sr-only">Xóa</span>
+                    </button>
                   </td>
                 </tr>
-              ))
-            )}
+              );
+            })}
           </tbody>
         </table>
-      </div>
 
-      {modal.open && (
-        <DepartmentModal
-          initial={modal.editing ?? undefined}
-          onClose={() => setModal({ open: false })}
-          onSubmit={async (payload) => {
-            if (modal.editing) {
-              await universityService.updateDepartment(modal.editing.id, payload);
-            } else {
-              await universityService.addDepartment(payload);
-            }
-            setModal({ open: false });
-            await load();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function DepartmentModal({
-  initial,
-  onClose,
-  onSubmit,
-}: {
-  initial?: Department;
-  onClose: () => void;
-  onSubmit: (data: { tenKhoa: string }) => Promise<any>;
-}) {
-  const [tenKhoa, setTenKhoa] = useState(initial?.tenKhoa ?? "");
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="w-[380px] bg-white rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4">{initial ? "Sửa khoa" : "Thêm khoa"}</h2>
-        <label className="block text-sm text-slate-600 mb-1">Tên khoa</label>
-        <input
-          className="w-full h-11 rounded border px-3 mb-6"
-          value={tenKhoa}
-          onChange={(e) => setTenKhoa(e.target.value)}
-          placeholder="Nhập tên khoa"
-        />
-        <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">Quay lại</button>
+        {/* Pagination */}
+        <div className="flex items-center justify-end gap-3 p-3">
           <button
-            onClick={() => onSubmit({ tenKhoa })}
-            className="px-4 h-10 rounded bg-blue-600 text-white"
+            className="px-3 py-1 border rounded disabled:opacity-40"
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={!canPrev}
           >
-            {initial ? "Cập nhật" : "Thêm"}
+            Trước
+          </button>
+
+          <span className="text-sm">{page + 1}/{totalPages}</span>
+
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-40"
+            onClick={() => setPage(p => (p + 1 < totalPages ? p + 1 : p))}
+            disabled={!canNext}
+          >
+            Sau
           </button>
         </div>
       </div>
+
+      {modal.open && (
+        <DepartmentFormModal
+          initial={modal.editing ?? undefined}
+          onClose={() => setModal({ open: false })}
+          onSubmit={async (payload) => {
+            try {
+              if (modal.editing) {
+                await adminService.updateDepartment(modal.editing.id, payload);
+                success('Cập nhật khoa thành công.');
+              } else {
+                await adminService.createDepartment(payload);
+                success('Thêm khoa thành công.');
+                setPage(0); // đưa về trang đầu để thấy record mới
+              }
+              setModal({ open: false });
+              await load();
+            } catch {
+              error('Lưu khoa thất bại.');
+            }
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title ?? ''}
+        description={confirm.description}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        onConfirm={confirm.onConfirm}
+        onClose={() => setConfirm(s => ({ ...s, open: false }))}
+      />
     </div>
   );
 }
