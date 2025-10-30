@@ -23,6 +23,7 @@ public enum ErrorCode {
     NOT_A_GVHD(1009, "Tai khoan khong phai giang vien huong dan.", HttpStatus.FORBIDDEN),
     OLD_PASSWORD(1010, "Mat khau cu khong duoc su dung.", HttpStatus.FORBIDDEN),
 
+
     // Validation Errors
     INVALID_VALIDATION(2001, "Du lieu dau vao khong hop le.", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(2002, "Email khong hop le.", HttpStatus.BAD_REQUEST),
@@ -69,6 +70,9 @@ public enum ErrorCode {
     CONG_VIEC_EXISTED(2043, "Cong viec da ton tai trong dot bao ve nay.", HttpStatus.BAD_REQUEST),
     DANG_KY_TIME_INVALID(2044, "Ngoai thoi gian dang ky.", HttpStatus.BAD_REQUEST),
     FILE_TYPE_NOT_ALLOWED(2045, "Chi chap nhan file PDF.", HttpStatus.BAD_REQUEST),
+    MA_NGANH_EMPTY(2046, "Ma nganh khong duoc de trong.", HttpStatus.BAD_REQUEST),
+    MA_NGANH_INVALID_PREFIX(2047, "Ma nganh phai bat dau bang 'TLU'.", HttpStatus.BAD_REQUEST),
+    DUPLICATED_MA_NGANH(2048, "Ma nganh da ton tai.", HttpStatus.BAD_REQUEST),
 
     // Resource Not Found Errors
     KHOA_NOT_FOUND(3001, "Khoa khong ton tai.", HttpStatus.NOT_FOUND),
@@ -86,6 +90,7 @@ public enum ErrorCode {
     DOT_BAO_VE_NOT_FOUND(3013, "Dot bao ve khong ton tai.", HttpStatus.NOT_FOUND),
     THOI_GIAN_THUC_HIEN_NOT_FOUND(3014, "Thoi gian thuc hien khong ton tai.", HttpStatus.NOT_FOUND),
     BAO_CAO_NOT_FOUND(3015, "Bao cao khong ton tai.", HttpStatus.NOT_FOUND),
+    TRO_LY_KHOA_NOT_FOUND(1011, "Tro ly khoa khong ton tai.", HttpStatus.NOT_FOUND),
 
     // Business Logic Errors
     DUPLICATED_KHOA(4001, "Ten khoa da ton tai.", HttpStatus.CONFLICT),
@@ -130,6 +135,7 @@ public enum ErrorCode {
     DE_CUONG_NOT_APPROVED_BY_GVPB(4040, "De cuong chua duoc giang vien phan bien phe duyet.", HttpStatus.BAD_REQUEST),
     DE_CUONG_NOT_PENDING(4041, "De cuong khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
     DE_TAI_NOT_PENDING(4042, "De tai khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
+    NOT_YOUR_DETAI(4043, "Khong phai de tai cua ban huong dan.", HttpStatus.FORBIDDEN),
 
     // Server Errors
     INTERNAL_SERVER_ERROR(5001, "Loi he thong.", HttpStatus.INTERNAL_SERVER_ERROR),

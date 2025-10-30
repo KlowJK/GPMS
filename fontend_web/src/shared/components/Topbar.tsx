@@ -34,7 +34,7 @@ export default function Topbar() {
         <div className="flex-1 flex items-center justify-left pointer-events-none">
           <div className="pointer-events-auto text-center">
             <div className="font-medium text-[18px] uppercase">Trường đại học thủy lợi</div>
-            <div className="text-xs uppercase text-slate-500">Khoa công nghệ thông tin</div>
+            <div className="text-xs  text-slate-500">THUY  LOI UNIVERSITY</div>
           </div>
         </div>
 
@@ -46,7 +46,7 @@ export default function Topbar() {
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 grid place-items-center">9</span>
           </div>
 
-          <div className="relative" ref={ref}>
+          <div className="relative" ref={user?.duongDanAvt ? ref : null}>
             <button onClick={() => setMenuOpen(s => !s)} className="flex items-center gap-3 p-2 rounded hover:bg-slate-100">
               <img src={avatarImg} alt="avatar" className="h-9 w-9 rounded-full object-cover" />
               <span className="text-sm font-medium">{user?.fullName ?? 'Họ và tên'}</span>

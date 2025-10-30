@@ -1,155 +1,173 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { setToken, setUser } from '@shared/libs/storage'
-import { login as loginApi } from '../api'
-import type { AxiosError } from 'axios'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useLogin } from '@features/auth/hooks'
+import { Role } from '@shared/constants/roles'
+import { getErrorMessage } from '@shared/utils/error'
 
-// Ảnh: nền = TLU.png (hình minh hoạ), logo = logo_tlu.png
-import LoginBg from '../../../assets/TLU.png';
-import LogoTLU from '../../../assets/logo_tlu.png';
+import LoginBg from '@assets/tlu.png'
+import LogoTLU from '@assets/logo_tlu.png'
+
+const getRedirectPath = (role: string): string => {
+    const roleMap: Record<string, string> = {
+        GIANG_VIEN: '/lecturers',
+        TRUONG_BO_MON: '/lecturers',
+        QUAN_TRI_VIEN: '/admin',
+        TRO_LY_KHOA: '/admin',
+    }
+    return roleMap[role] || '/topics'
+}
 
 export default function LoginPage() {
-    const navigate = useNavigate();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPw, setShowPw] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate()
+    const { mutate: login, isPending, error } = useLogin()
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            // call centralized login helper which normalizes server shapes
-            const result = await loginApi({ username, password })
-            setError(null)
+    const [email, setEmail] = useState('')
+    const [matKhau, setMatKhau] = useState('')
+    const [showPw, setShowPw] = useState(false)
 
-            // debug
-            // eslint-disable-next-line no-console
-            console.debug('[login] normalized result:', result)
+    // State lỗi riêng biệt
+    const [emailError, setEmailError] = useState<string>('')
+    const [matKhauError, setMatKhauError] = useState<string>('')
 
-            if (!result?.accessToken) {
-                throw new Error('Token not returned from server. Response: ' + JSON.stringify(result?.raw ?? result))
-            }
+    // Xử lý lỗi từ backend
+    useEffect(() => {
+        if (error) {
+            const message = getErrorMessage(error)
 
-            setToken(result.accessToken)
-            if (result.user) setUser(result.user)
-
-            // Điều hướng theo role
-            const role = (result.user?.role ?? '').toString()
-            if (role === 'GIANG_VIEN' || role === 'TRUONG_BO_MON') {
-                navigate('/lecturers', { replace: true })
-            } else if (role === 'SINH_VIEN') {
-                navigate('/students', { replace: true })
-            } else if (role === 'QUAN_TRI_VIEN' || role === 'TRO_LY_KHOA') {
-                navigate('/admin', { replace: true })
+            // Xác định lỗi thuộc email hay mật khẩu
+            if (message.includes('email') || message.includes('Email')) {
+                setEmailError(message)
+                setMatKhauError('')
+            } else if (message.includes('mật khẩu') || message.includes('Mật khẩu') || message.includes('không đúng')) {
+                setMatKhauError(message)
+                setEmailError('')
             } else {
-                navigate('/topics', { replace: true }) // fallback nếu chưa có role
+                // Lỗi chung (ví dụ: token, server)
+                setEmailError('')
+                setMatKhauError(message)
             }
-        } catch (err) {
-            const axiosErr = err as AxiosError
-            const serverMsg =
-                (axiosErr?.response as any)?.data?.message ??
-                (axiosErr?.response as any)?.data ??
-                (err as Error)?.message ??
-                'Đăng nhập thất bại'
-            // show error in UI and log details for debugging
-            setError(typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg))
-            // eslint-disable-next-line no-console
-            console.error('Login error response:', axiosErr?.response?.status, axiosErr?.response?.data, err)
-        } finally {
-            setLoading(false)
+        } else {
+            setEmailError('')
+            setMatKhauError('')
         }
+    }, [error])
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+
+        setEmailError('')
+        setMatKhauError('')
+
+        const emailEmpty = !email.trim()
+        const pwEmpty = !matKhau.trim()
+
+        if (emailEmpty || pwEmpty) {
+            if (emailEmpty) setEmailError('Vui lòng nhập email')
+            if (pwEmpty) setMatKhauError('Vui lòng nhập mật khẩu')
+            return
+        }
+
+        login(
+            { email, matKhau },
+            {
+                onSuccess: (data) => {
+                    const role = data.user.role as Role
+                    navigate(getRedirectPath(role), { replace: true })
+                },
+            }
+        )
     }
 
     return (
-
-        <div className="min-h-screen flex items-center justify-center bg-[#2F7CD3]">
-            {/* Khung nền */}
+        <div className="min-h-screen flex items-center justify-center bg-[#2F7CD3] relative overflow-hidden">
             <div
-                className="
-          relative mx-auto rounded-3xl overflow-hidden shadow-2xl
-          w-full max-w-5xl md:max-w-4xl sm:max-w-[94vw]
-          h-[560px] md:h-[600px] lg:h-[640px] xl:h-[700px]
-          bg-cover bg-center
-        "
+                className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: `url(${LoginBg})` }}
             >
-                {/* Lớp phủ để đúng tông màu */}
                 <div className="absolute inset-0 bg-[#2F7CD3]/40" />
+            </div>
 
-                {/* Card trắng căn giữa */}
-                <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
-                    <div className="w-full max-w-lg bg-white rounded-[40px] p-10 sm:p-8 shadow-xl">
-                        <div className="flex justify-center mb-6">
-                            <img
-                                src={LogoTLU}
-                                alt="TLU"
-                                className="h-16 sm:h-14 mx-auto object-contain"
+            {/* Form */}
+            <div className="relative z-10 w-full max-w-lg p-4">
+                <div className="bg-white rounded-[40px] p-10 shadow-xl">
+                    <div className="flex justify-center mb-6">
+                        <img src={LogoTLU} alt="TLU" className="h-16 object-contain" />
+                    </div>
+
+                    <h1 className="text-3xl font-semibold text-center mb-8">Đăng nhập</h1>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Email Field */}
+                        <div>
+                            <label className="block text-gray-500 mb-2">Tài khoản</label>
+                            <input
+                                type="text"
+                                value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value)
+                                    setEmailError('')
+                                }}
+                                className={`
+                  w-full h-12 rounded-md bg-[#F6F6F6] px-4 outline-none transition-all
+                  ${emailError ? 'ring-1 ring-red-500 border border-red-500' : 'focus:ring-1 focus:ring-sky-400 border border-transparent'}
+                `}
+                                placeholder="Email"
+                                aria-invalid={!!emailError}
                             />
+                            {emailError && (
+                                <p className="mt-1 text-xs text-red-600">{emailError}</p>
+                            )}
                         </div>
 
-                        <h1 className="text-3xl sm:text-2xl font-semibold text-center mb-8">
-                            Đăng nhập
-                        </h1>
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="block text-gray-500 mb-2">Tài khoản</label>
+                        {/* Password Field */}
+                        <div>
+                            <label className="block text-gray-500 mb-2">Mật khẩu</label>
+                            <div className="relative">
                                 <input
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full h-12 rounded-md bg-[#F6F6F6] shadow px-4 outline-none
-                             focus:ring-2 focus:ring-sky-400"
-                                    placeholder="Nhập tài khoản"
-                                    required
+                                    type={showPw ? 'text' : 'password'}
+                                    value={matKhau}
+                                    onChange={(e) => {
+                                        setMatKhau(e.target.value)
+                                        setMatKhauError('')
+                                    }}
+                                    className={`
+                    w-full h-12 rounded-md bg-[#F6F6F6] px-4 pr-12 outline-none transition-all
+                    ${matKhauError ? 'ring-1 ring-red-500 border border-red-500' : 'focus:ring-1 focus:ring-sky-400 border border-transparent'}
+                  `}
+                                    placeholder="Nhập mật khẩu"
+                                    aria-invalid={!!matKhauError}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPw(!showPw)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"
+                                >
+                                    {showPw ? 'Ẩn' : 'Hiện'}
+                                </button>
                             </div>
-
-                            <div>
-                                <label className="block text-gray-500 mb-2">Mật khẩu</label>
-                                <div className="relative">
-                                    <input
-                                        type={showPw ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full h-12 rounded-md bg-[#F6F6F6] shadow px-4 pr-12 outline-none
-                               focus:ring-2 focus:ring-sky-400"
-                                        placeholder="Nhập mật khẩu"
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPw((s) => !s)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                        aria-label="toggle password"
-                                    >
-                                        {showPw ? '🙈' : '👁️'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full h-11 bg-[#457B9D] text-white rounded-lg hover:opacity-95 transition"
-                            >
-                                {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
-                            </button>
-                        </form>
-                        {error && (
-                            <div className="mt-4 text-center text-sm text-red-600">{error}</div>
-                        )}
-
-                        <div className="text-center mt-5">
-                            <Link to="#" className="text-[#457B9D] underline">
-                                Quên mật khẩu?
-                            </Link>
+                            {matKhauError && (
+                                <p className="mt-1 text-xs text-red-600">{matKhauError}</p>
+                            )}
                         </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="w-full h-11 bg-[#457B9D] text-white rounded-lg hover:opacity-95 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
+                        </button>
+                    </form>
+
+                    {/* Quên mật khẩu */}
+                    <div className="text-center mt-5">
+                        <Link to="#" className="text-[#457B9D] underline text-sm">
+                            Quên mật khẩu?
+                        </Link>
                     </div>
                 </div>
             </div>
         </div>
-    );
+    )
 }
-

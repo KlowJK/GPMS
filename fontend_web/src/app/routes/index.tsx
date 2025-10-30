@@ -1,17 +1,16 @@
-// src/app/routes/index.tsx
+
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import App from '../../App';
+import App from '@/App';
 import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
-import StudentLayout from '../../layouts/StudentLayout'
-import LecturerLayout from '../../layouts/LecturerLayout'
+import StudentLayout from '@/layouts/StudentLayout'
+import LecturerLayout from '@/layouts/LecturerLayout'
 
 export const router = createBrowserRouter([
     {
         path: '/',
         element: <App />,
         children: [
-            // → Vào app là chuyển thẳng sang /login
             { index: true, element: <Navigate to="/login" replace /> },
 
             // Public
@@ -58,10 +57,7 @@ export const router = createBrowserRouter([
                               children: [
                               { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
                               { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
-                              { path: 'majors', lazy: () => import('@features/admin/pages/Major').then(m => ({ Component: m.default })) },
-                              { path: 'subjects', lazy: () => import('@features/admin/pages/Subject').then(m => ({ Component: m.default })) },
-                              { path: 'classes', lazy: () => import('@features/admin/pages/Class').then(m => ({ Component: m.default })) },
-                              { path: 'lecturers', lazy: () => import('@features/admin/pages/LecturerAccounts').then(m => ({ Component: m.default })) },
+                              { path: 'assistants',  lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
                               ]
                             },
                             {
