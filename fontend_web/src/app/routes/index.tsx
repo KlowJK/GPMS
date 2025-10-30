@@ -1,17 +1,16 @@
-// src/app/routes/index.tsx
+
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import App from '../../App';
+import App from '@/App';
 import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
-import StudentLayout from '../../layouts/StudentLayout'
-import LecturerLayout from '../../layouts/LecturerLayout'
+import StudentLayout from '@/layouts/StudentLayout'
+import LecturerLayout from '@/layouts/LecturerLayout'
 
 export const router = createBrowserRouter([
     {
         path: '/',
         element: <App />,
         children: [
-            // → Vào app là chuyển thẳng sang /login
             { index: true, element: <Navigate to="/login" replace /> },
 
             // Public
