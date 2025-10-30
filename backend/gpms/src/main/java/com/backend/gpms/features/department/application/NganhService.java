@@ -33,6 +33,9 @@ public class NganhService {
         if(nganhRepository.existsByTenNganhIgnoreCase(nganhRequest.getTenNganh())) {
             throw new ApplicationException(ErrorCode.DUPLICATED_NGANH);
         }
+        if(nganhRepository.existsByMaNganhIgnoreCase(nganhRequest.getMaNganh())) {
+            throw new ApplicationException(ErrorCode.DUPLICATED_MA_NGANH);
+        }
         return nganhMapper.toNganhResponse(nganhRepository.save(nganhMapper.toNganh(nganhRequest)));
     }
 
@@ -41,12 +44,18 @@ public class NganhService {
         if(nganhRepository.existsByTenNganhIgnoreCase(nganhRequest.getTenNganh())) {
             throw new ApplicationException(ErrorCode.DUPLICATED_NGANH);
         }
+        if(nganhRepository.existsByMaNganhIgnoreCase(nganhRequest.getMaNganh())) {
+            throw new ApplicationException(ErrorCode.DUPLICATED_MA_NGANH);
+        }
         Nganh nganh = nganhRepository.findById(nganhId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NGANH_NOT_FOUND));
+
         nganh.setTenNganh(nganhRequest.getTenNganh());
         Khoa khoa = khoaRepository.findById(nganhRequest.getKhoaId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.KHOA_NOT_FOUND));
+
         nganh.setKhoa(khoa);
+        nganh.setMaNganh(nganhRequest.getMaNganh());
         return nganhMapper.toNganhResponse(nganhRepository.save(nganh));
     }
 

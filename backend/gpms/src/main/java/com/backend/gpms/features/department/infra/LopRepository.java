@@ -9,7 +9,6 @@ import java.util.Optional;
 public interface LopRepository extends JpaRepository<Lop, Long> {
     @Override
     Optional<Lop> findById(Long aLong);
-    boolean existsByTenLop(String tenLop);
     boolean existsByTenLopIgnoreCase(String tenLop);
 
     Optional<Lop> findByTenLop(String tenLop);

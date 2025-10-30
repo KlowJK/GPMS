@@ -7,6 +7,7 @@ import com.backend.gpms.features.department.dto.request.TruongBoMonCreationReque
 import com.backend.gpms.features.department.dto.response.BoMonResponse;
 import com.backend.gpms.features.department.dto.response.BoMonWithTruongBoMonResponse;
 import com.backend.gpms.features.department.dto.response.TruongBoMonCreationResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "BoMon")
@@ -66,6 +68,8 @@ public class BoMonController {
         return ApiResponse.success("Delete bo mon successfully");
     }
 
+    @Operation(summary = "Thêm, cập nhật trưởng bộ môn cho bộ môn - thêm hoặc cập nhật giảng viên khác làm trưởng bộ môn đều gọi api này - Role trợ lý khoa")
+    @PreAuthorize("hasAuthority('ROLE_TRO_LY_KHOA')")
     @PostMapping(value = "/truong-bo-mon")
     public ApiResponse<TruongBoMonCreationResponse> createTruongBoMon(
             @RequestBody TruongBoMonCreationRequest truongBoMonCreationRequest) {

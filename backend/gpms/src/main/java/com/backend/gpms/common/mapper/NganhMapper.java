@@ -19,6 +19,7 @@ public interface NganhMapper {
     NganhResponse toNganhResponse(Nganh nganh);
 
     @Mapping(source = "khoaId", target = "khoa")
+    @Mapping(source = "maNganh", target = "maNganh")
     Nganh toNganh(NganhRequest nganhRequest);
 
     default Long toId(Khoa khoa) {
