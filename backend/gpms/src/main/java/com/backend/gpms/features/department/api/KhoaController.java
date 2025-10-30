@@ -1,8 +1,10 @@
 package com.backend.gpms.features.department.api;
 
 import com.backend.gpms.common.util.ApiResponse;
+import com.backend.gpms.features.account.dto.request.TroLyKhoaRequest;
+import com.backend.gpms.features.account.dto.response.TroLyKhoaResponse;
 import com.backend.gpms.features.department.application.KhoaService;
-import com.backend.gpms.features.department.application.TroLyKhoaService;
+import com.backend.gpms.features.account.application.TroLyKhoaService;
 import com.backend.gpms.features.department.dto.request.*;
 import com.backend.gpms.features.department.dto.response.*;
 import io.swagger.v3.oas.annotations.Operation;

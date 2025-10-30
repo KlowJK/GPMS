@@ -1,6 +1,5 @@
-package com.backend.gpms.features.department.dto.response;
+package com.backend.gpms.features.account.dto.response;
 
-import com.backend.gpms.features.auth.domain.Role;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

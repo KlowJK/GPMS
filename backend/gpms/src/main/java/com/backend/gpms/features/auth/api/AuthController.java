@@ -63,8 +63,7 @@ public class AuthController {
 
     @PostMapping(value = "/update-avt", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<String> updateAvatar(MultipartFile file) throws Exception {
-        String imageUrl = authService.uploadAnhDaiDien( file);
-        return ApiResponse.success("Avatar updated successfully: " + imageUrl);
+        return ApiResponse.success(authService.uploadAnhDaiDien( file));
     }
 
 

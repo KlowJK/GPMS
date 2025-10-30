@@ -5,6 +5,7 @@ import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
 import StudentLayout from '@/layouts/StudentLayout'
 import LecturerLayout from '@/layouts/LecturerLayout'
+import RequireGuest from './RequireGuest';
 
 export const router = createBrowserRouter([
     {
@@ -17,7 +18,10 @@ export const router = createBrowserRouter([
             {
                 path: 'login',
                 lazy: () =>
-                    import('@features/auth/pages/LoginPage').then(m => ({ Component: m.default })),
+                    import('@features/auth/pages/LoginPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
             },
 
             // Authenticated area
