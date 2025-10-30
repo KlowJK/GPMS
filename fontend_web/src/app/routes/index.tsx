@@ -7,6 +7,7 @@ import StudentLayout from '@/layouts/StudentLayout'
 import LecturerLayout from '@/layouts/LecturerLayout'
 import RequireGuest from './RequireGuest';
 
+
 export const router = createBrowserRouter([
     {
         path: '/',
@@ -51,9 +52,9 @@ export const router = createBrowserRouter([
                             import('@features/reports/pages/ReportsPage').then(m => ({ Component: m.default })),
                     },
 
-                    // Admin/Assistant
+                    // Admin
                     {
-                        element: <RoleGuard allow={['QUAN_TRI_VIEN', 'TRO_LY_KHOA']} />,
+                        element: <RoleGuard allow={['QUAN_TRI_VIEN']} />,
                         children: [
                              {
                               path: 'admin',
@@ -76,6 +77,25 @@ export const router = createBrowserRouter([
                             },
                         ],
                     },
+                      // Assistant (Trợ lý khoa)
+                    {
+  element: <RoleGuard allow={['TRO_LY_KHOA']} />,
+  children: [
+    {
+      path: 'assistant',
+      lazy: () => import('@features/assistants/routes/AssistantApp').then(m => ({ Component: m.default })),
+      children: [
+        { index: true, lazy: () => import('@features/assistants/pages/Dashboard').then(m => ({ Component: m.default })) },
+        { path: 'subjects', lazy: () => import('@features/assistants/pages/Subjects').then(m => ({ Component: m.default })) },
+        { path: 'majors',   lazy: () => import('@features/assistants/pages/Majors').then(m => ({ Component: m.default })) },
+        { path: 'staff',    lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
+        { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
+        { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundSchedule').then(m => ({ Component: m.default })) },
+     ],
+    },
+  ],
+},
+                    
 
                     // Student
                     {
