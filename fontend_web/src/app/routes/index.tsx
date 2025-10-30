@@ -1,17 +1,16 @@
-// src/app/routes/index.tsx
+
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import App from '../../App';
+import App from '@/App';
 import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
-import StudentLayout from '../../layouts/StudentLayout'
-import LecturerLayout from '../../layouts/LecturerLayout'
+import StudentLayout from '@/layouts/StudentLayout'
+import LecturerLayout from '@/layouts/LecturerLayout'
 
 export const router = createBrowserRouter([
     {
         path: '/',
         element: <App />,
         children: [
-            // → Vào app là chuyển thẳng sang /login
             { index: true, element: <Navigate to="/login" replace /> },
 
             // Public
@@ -98,12 +97,12 @@ export const router = createBrowserRouter([
                                 // Wrap lecturer routes with LecturerLayout so Topbar appears for lecturers
                                 element: <LecturerLayout />,
                                 children: [
-                                    { index: true, lazy: () => import('@features/lecturers/pages/Dashboard').then(m => ({ Component: m.default })) },
+                                    { index: true, lazy: () => import('@/features/lecturers/pages/TrangChuPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/list', lazy: () => import('../../features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
-                                    { path: 'nhat-ky', lazy: () => import('@features/lecturers/pages/NhatKy').then(m => ({ Component: m.default })) },
-                                    { path: 'bao-cao', lazy: () => import('@features/lecturers/pages/BaoCao').then(m => ({ Component: m.default })) },
-                                    { path: 'hoi-dong', lazy: () => import('@features/lecturers/pages/HoiDong').then(m => ({ Component: m.default })) },
+                                    { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
+                                    { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
+                                    { path: 'hoi-dong', lazy: () => import('@/features/lecturers/pages/HoiDongPage').then(m => ({ Component: m.default })) },
                                 ],
                             },
                         ],
