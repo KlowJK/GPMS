@@ -15,6 +15,7 @@ public class NganhResponse {
 
     Long id;
     String tenNganh;
+    String maNganh;
     Long khoaId;
 
 }

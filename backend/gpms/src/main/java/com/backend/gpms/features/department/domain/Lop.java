@@ -9,7 +9,7 @@ import java.util.Set;
 
 @Getter @Setter
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-@Entity @Table(name="lop", uniqueConstraints = @UniqueConstraint(name="uq_lop", columnNames={"id_nganh","ten_lop"}))
+@Entity @Table(name="lop")
 public class Lop extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
