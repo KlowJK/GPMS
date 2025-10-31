@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchStudentProposals, approveDeCuong, rejectDeCuong } from '../services/api'
 import { formatDateTime } from '@shared/utils/format'
@@ -37,12 +37,24 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
 
   const qc = useQueryClient()
 
-  const approveMut = useMutation<any, Error, { id: string | number; phienBan?: number | string }>({
-    mutationFn: (payload) => approveDeCuong(payload.id, payload.phienBan),
+  const [rejectOpenId, setRejectOpenId] = useState<string | number | null>(null)
+  const [rejectReasonInput, setRejectReasonInput] = useState<string>('')
+  const [approveOpenId, setApproveOpenId] = useState<string | number | null>(null)
+  const [approveReasonInput, setApproveReasonInput] = useState<string>('')
+
+  const approveMut = useMutation<any, Error, { id: string | number; phienBan?: number | string; reason?: string }>({
+    mutationFn: (payload) => approveDeCuong(payload.id, payload.phienBan, payload.reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['student-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['de-cuong-page'] })
+      // close inline approve box on success
+      setApproveOpenId(null)
+      setApproveReasonInput('')
+      try { window.alert('Duyệt thành công') } catch (e) {}
     },
+    onError: (err: any) => {
+      try { window.alert(`Duyệt thất bại: ${err?.message ?? err}`) } catch (e) {}
+    }
   })
 
   const rejectMut = useMutation<any, Error, { id: string | number; phienBan?: number | string; reason?: string }>({
@@ -50,8 +62,17 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['student-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['de-cuong-page'] })
+      // close inline reject box on success
+      setRejectOpenId(null)
+      setRejectReasonInput('')
+      try { window.alert('Từ chối thành công') } catch (e) {}
     },
+    onError: (err: any) => {
+      try { window.alert(`Từ chối thất bại: ${err?.message ?? err}`) } catch (e) {}
+    }
   })
+
+  
 
   // filter proposals to same title/id and only versions where currentName is among reviewers
   const related = (Array.isArray(proposals) ? proposals : []).filter((p: any) => {
@@ -217,13 +238,30 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
                             <div className="inline-block px-3 py-1 rounded-full text-xs" style={{ backgroundColor: status.badgeBg, color: status.badgeText }}>{status.label}</div>
                           ) : null}
                           {isPendingStrict(gvStatusRaw) && assignedToCurrent ? (
-                            <div className="mt-2 flex gap-2">
-                              <button disabled={approveMut.status === 'pending'} onClick={() => approveMut.mutate({ id: v.id, phienBan: v.phienBan })} className="inline-flex items-center justify-center w-28 h-8 rounded-full bg-emerald-500 text-white text-sm">Duyệt</button>
-                              <button disabled={rejectMut.status === 'pending'} onClick={() => {
-                                const reason = window.prompt('Lý do từ chối (tùy chọn):', '') ?? ''
-                                rejectMut.mutate({ id: v.id, phienBan: v.phienBan, reason })
-                              }} className="inline-flex items-center justify-center w-28 h-8 rounded-full bg-rose-600 text-white text-sm">Từ chối</button>
-                            </div>
+                            rejectOpenId === v.id ? (
+                              <div className="mt-2">
+                                <textarea value={rejectReasonInput} onChange={(e) => setRejectReasonInput(e.target.value)} placeholder="Lý do từ chối (tùy chọn)" className="w-full p-2 border rounded text-sm" rows={3} />
+                                <div className="mt-2 flex justify-end gap-2">
+                                  <button onClick={() => { setRejectOpenId(null); setRejectReasonInput('') }} disabled={rejectMut.status === 'pending'} className="px-3 py-1 rounded bg-gray-200 text-sm">Hủy</button>
+                                  <button onClick={() => rejectMut.mutate({ id: v.id, phienBan: v.phienBan, reason: rejectReasonInput })} disabled={rejectMut.status === 'pending'} className="px-3 py-1 rounded bg-rose-600 text-white text-sm">Xác nhận từ chối</button>
+                                </div>
+                              </div>
+                            ) : (
+                              approveOpenId === v.id ? (
+                                <div className="mt-2">
+                                  <textarea value={approveReasonInput} onChange={(e) => setApproveReasonInput(e.target.value)} placeholder="Ghi chú (tùy chọn)" className="w-full p-2 border rounded text-sm" rows={3} />
+                                  <div className="mt-2 flex justify-end gap-2">
+                                    <button onClick={() => { setApproveOpenId(null); setApproveReasonInput('') }} disabled={approveMut.status === 'pending'} className="px-3 py-1 rounded bg-gray-200 text-sm">Hủy</button>
+                                    <button onClick={() => approveMut.mutate({ id: v.id, phienBan: v.phienBan, reason: approveReasonInput })} disabled={approveMut.status === 'pending'} className="px-3 py-1 rounded bg-emerald-500 text-white text-sm">Xác nhận duyệt</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-2 flex gap-2">
+                                  <button disabled={approveMut.status === 'pending'} onClick={() => { setApproveOpenId(v.id); setApproveReasonInput('') }} className="inline-flex items-center justify-center w-28 h-8 rounded-full bg-emerald-500 text-white text-sm">Duyệt</button>
+                                  <button disabled={rejectMut.status === 'pending'} onClick={() => { setRejectOpenId(v.id); setRejectReasonInput('') }} className="inline-flex items-center justify-center w-28 h-8 rounded-full bg-rose-600 text-white text-sm">Từ chối</button>
+                                </div>
+                              )
+                            )
                           ) : null}
                         </div>
                       </div>
