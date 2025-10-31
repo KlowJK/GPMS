@@ -126,6 +126,7 @@ export const router = createBrowserRouter([
                                     { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
                                     { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
                                     { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
+                                    { path: 'phan-bien', lazy: () => import('@/features/lecturers/pages/PhanBienPage').then(m => ({ Component: m.default })) },
                                     { path: 'hoi-dong', lazy: () => import('@/features/lecturers/pages/HoiDongPage').then(m => ({ Component: m.default })) },
                                 ],
                             },

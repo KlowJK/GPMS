@@ -346,6 +346,45 @@ export async function fetchTuansByLecturer(includeAll = false) {
 }
 
 /**
+ * Fetch proposals (đề cương) page filtered by status / roles
+ * GET /api/de-cuong?page=0&size=10&sort=updatedAt,DESC&status=...
+ * Returns resp.data.result (paged)
+ */
+export async function fetchDeCuongPage(params: { page?: number; size?: number; sort?: string[]; status?: string; } = {}) {
+  const search = new URLSearchParams()
+  if (typeof params.page === 'number') search.append('page', String(params.page))
+  if (typeof params.size === 'number') search.append('size', String(params.size))
+  if (params.sort) params.sort.forEach(s => search.append('sort', s))
+  if (params.status) search.append('status', params.status)
+
+  const url = `/api/de-cuong?${search.toString()}`
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  const result = resp.data?.result ?? { content: [] }
+
+  // normalize items slightly for UI convenience
+  if (result && Array.isArray(result.content)) {
+    result.content = result.content.map((it: any) => ({
+      id: it.id,
+      deCuongUrl: it.deCuongUrl ?? it.fileUrl ?? null,
+      trangThaiDeCuong: it.trangThaiDeCuong ?? it.trangThai ?? it.trangthai ?? '',
+      phienBan: it.phienBan,
+      tenDeTai: it.tenDeTai ?? it.title ?? '',
+      maSinhVien: it.maSinhVien ?? it.maSV ?? it.maSV ?? '',
+      hoTenSinhVien: it.hoTenSinhVien ?? it.hoTen ?? it.hoTenSV ?? '',
+      giangVienHuongDan: it.giangVienHuongDan ?? it.gvhd ?? '',
+      giangVienPhanBien: it.giangVienPhanBien ?? it.gvpb ?? '',
+      gvPhanBienDuyet: it.gvPhanBienDuyet ?? it.gvPhanBienDuyet ?? null,
+      truongBoMon: it.truongBoMon ?? it.tbm ?? '',
+      tbmDuyet: it.tbmDuyet ?? it.tbmDuyet ?? null,
+      nhanXets: Array.isArray(it.nhanXets) ? it.nhanXets : (it.nhanXet ? [{ nhanXet: it.nhanXet }] : []),
+      raw: it,
+    }))
+  }
+
+  return result
+}
+
+/**
  * Fetch diary entries (nhật ký) for a given week
  * GET /api/nhat-ky-tien-trinh/all-nhat-ky/list?tuan={tuan}
  * Returns: resp.data.result (array of entries)
@@ -399,19 +438,17 @@ export async function fetchDiaryProgressByProposal(proposalId: string | number) 
 }
 
 /**
- * Fetch diary entries of a student filtered by proposal id (đề tài)
- * Endpoint (from docs): GET /api/nhat-ky-tien-trinh/{id}?idDeTai={idDeTai}
- * If studentId is provided it will be used as path param, otherwise call the endpoint without path param and pass idDeTai as query.
+ * Fetch diary entries for a proposal (đề tài).
+ * Endpoint: GET /api/nhat-ky-tien-trinh/{id}
+ * The API returns diary entries whose `idDeTai` equals the path id. Optionally a student code can be provided
+ * as a query parameter to further filter results (maSinhVien).
  * Returns: array of normalized diary items
  */
-export async function fetchStudentDiaryByProposal(idDeTai: string | number, studentId?: string | number) {
+export async function fetchStudentDiaryByProposal(idDeTai: string | number, studentCode?: string | number) {
   const params: any = {}
-  if (idDeTai !== undefined && idDeTai !== null) params.idDeTai = idDeTai
+  if (studentCode !== undefined && studentCode !== null) params.maSinhVien = studentCode
 
-  let url = '/api/nhat-ky-tien-trinh'
-  if (studentId !== undefined && studentId !== null) {
-    url = `/api/nhat-ky-tien-trinh/${encodeURIComponent(String(studentId))}`
-  }
+  const url = `/api/nhat-ky-tien-trinh/${encodeURIComponent(String(idDeTai))}`
 
   const resp = await axios.get(url, { params, headers: { Accept: '*/*' }, timeout: 10000 })
   const items = resp.data?.result ?? []
