@@ -1,10 +1,14 @@
 import React from 'react'
 import usePhanBienViewModel from '../viewmodels/PhanBienViewmodels'
 import { useAuth } from '@features/auth/useAuth'
+import { useState } from 'react'
+import DeCuongDetailModal from '../components/DeCuongDetailModal'
 
 export default function PhanBienPage() {
   const vm = usePhanBienViewModel()
   const { user } = useAuth()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selected, setSelected] = useState<any | null>(null)
 
   // determine a reasonable display name from the logged in user
   const currentName = (user?.fullName ?? user?.name ?? user?.hoTen ?? user?.username ?? '').toString()
@@ -75,7 +79,7 @@ export default function PhanBienPage() {
                   <td className="px-3 py-2">{renderStatusBadge(it.gvPhanBienDuyet)}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-2">
-                      <button className="px-3 py-1 rounded bg-sky-600 text-white text-sm">Chi tiết</button>
+                      <button onClick={() => { setSelected(it); setModalOpen(true) }} className="px-3 py-1 rounded bg-sky-600 text-white text-sm">Chi tiết</button>
                     </div>
                   </td>
                 </tr>
@@ -84,6 +88,8 @@ export default function PhanBienPage() {
           </table>
         )}
       </div>
+      <DeCuongDetailModal open={modalOpen} onClose={() => setModalOpen(false)} item={selected} currentName={currentName} />
     </div>
   )
 }
+
