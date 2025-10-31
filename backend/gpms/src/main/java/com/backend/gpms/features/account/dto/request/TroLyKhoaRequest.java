@@ -1,6 +1,5 @@
-package com.backend.gpms.features.department.dto.request;
+package com.backend.gpms.features.account.dto.request;
 
-import com.backend.gpms.features.auth.domain.Role;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

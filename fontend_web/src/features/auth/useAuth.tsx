@@ -1,20 +1,16 @@
-import { useCallback } from 'react'
-import { getUser, clearUser, clearToken } from '@shared/libs/storage'
+import { getUser } from '@shared/libs/storage'
 import { useNavigate } from 'react-router-dom'
+import { useLogout } from '@features/auth/hooks'
 
 export function useAuth() {
   const navigate = useNavigate()
-
   const user = getUser()
+  const logoutFn = useLogout()
 
-  const logout = useCallback(async () => {
-    try {
-      const { logout: apiLogout } = await import('./api')
-      try { await apiLogout() } catch {}
-    } catch {}
-    try { clearToken(); clearUser() } catch {}
-    navigate('/login', { replace: true })
-  }, [navigate])
+  const logout = async () => {
+    await logoutFn()
+    navigate('/login', { replace: true, state: { fromLogout: true } })
+  }
 
   return { user, logout }
 }
