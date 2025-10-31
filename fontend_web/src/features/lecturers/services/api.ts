@@ -438,19 +438,17 @@ export async function fetchDiaryProgressByProposal(proposalId: string | number) 
 }
 
 /**
- * Fetch diary entries of a student filtered by proposal id (đề tài)
- * Endpoint (from docs): GET /api/nhat-ky-tien-trinh/{id}?idDeTai={idDeTai}
- * If studentId is provided it will be used as path param, otherwise call the endpoint without path param and pass idDeTai as query.
+ * Fetch diary entries for a proposal (đề tài).
+ * Endpoint: GET /api/nhat-ky-tien-trinh/{id}
+ * The API returns diary entries whose `idDeTai` equals the path id. Optionally a student code can be provided
+ * as a query parameter to further filter results (maSinhVien).
  * Returns: array of normalized diary items
  */
-export async function fetchStudentDiaryByProposal(idDeTai: string | number, studentId?: string | number) {
+export async function fetchStudentDiaryByProposal(idDeTai: string | number, studentCode?: string | number) {
   const params: any = {}
-  if (idDeTai !== undefined && idDeTai !== null) params.idDeTai = idDeTai
+  if (studentCode !== undefined && studentCode !== null) params.maSinhVien = studentCode
 
-  let url = '/api/nhat-ky-tien-trinh'
-  if (studentId !== undefined && studentId !== null) {
-    url = `/api/nhat-ky-tien-trinh/${encodeURIComponent(String(studentId))}`
-  }
+  const url = `/api/nhat-ky-tien-trinh/${encodeURIComponent(String(idDeTai))}`
 
   const resp = await axios.get(url, { params, headers: { Accept: '*/*' }, timeout: 10000 })
   const items = resp.data?.result ?? []
