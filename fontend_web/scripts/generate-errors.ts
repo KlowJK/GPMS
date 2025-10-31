@@ -67,6 +67,9 @@ const MESSAGE_MAP: Record<string, string> = {
     'Cong viec da ton tai trong dot bao ve nay.': 'Công việc đã tồn tại trong đợt bảo vệ này.',
     'Ngoai thoi gian dang ky.': 'Ngoài thời gian đăng ký.',
     'Chi chap nhan file PDF.': 'Chỉ chấp nhận file PDF.',
+    'Ma nganh khong duoc de trong.': 'Mã ngành không được để trống.',
+    "Ma nganh phai bat dau bang 'TLU'.": 'Mã ngành phải bắt đầu bằng "TLU".',
+    'Ma nganh da ton tai.': 'Mã ngành đã tồn tại.',
 
     // Not Found
     'Khoa khong ton tai.': 'Khoa không tồn tại.',

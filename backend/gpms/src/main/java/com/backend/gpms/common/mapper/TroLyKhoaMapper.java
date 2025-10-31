@@ -1,7 +1,7 @@
 package com.backend.gpms.common.mapper;
 
-import com.backend.gpms.features.department.domain.TroLyKhoa;
-import com.backend.gpms.features.department.dto.response.TroLyKhoaResponse;
+import com.backend.gpms.features.account.domain.TroLyKhoa;
+import com.backend.gpms.features.account.dto.response.TroLyKhoaResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

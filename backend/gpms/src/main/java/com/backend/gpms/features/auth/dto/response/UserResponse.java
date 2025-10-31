@@ -18,6 +18,8 @@ public class UserResponse {
 
     private Long   teacherId;
     private Long   studentId;
+    private Long  adminId;
+    private Long  assistantId;
 
 
     /** Convenience constructor cho trường hợp chỉ có tài khoản cơ bản */
@@ -31,11 +33,11 @@ public class UserResponse {
     /** Factory gọn: nhận dữ liệu đã tra sẵn */
     public static UserResponse of(
             Long id, String fullName,String email, Role role, String duongDanAvt, Boolean enabled,
-            Long teacherId, Long studentId
+            Long teacherId, Long studentId, Long adminId, Long assistantId
     ) {
         return UserResponse.builder()
                 .id(id).fullName(fullName).email(email).role(role).duongDanAvt(duongDanAvt).enabled(enabled)
-                .teacherId(teacherId).studentId(studentId)
+                .teacherId(teacherId).studentId(studentId).adminId(adminId).assistantId(assistantId)
                 .build();
     }
 }

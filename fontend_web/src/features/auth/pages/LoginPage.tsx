@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLogin } from '@features/auth/hooks'
 import { Role } from '@shared/constants/roles'
 import { getErrorMessage } from '@shared/utils/error'
+import { Eye, EyeOff } from 'lucide-react';
 
 import LoginBg from '@assets/tlu.png'
 import LogoTLU from '@assets/logo_tlu.png'
@@ -12,7 +13,7 @@ const getRedirectPath = (role: string): string => {
         GIANG_VIEN: '/lecturers',
         TRUONG_BO_MON: '/lecturers',
         QUAN_TRI_VIEN: '/admin',
-        TRO_LY_KHOA: '/admin',
+        TRO_LY_KHOA: '/assistant',
     }
     return roleMap[role] || '/topics'
 }
@@ -142,7 +143,7 @@ export default function LoginPage() {
                                     onClick={() => setShowPw(!showPw)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"
                                 >
-                                    {showPw ? 'Ẩn' : 'Hiện'}
+                                    {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
                             {matKhauError && (
