@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FileText, CalendarCheck, ClipboardCheck, Building } from 'lucide-react'
+import { Home, FileText, CalendarCheck, ClipboardCheck, Building, MessageSquare } from 'lucide-react'
 
 export default function Sidebar({ onClose, overlay = false }: { onClose: () => void; overlay?: boolean }) {
   const location = useLocation()
@@ -15,6 +15,7 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
     { to: '/lecturers/do-an', icon: FileText, label: 'Đồ án' },
     { to: '/lecturers/nhat-ky', icon: CalendarCheck, label: 'Nhật ký tiến độ' },
     { to: '/lecturers/bao-cao', icon: ClipboardCheck, label: 'Báo cáo' },
+    { to: '/lecturers/phan-bien', icon: MessageSquare, label: 'Phản biện' },
     { to: '/lecturers/hoi-dong', icon: Building, label: 'Hội đồng' },
   ]
 

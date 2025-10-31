@@ -13,7 +13,7 @@ const getRedirectPath = (role: string): string => {
         GIANG_VIEN: '/lecturers',
         TRUONG_BO_MON: '/lecturers',
         QUAN_TRI_VIEN: '/admin',
-        TRO_LY_KHOA: '/admin',
+        TRO_LY_KHOA: '/assistant',
     }
     return roleMap[role] || '/topics'
 }
