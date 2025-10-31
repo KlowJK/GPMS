@@ -25,7 +25,7 @@ export default function BangDuyetDeTai({ rows, isLoading, onApprove, onReject, o
             <td className="px-6 py-4 font-medium">{r.maSV}</td>
             <td className="px-6 py-4">{r.hoTen}</td>
             <td className="px-6 py-4">{r.tenLop}</td>
-            <td className="px-6 py-4">{r.tenDeTai}</td>
+            <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
             <td className="px-6 py-4">
               {r.trangThai === 'CHO_XET_DUYET' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Chờ xét duyệt</span>)}
               {r.trangThai === 'DA_DUYET' && (<span className="inline-block px-3 py-1 rounded-full text-xs bg-green-100 text-green-800">Đã duyệt</span>)}

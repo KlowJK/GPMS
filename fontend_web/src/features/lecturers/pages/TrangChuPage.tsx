@@ -1,4 +1,4 @@
-import { FileText, CalendarCheck, ClipboardCheck, Building } from "lucide-react";
+import { FileText, CalendarCheck, ClipboardCheck, Building, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 
@@ -51,6 +51,7 @@ export default function Dashboard() {
         <Card to="/lecturers/nhat-ky" title="Nhật ký tiến độ" icon={<CalendarCheck size={56} />} color="#0071C6" />
         <Card to="/lecturers/bao-cao" title="Báo cáo" icon={<ClipboardCheck size={56} />} color="#0071C6" />
         <Card to="/lecturers/hoi-dong" title="Hội đồng" icon={<Building size={56} />} color="#0071C6" />
+        <Card to="/lecturers/phan-bien" title="Phản biện" icon={<MessageSquare size={56} />} color="#0071C6" />
       </div>
 
       {/* optional small helper row under the cards (matches Figma spacing) */}

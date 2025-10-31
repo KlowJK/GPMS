@@ -11,12 +11,30 @@ function Inner() {
   const vm = useReviewsViewModel()
   const [selectedMaSV, setSelectedMaSV] = useState<string | null>(null)
 
+  // local UI-only pagination (client-side) — do not call API when changing pages
+  const [page, setPage] = React.useState<number>(0)
+  // default pageSize reduced to 3 so pagination shows when rows > 3
+  const [pageSize, setPageSize] = React.useState<number>(10)
+
+  // reset to first page when search changes
+  React.useEffect(() => {
+    setPage(0)
+  }, [vm.search])
+
+  // when pageSize changes reset to first page to avoid out-of-range page
+  React.useEffect(() => {
+    setPage(0)
+  }, [pageSize])
+
   // For report page show only approved topics by default
   useEffect(() => {
     vm.setStatusFilter('DA_DUYET')
   }, [])
 
   const rows = (vm.data?.content ?? [])
+  const totalElements = rows.length
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
+  const pagedRows = rows.slice(page * pageSize, (page + 1) * pageSize)
 
   return (
     <div>
@@ -45,18 +63,24 @@ function Inner() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r: any) => (
+              {pagedRows.map((r: any) => (
                 <tr key={r.idDeTai} className="border-b hover:bg-slate-50">
                   <td className="px-6 py-4 font-medium">{r.maSV}</td>
                   <td className="px-6 py-4">{r.hoTen}</td>
                   <td className="px-6 py-4">{r.tenLop}</td>
                   <td className="px-6 py-4">{r.soDienThoai ?? '—'}</td>
-                  <td className="px-6 py-4">{r.tenDeTai}</td>
+                  <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 flex items-center justify-center">
-                        <button title="Xem" onClick={() => setSelectedMaSV(r.maSV)} className="p-2 bg-slate-50 text-sky-600 rounded-full flex items-center justify-center"><Eye size={16} /></button>
-                      </div>
+                      <button
+                        title="Xem chi tiết"
+                        onClick={() => setSelectedMaSV(r.maSV)}
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
+                        aria-label={`Xem chi tiết ${r.maSV}`}
+                      >
+                        <Eye size={16} />
+                        Xem chi tiết
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -65,6 +89,27 @@ function Inner() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+       {(() => {
+          if (!totalPages || totalPages <= 1) return null
+          const showPageButtons = totalPages <= 10
+          const pages = showPageButtons ? Array.from({ length: totalPages }).map((_, i) => i) : []
+          return (
+            <div className="p-4 border-t flex items-center justify-between">
+              <div className="text-sm text-slate-600">Hiển thị {totalElements} kết quả — Trang {page + 1} / {totalPages}</div>
+              <div className="flex items-center gap-2">
+                <button aria-label="previous page" disabled={page <= 0} onClick={() => setPage(Math.max(0, page - 1))} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">&lt;</button>
+                {showPageButtons ? (
+                  pages.map(p => (
+                    <button key={p} onClick={() => setPage(p)} className={["px-3 py-1 rounded", p === page ? 'bg-sky-600 text-white' : 'bg-white border'].join(' ')}>{p + 1}</button>
+                  ))
+                ) : null}
+                <button aria-label="next page" disabled={page >= totalPages - 1} onClick={() => setPage(Math.min(totalPages - 1, page + 1))} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">&gt;</button>
+              </div>
+            </div>
+          )
+        })()}
 
   <ReportDetail open={!!selectedMaSV} maSV={selectedMaSV ?? undefined} onClose={() => setSelectedMaSV(null)} />
     </div>

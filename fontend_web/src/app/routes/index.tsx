@@ -56,14 +56,14 @@ export const router = createBrowserRouter([
                     {
                         element: <RoleGuard allow={['QUAN_TRI_VIEN']} />,
                         children: [
-                             {
-                              path: 'admin',
-                              lazy: () => import('@features/admin/routes/AdminApp').then(m => ({ Component: m.default })),
-                              children: [
-                              { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
-                              { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
-                              { path: 'assistants',  lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
-                              ]
+                            {
+                                path: 'admin',
+                                lazy: () => import('@features/admin/routes/AdminApp').then(m => ({ Component: m.default })),
+                                children: [
+                                    { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
+                                    { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
+                                    { path: 'assistants', lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
+                                ]
                             },
                             {
                                 path: 'accounts',
@@ -77,25 +77,25 @@ export const router = createBrowserRouter([
                             },
                         ],
                     },
-                      // Assistant (Trợ lý khoa)
+                    // Assistant (Trợ lý khoa)
                     {
-  element: <RoleGuard allow={['TRO_LY_KHOA']} />,
-  children: [
-    {
-      path: 'assistant',
-      lazy: () => import('@features/assistants/routes/AssistantApp').then(m => ({ Component: m.default })),
-      children: [
-        { index: true, lazy: () => import('@features/assistants/pages/Dashboard').then(m => ({ Component: m.default })) },
-        { path: 'subjects', lazy: () => import('@features/assistants/pages/Subjects').then(m => ({ Component: m.default })) },
-        { path: 'majors',   lazy: () => import('@features/assistants/pages/Majors').then(m => ({ Component: m.default })) },
-        { path: 'staff',    lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
-        { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
-        { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundSchedule').then(m => ({ Component: m.default })) },
-     ],
-    },
-  ],
-},
-                    
+                        element: <RoleGuard allow={['TRO_LY_KHOA']} />,
+                        children: [
+                            {
+                                path: 'assistant',
+                                lazy: () => import('@features/assistants/routes/AssistantApp').then(m => ({ Component: m.default })),
+                                children: [
+                                    { index: true, lazy: () => import('@features/assistants/pages/Dashboard').then(m => ({ Component: m.default })) },
+                                    { path: 'subjects', lazy: () => import('@features/assistants/pages/Subjects').then(m => ({ Component: m.default })) },
+                                    { path: 'majors', lazy: () => import('@features/assistants/pages/Majors').then(m => ({ Component: m.default })) },
+                                    { path: 'staff', lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
+                                    { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
+                                    { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundSchedule').then(m => ({ Component: m.default })) },
+                                ],
+                            },
+                        ],
+                    },
+
 
                     // Student
                     {
@@ -122,8 +122,8 @@ export const router = createBrowserRouter([
                                 element: <LecturerLayout />,
                                 children: [
                                     { index: true, lazy: () => import('@/features/lecturers/pages/TrangChuPage').then(m => ({ Component: m.default })) },
-                                    { path: 'do-an/list', lazy: () => import('../../features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
-                                    { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/list', lazy: () => import('@/features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/duyet', lazy: () => import('@/features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
                                     { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
                                     { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
                                     { path: 'phan-bien', lazy: () => import('@/features/lecturers/pages/PhanBienPage').then(m => ({ Component: m.default })) },
