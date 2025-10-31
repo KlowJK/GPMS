@@ -73,6 +73,8 @@ public enum ErrorCode {
     MA_NGANH_EMPTY(2046, "Ma nganh khong duoc de trong.", HttpStatus.BAD_REQUEST),
     MA_NGANH_INVALID_PREFIX(2047, "Ma nganh phai bat dau bang 'TLU'.", HttpStatus.BAD_REQUEST),
     DUPLICATED_MA_NGANH(2048, "Ma nganh da ton tai.", HttpStatus.BAD_REQUEST),
+    CHU_TICH_ID_REQUIRED(2049, "ID chu tich la bat buoc.", HttpStatus.BAD_REQUEST),
+    THU_KY_ID_REQUIRED(2050, "ID thu ky la bat buoc.", HttpStatus.BAD_REQUEST),
 
     // Resource Not Found Errors
     KHOA_NOT_FOUND(3001, "Khoa khong ton tai.", HttpStatus.NOT_FOUND),
