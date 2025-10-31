@@ -1,16 +1,14 @@
-package com.backend.gpms.features.department.application;
-
+package com.backend.gpms.features.account.application;
 
 import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.mapper.TroLyKhoaMapper;
+import com.backend.gpms.features.account.dto.response.TroLyKhoaResponse;
 import com.backend.gpms.features.auth.domain.Role;
 import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.auth.infra.UserRepository;
-import com.backend.gpms.features.department.domain.TroLyKhoa;
-import com.backend.gpms.features.department.dto.request.TroLyKhoaRequest;
-import com.backend.gpms.features.department.dto.response.TroLyKhoaResponse;
-import com.backend.gpms.features.department.infra.TroLyKhoaRepository;
+import com.backend.gpms.features.account.dto.request.TroLyKhoaRequest;
+import com.backend.gpms.features.account.infra.TroLyKhoaRepository;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.backend.gpms.features.account.domain.TroLyKhoa;
 
 import java.util.List;
 import java.util.stream.Collectors;

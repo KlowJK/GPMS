@@ -11,4 +11,8 @@ public class ChangePasswordRequest {
     String currentPassword;
     @NotBlank @Size(min = 6, max = 128, message = "PASSWORD_INVALID")
     String newPassword;
+
+    @NotBlank @Size(min = 6, max = 128, message = "PASSWORD_INVALID")
+    String confirmNewPassword;
+
 }

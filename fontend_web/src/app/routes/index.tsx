@@ -5,6 +5,7 @@ import ProtectedRoute from './ProtectedRoute';
 import RoleGuard from './RoleGuard';
 import StudentLayout from '@/layouts/StudentLayout'
 import LecturerLayout from '@/layouts/LecturerLayout'
+import RequireGuest from './RequireGuest';
 
 
 export const router = createBrowserRouter([
@@ -18,7 +19,10 @@ export const router = createBrowserRouter([
             {
                 path: 'login',
                 lazy: () =>
-                    import('@features/auth/pages/LoginPage').then(m => ({ Component: m.default })),
+                    import('@features/auth/pages/LoginPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
             },
 
             // Authenticated area
@@ -122,6 +126,7 @@ export const router = createBrowserRouter([
                                     { path: 'do-an/duyet', lazy: () => import('../../features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
                                     { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
                                     { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
+                                    { path: 'phan-bien', lazy: () => import('@/features/lecturers/pages/PhanBienPage').then(m => ({ Component: m.default })) },
                                     { path: 'hoi-dong', lazy: () => import('@/features/lecturers/pages/HoiDongPage').then(m => ({ Component: m.default })) },
                                 ],
                             },

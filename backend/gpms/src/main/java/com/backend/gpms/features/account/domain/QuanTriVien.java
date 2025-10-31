@@ -1,19 +1,22 @@
-package com.backend.gpms.features.department.domain;
+package com.backend.gpms.features.account.domain;
+
 import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.auth.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-
-@Getter @Setter
+@Getter
+@Setter
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-@Entity @Table(name="tro_ly_khoa")
+@Entity
+@Table(name="quan_tri_vien")
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TroLyKhoa extends BaseEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class QuanTriVien extends BaseEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
     @Column(name="ho_ten", nullable=false)
@@ -28,4 +31,5 @@ public class TroLyKhoa extends BaseEntity {
     @OneToOne
     @JoinColumn(name="id_tai_khoan", nullable=false, unique=true)
     User user;
+
 }

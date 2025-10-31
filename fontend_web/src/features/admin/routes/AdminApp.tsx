@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import Topbar from '@features/admin/components/Topbar';
+import Topbar from '@shared/components/Topbar';
 import AdminSidebar from '@features/admin/components/Sidebar';
 import ToastProvider from '@features/admin/components/ToastProvider';
 
