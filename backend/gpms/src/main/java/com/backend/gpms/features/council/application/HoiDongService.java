@@ -154,6 +154,12 @@ public class HoiDongService{
         hd.setTenHoiDong(request.getTenHoiDong());
         hd.setThoiGianBatDau(request.getThoiGianBatDau());
         hd.setThoiGianKetThuc(request.getThoiGianKetThuc());
+        GiangVien chuTich = giangVienRepository.findById(request.getChuTichId())
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        hd.setChuTich(chuTich);
+        GiangVien thuKy = giangVienRepository.findById(request.getThuKyId())
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        hd.setThuKy(thuKy);
         hd.setDotBaoVe(dot);
         hd.setDeTaiSet(new HashSet<>());
         hd.setThanhVienHoiDongSet(new HashSet<>());
