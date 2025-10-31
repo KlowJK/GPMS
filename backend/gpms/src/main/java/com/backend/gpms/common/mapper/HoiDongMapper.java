@@ -56,6 +56,9 @@ public interface HoiDongMapper {
             SinhVien sv = dt.getSinhVien();
             String lop = (sv != null && sv.getLop() != null) ? sv.getLop().getTenLop() : null;
             String gvhd = (dt.getGiangVienHuongDan()!= null) ? dt.getGiangVienHuongDan().getHoTen() : null;
+            String idDeTai = dt.getId() != null ? dt.getId().toString() : null;
+            String idBoMon = (dt.getGiangVienHuongDan() != null && dt.getGiangVienHuongDan().getBoMon() != null)
+                    ? dt.getGiangVienHuongDan().getBoMon().getId().toString() : null;
             String boMon = (dt.getGiangVienHuongDan() != null && dt.getGiangVienHuongDan().getBoMon() != null)
                     ? dt.getGiangVienHuongDan().getBoMon().getTenBoMon() : null;
 
@@ -63,8 +66,10 @@ public interface HoiDongMapper {
                     .hoTen(sv != null ? sv.getHoTen() : null)
                     .maSV(sv != null ? sv.getMaSinhVien() : null)
                     .lop(lop)
+                    .idDeTai(idDeTai)
                     .tenDeTai(dt.getTenDeTai())
                     .gvhd(gvhd)
+                    .idBoMon(idBoMon)
                     .boMon(boMon)
                     .build());
         }

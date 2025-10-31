@@ -17,6 +17,7 @@ public interface DotBaoVeMapper {
     @Mapping(source = "tenDot", target = "tenDotBaoVe")
     @Mapping(source = "ngayBatDau", target = "thoiGianBatDau")
     @Mapping(source = "ngayKetThuc", target = "thoiGianKetThuc")
+    @Mapping(source = "khoaDot" , target = "trangThai")
     DotBaoVeResponse toDotBaoVeResponse(DotBaoVe request);
 
     @Mapping(source = "tenDotBaoVe", target = "tenDot")
