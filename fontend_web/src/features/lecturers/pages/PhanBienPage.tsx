@@ -3,7 +3,7 @@ import usePhanBienViewModel from '../viewmodels/PhanBienViewmodels'
 import { useAuth } from '@features/auth/useAuth'
 import { Eye } from 'lucide-react'
 // (useState imported above)
-import DeCuongDetailModal from '../components/DeCuongDetailModal'
+import DeCuongDetailModal from '../components/DeCuongPhanBien'
 
 export default function PhanBienPage() {
   const vm = usePhanBienViewModel()
