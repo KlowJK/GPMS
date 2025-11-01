@@ -53,7 +53,7 @@ function Inner() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold">Báo cáo - Danh sách đề tài</h2>
+        <h2 className="text-2xl font-semibold">Báo cáo </h2>
         <div className="w-64">
           <input
             value={query}

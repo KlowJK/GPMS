@@ -31,7 +31,7 @@ export default function NhatKy() {
       <div className="w-full max-w-full mx-auto px-0">
         <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-[#222]">Danh sách sinh viên:</h1>
+            <h1 className="text-2xl font-semibold text-[#222]">Nhật ký tiến độ</h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <label htmlFor="week" className="font-medium text-[#222]">Tuần:</label>

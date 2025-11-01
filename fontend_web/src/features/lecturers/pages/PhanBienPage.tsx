@@ -63,7 +63,7 @@ export default function PhanBienPage() {
                 <th className="px-3 py-2 text-left">Mã SV</th>
                 <th className="px-3 py-2 text-left">Họ và tên</th>
                 <th className="px-3 py-2 text-left">Đề tài</th>
-                <th className="px-3 py-2 text-left">GV phản biện</th>
+                <th className="px-3 py-2 text-left">Giảng viên hướng dẫn</th>
                 <th className="px-3 py-2 text-left">Trạng thái</th>
                 <th className="px-3 py-2 text-left">Hành động</th>
               </tr>
@@ -74,7 +74,7 @@ export default function PhanBienPage() {
                   <td className="px-3 py-2">{it.maSinhVien}</td>
                   <td className="px-3 py-2">{it.hoTenSinhVien}</td>
                   <td className="px-3 py-2">{it.tenDeTai}</td>
-                  <td className="px-3 py-2">{it.giangVienPhanBien}</td>
+                  <td className="px-3 py-2">{it.giangVienHuongDan ?? it.giangVienPhanBien}</td>
                   <td className="px-3 py-2">
                     {(() => {
                       const st = vmWithName.renderStatusBadge(it.gvPhanBienDuyet)
