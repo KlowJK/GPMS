@@ -1,4 +1,5 @@
 import React from 'react'
+import ThongTinSinhVien from './ThongTinSinhVien'
 import { useQuery } from '@tanstack/react-query'
 import { axios } from '@shared/libs/axios'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -141,35 +142,10 @@ export default function StudentDetail({ open, maSV, onClose }: { open: boolean; 
             <div className="p-4">Không có dữ liệu</div>
           ) : (
             <>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="text-xs text-slate-500">Mã sinh viên</label>
-                  <input readOnly value={data.maSV ?? ''} className="w-full border rounded px-2 py-1 mt-1 text-sm bg-slate-50" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500">Họ và tên</label>
-                  <input readOnly value={data.hoTen ?? ''} className="w-full border rounded px-2 py-1 mt-1 text-sm bg-slate-50" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500">Email</label>
-                  <input readOnly value={data.email ?? ''} className="w-full border rounded px-2 py-1 mt-1 text-sm bg-slate-50" />
-                </div>
-              </div>
+              {/* Header: use ThongTinSinhVien style for student summary */}
+              <ThongTinSinhVien student={data} />
 
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label className="text-xs text-slate-500">Số điện thoại</label>
-                  <input readOnly value={data.soDienThoai ?? ''} className="w-full border rounded px-2 py-1 mt-1 text-sm bg-slate-50" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500">Ngày sinh</label>
-                  <input readOnly value={data.ngaySinh ?? ''} className="w-full border rounded px-2 py-1 mt-1 text-sm bg-slate-50" />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500">Ngành</label>
-                  <input readOnly value={data.tenNganh ?? ''} className="w-full border rounded px-2 py-1 mt-1 text-sm bg-slate-50" />
-                </div>
-              </div>
+              {/* Header includes email now (ThongTinSinhVien) */}
 
               {/* Submissions */}
               <div className="mb-3 font-medium">Đề cương — Số lần nộp: {versionCount}</div>

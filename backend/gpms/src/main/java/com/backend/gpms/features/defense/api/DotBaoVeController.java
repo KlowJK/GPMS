@@ -131,4 +131,11 @@ public class DotBaoVeController {
                 .build();
         return ApiResponse.success(dotBaoVeService.addSinhVienToDotBaoVe(request));
     }
+
+    @Operation(summary = "Khóa/mở đợt bảo vệ - Role Trợ lý khoa")
+    @PreAuthorize("hasAuthority('ROLE_TRO_LY_KHOA')")
+    @PutMapping("/dot-bao-ve/{dotBaoVeId}/khoa")
+    public ApiResponse<String> khoaDotBaoVe(@PathVariable("dotBaoVeId") Long dotBaoVeId) {
+        return ApiResponse.success( dotBaoVeService.khoaDotBaoVe(dotBaoVeId));
+    }
 }
