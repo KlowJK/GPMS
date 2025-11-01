@@ -1,11 +1,13 @@
 // src/features/assistants/pages/Staff.tsx
 import { useEffect, useMemo, useState } from 'react';
-import assistantService, {
-  Lecturer, Subject
-} from '@features/assistants/services/assistantService';
+import { type Lecturer, listLecturers, createLecturer, updateLecturer } from '@/features/assistants/services/user/userApi';
+import { type Subject, listSubjects } from '@/features/assistants/services/organization/orgApi';
+import { toPage, unwrap } from '@/features/assistants/services/base';
+
 import LecturerFormModal, {
-  LecturerCreatePayload, LecturerUpdatePayload
-} from '@features/assistants/components/LecturerFormModal';
+  LecturerCreatePayload,
+  LecturerUpdatePayload,
+} from '@/features/assistants/components/LecturerFormModal';
 
 type ModalState = { open: boolean; editing?: Lecturer | null };
 
@@ -13,7 +15,7 @@ export default function StaffPage() {
   const [items, setItems] = useState<Lecturer[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(10);
+  const [size] = useState(1000);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,8 +26,8 @@ export default function StaffPage() {
   async function loadLecturers() {
     setLoading(true);
     try {
-      const res = await assistantService.listLecturers({ page, size, q: keyword || undefined });
-      const pg = assistantService.toPage<Lecturer>(res, { page, size });
+      const res = await listLecturers({ page, size, q: keyword || undefined });
+      const pg = toPage<Lecturer>(res, { page, size });
       setItems(pg.content);
       setTotal(pg.totalElements);
     } finally {
@@ -34,9 +36,8 @@ export default function StaffPage() {
   }
 
   async function loadSubjects() {
-    // ✅ Không còn with-truong-bo-mon
-    const res = await assistantService.listSubjects({ page: 0, size: 1000 });
-    const pg = assistantService.toPage<Subject>(res, { page: 0, size: 1000 });
+    const res = await listSubjects({ page: 0, size: 1000 });
+    const pg = toPage<Subject>(res, { page: 0, size: 1000 });
     setSubjects(pg.content);
   }
 
@@ -120,12 +121,12 @@ export default function StaffPage() {
             let saved: Lecturer | undefined;
 
             if ((payload as any).matKhau !== undefined) {
-              const res = await assistantService.createLecturer(payload as LecturerCreatePayload);
-              saved = assistantService.unwrap<Lecturer>(res);
+              const res = await createLecturer(payload as LecturerCreatePayload);
+              saved = unwrap<Lecturer>(res);
             } else {
               const id = modal.editing?.id as string | number;
-              const res = await assistantService.updateLecturer(id, payload as LecturerUpdatePayload);
-              saved = assistantService.unwrap<Lecturer>(res);
+              const res = await updateLecturer(id, payload as LecturerUpdatePayload);
+              saved = unwrap<Lecturer>(res);
               if (!saved) saved = { ...(modal.editing as Lecturer), ...(payload as any) };
             }
 

@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
         { path: 'staff',    lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
         { path: 'students', lazy: () => import('@features/assistants/pages/Students').then(m => ({ Component: m.default })) },
         { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
-        { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundSchedule').then(m => ({ Component: m.default })) },
+        { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundTimesPage').then(m => ({ Component: m.default })) },
      ],
     },
   ],

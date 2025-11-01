@@ -1,12 +1,20 @@
+// src/features/assistants/pages/Subjects.tsx
 import { useEffect, useState } from 'react';
-import assistantService, {
-  Subject,
-  Department,
-  CreateSubjectPayload,
-  UpdateSubjectPayload,
-} from '@features/assistants/services/assistantService';
-import SubjectFormModal from '@features/assistants/components/SubjectFormModal';
-import { useToast } from '@features/admin/components/ToastProvider';
+import {
+  type Subject,
+  type Department,
+  type CreateSubjectPayload,
+  type UpdateSubjectPayload,
+  listSubjects,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+  listDepartments,
+} from '@/features/assistants/services/organization/orgApi';
+
+import { toPage } from '@/features/assistants/services/base';
+import SubjectFormModal from '@/features/assistants/components/SubjectFormModal';
+import { useToast } from '@/features/admin/components/ToastProvider';
 
 type ModalState = { open: boolean; editing?: Subject | null };
 
@@ -14,7 +22,7 @@ export default function SubjectsPage() {
   const { success, error } = useToast();
 
   const [rows, setRows] = useState<Subject[]>([]);
-  const [deps, setDeps] = useState<Department[]>([]);      // <— thêm
+  const [deps, setDeps] = useState<Department[]>([]);
   const [page, setPage] = useState(0);
   const [size] = useState(10);
   const [total, setTotal] = useState(0);
@@ -23,16 +31,16 @@ export default function SubjectsPage() {
   const [modal, setModal] = useState<ModalState>({ open: false });
 
   async function loadOptions() {
-    const res = await assistantService.listDepartments({ page: 0, size: 999 });
-    const pg = assistantService.toPage<Department>(res, { page: 0, size: 999 });
+    const res = await listDepartments({ page: 0, size: 999 });
+    const pg = toPage<Department>(res, { page: 0, size: 999 });
     setDeps(pg.content);
   }
 
   async function load() {
     setLoading(true);
     try {
-      const res = await assistantService.listSubjects({ page, size, q: q.trim() || undefined });
-      const pg = assistantService.toPage<Subject>(res, { page, size });
+      const res = await listSubjects({ page, size, q: q.trim() || undefined });
+      const pg = toPage<Subject>(res, { page, size });
       setRows(pg.content);
       setTotal(pg.totalElements);
     } finally {
@@ -49,7 +57,7 @@ export default function SubjectsPage() {
   async function onDelete(row: Subject) {
     if (!confirm(`Xóa bộ môn "${row.tenBoMon}"?`)) return;
     try {
-      await assistantService.deleteSubject(row.id);
+      await deleteSubject(row.id);
       success('Xóa bộ môn thành công.');
       await load();
     } catch {
@@ -94,7 +102,9 @@ export default function SubjectsPage() {
               <tr key={`${r.id}`} className="border-t">
                 <td className="px-4 py-3">{page * size + idx + 1}</td>
                 <td className="px-4 py-3">{r.tenBoMon}</td>
-                <td className="px-4 py-3">{r.khoaTen ?? deps.find(d => `${d.id}` === `${r.khoaId}`)?.tenKhoa ?? '—'}</td>
+                <td className="px-4 py-3">
+                  {r.khoaTen ?? deps.find(d => `${d.id}` === `${r.khoaId}`)?.tenKhoa ?? '—'}
+                </td>
                 <td className="px-4 py-3">
                   <button className="text-blue-600 mr-4" onClick={() => openEdit(r)}>Sửa</button>
                   <button className="text-red-600" onClick={() => onDelete(r)}>Xóa</button>
@@ -123,10 +133,10 @@ export default function SubjectsPage() {
           onSubmit={async (payload) => {
             try {
               if (modal.editing) {
-                await assistantService.updateSubject(modal.editing.id, payload as UpdateSubjectPayload);
+                await updateSubject(modal.editing.id, payload as UpdateSubjectPayload);
                 success('Cập nhật bộ môn thành công.');
               } else {
-                await assistantService.createSubject(payload as CreateSubjectPayload);
+                await createSubject(payload as CreateSubjectPayload);
                 success('Thêm bộ môn thành công.');
               }
               setModal({ open: false });
