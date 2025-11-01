@@ -21,8 +21,9 @@ public class DiemResponse {
     Long idDeTai;
     String tenDeTai;
 
-    double diemBaoCao;
-    double diemPhanBien;
-    double diemHoiDong;
+    Double diemBaoCao;
+    Double diemPhanBien;
+    Double diemHoiDong;
+
     String bienBan;
 }

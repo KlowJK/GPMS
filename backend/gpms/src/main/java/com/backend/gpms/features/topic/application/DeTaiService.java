@@ -144,7 +144,7 @@ public class DeTaiService {
     public Page<DeTaiResponse> getDeTaiByLecturerAndStatus(TrangThaiDeTai trangThai, Pageable pageable){
         String email = getCurrentUsername();
         GiangVien gv = giangVienRepository.findByUser_Email((email))
-                .orElseThrow(() -> new ApplicationException(ErrorCode.NOT_GVHD_OF_DE_TAI));
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
         Long gvhdId = gv.getId();
 
         var page = deTaiRepository.findByGiangVienHuongDan_IdAndTrangThai(gvhdId, trangThai, pageable);
