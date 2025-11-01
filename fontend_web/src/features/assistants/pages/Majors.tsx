@@ -1,36 +1,52 @@
+// src/features/assistants/pages/MajorsPage.tsx
 import { useEffect, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import assistantService, {
-  Department, Major,
-  CreateMajorPayload, UpdateMajorPayload,
-} from '@features/assistants/services/assistantService';
-import { useToast } from '@features/admin/components/ToastProvider';
-import MajorFormModal from '@features/assistants/components/MajorFormModal';
+
+import { useToast } from '@/features/admin/components/ToastProvider';
+import MajorFormModal from '@/features/assistants/components/MajorFormModal';
+
+import { toPage } from '@/features/assistants/services/base';
+import {
+  listDepartments,
+  listMajors,
+  createMajor,
+  updateMajor,
+  deleteMajor,
+  type Department,
+  type Major,
+  type CreateMajorPayload,
+  type UpdateMajorPayload,
+} from '@/features/assistants/services/organization/orgApi';
 
 type ModalState = { open: boolean; editing?: Major | null };
 
 export default function MajorsPage() {
   const { success, error } = useToast();
+
   const [rows, setRows] = useState<Major[]>([]);
   const [deps, setDeps] = useState<Department[]>([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(10);
+  const [size] = useState(1000);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false });
 
   async function loadDeps() {
-    const res = await assistantService.listDepartments({ page: 0, size: 1000 });
-    const pg = assistantService.toPage<Department>(res, { page: 0, size: 1000 });
-    setDeps(pg.content);
+    try {
+      const res = await listDepartments({ page: 0, size: 1000 });
+      const pg = toPage<Department>(res, { page: 0, size: 1000 });
+      setDeps(pg.content);
+    } catch {
+      setDeps([]);
+    }
   }
 
   async function load() {
     setLoading(true);
     try {
-      const res = await assistantService.listMajors({ page, size, q: q.trim() || undefined });
-      const pg = assistantService.toPage<Major>(res, { page, size });
+      const res = await listMajors({ page, size, q: q.trim() || undefined });
+      const pg = toPage<Major>(res, { page, size });
       setRows(pg.content);
       setTotal(pg.totalElements);
     } finally {
@@ -47,7 +63,7 @@ export default function MajorsPage() {
   async function onDelete(row: Major) {
     if (!confirm(`Xóa ngành "${row.tenNganh}"?`)) return;
     try {
-      await assistantService.deleteMajor(row.id);
+      await deleteMajor(row.id);
       success('Xóa ngành thành công.');
       await load();
     } catch {
@@ -145,10 +161,10 @@ export default function MajorsPage() {
           onSubmit={async (payload) => {
             try {
               if (modal.editing) {
-                await assistantService.updateMajor(modal.editing.id, payload as UpdateMajorPayload);
+                await updateMajor(modal.editing.id, payload as UpdateMajorPayload);
                 success('Cập nhật ngành thành công.');
               } else {
-                await assistantService.createMajor(payload as CreateMajorPayload);
+                await createMajor(payload as CreateMajorPayload);
                 success('Thêm ngành thành công.');
               }
               setModal({ open: false });

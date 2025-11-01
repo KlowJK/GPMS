@@ -4,19 +4,30 @@ import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.mapper.HoiDongMapper;
 import com.backend.gpms.common.util.TimeGatekeeper;
-import com.backend.gpms.features.council.domain.HoiDong;
-import com.backend.gpms.features.council.domain.PhanCongBaoVe;
-import com.backend.gpms.features.council.domain.ThanhVienHoiDong;
+import com.backend.gpms.features.council.domain.*;
 import com.backend.gpms.features.council.dto.request.HoiDongRequest;
+import com.backend.gpms.features.council.dto.request.PhanCongBaoVeRequest;
+import com.backend.gpms.features.council.dto.request.PhanCongPhanBienRequest;
 import com.backend.gpms.features.council.dto.response.HoiDongResponse;
 import com.backend.gpms.features.council.dto.response.PhanCongBaoVeResponse;
+import com.backend.gpms.features.council.dto.response.PhanCongPhanBienResponse;
 import com.backend.gpms.features.council.dto.response.ThanhVienHoiDongResponse;
 import com.backend.gpms.features.council.infra.HoiDongRepository;
+import com.backend.gpms.features.council.infra.PhanCongBaoVeRepository;
+import com.backend.gpms.features.council.infra.PhanCongPhanBienRepository;
 import com.backend.gpms.features.council.infra.ThanhVienHoiDongRepository;
 import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.defense.infra.DotBaoVeRepository;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.outline.domain.TrangThaiDuyetDon;
+import com.backend.gpms.features.progress.domain.BaoCao;
+import com.backend.gpms.features.progress.infra.BaoCaoRepository;
+import com.backend.gpms.features.score.domain.DiemBaoVeChiTiet;
+import com.backend.gpms.features.score.domain.DiemPhanBien;
+import com.backend.gpms.features.score.infra.DiemBaoVeChiTietRepository;
+import com.backend.gpms.features.score.infra.DiemPhanBienRepository;
+import com.backend.gpms.features.score.infra.DiemRepository;
 import com.backend.gpms.features.storage.application.StorageService;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
@@ -42,6 +53,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -55,9 +67,15 @@ public class HoiDongService{
     DeTaiRepository deTaiRepository;
     DotBaoVeRepository dotBaoVeRepository;
     GiangVienRepository giangVienRepository;
-    private final ThanhVienHoiDongRepository thanhVienHoiDongRepository;
+    ThanhVienHoiDongRepository thanhVienHoiDongRepository;
     StorageService cloudinaryService;
     TimeGatekeeper timeGatekeeper;
+    PhanCongPhanBienRepository phanCongPhanBienRepository;
+    PhanCongBaoVeRepository phanCongBaoVeRepository;
+    DiemPhanBienRepository diemPhanBienRepository;
+    DiemBaoVeChiTietRepository diemBaoVeChiTietRepository;
+    DiemRepository diemRepository;
+    BaoCaoRepository baoCaoRepository;
 
     @PersistenceContext
     EntityManager em;
@@ -154,6 +172,12 @@ public class HoiDongService{
         hd.setTenHoiDong(request.getTenHoiDong());
         hd.setThoiGianBatDau(request.getThoiGianBatDau());
         hd.setThoiGianKetThuc(request.getThoiGianKetThuc());
+        GiangVien chuTich = giangVienRepository.findById(request.getChuTichId())
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        hd.setChuTich(chuTich);
+        GiangVien thuKy = giangVienRepository.findById(request.getThuKyId())
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        hd.setThuKy(thuKy);
         hd.setDotBaoVe(dot);
         hd.setDeTaiSet(new HashSet<>());
         hd.setThanhVienHoiDongSet(new HashSet<>());
@@ -307,6 +331,222 @@ public class HoiDongService{
                 .reason(reason)
                 .build();
     }
+
+    public PhanCongPhanBienResponse getPhanCongPhanBienByHoiDong(Long idDeTai) {
+        DeTai deTai = deTaiRepository.findById(idDeTai)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+
+        PhanCongBaoVe phanCongBaoVe = phanCongBaoVeRepository.findByDeTai_Id(idDeTai)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.HOI_DONG_NOT_FOUND));
+        HoiDong hoiDong = phanCongBaoVe.getHoiDongBaoVe();
+
+        List<PhanCongPhanBien> phanBienList = phanCongPhanBienRepository.findByDeTai_Id(idDeTai);
+        List<DiemPhanBien> diemPhanBienList = diemPhanBienRepository.findByPhanCongPhanBien_DeTai_Id(idDeTai);
+        List<DiemBaoVeChiTiet> diemBaoVeList = diemBaoVeChiTietRepository.findByDeTai_IdAndHopLeTrue(idDeTai);
+
+        // Tính điểm phản biện (nếu có)
+        Double diemPhanBienTB = null;
+        if (!phanBienList.isEmpty() && !diemPhanBienList.isEmpty()) {
+            diemPhanBienTB = diemPhanBienList.stream()
+                    .mapToDouble(d -> d.getDiem() != null ? d.getDiem() : 0.0)
+                    .average()
+                    .orElse(0.0);
+        }
+
+        // Tính điểm hội đồng
+        Double diemHoiDongTB = diemBaoVeList.stream()
+                .mapToDouble(d -> d.getDiem() != null ? d.getDiem() : 0.0)
+                .average()
+                .orElse(0.0);
+
+        // Điểm báo cáo
+        Double diemBaoCao = baoCaoRepository.findTopByDeTai_IdAndTrangThaiOrderByPhienBanDesc(
+                        idDeTai, TrangThaiDuyetDon.DA_DUYET)
+                .map(BaoCao::getDiemHuongDan)
+                .orElse(null);
+
+        List<PhanCongPhanBienResponse.GiangVienChamDiem> giangVienList = new ArrayList<>();
+
+        // Thêm phản biện (nếu có)
+        phanBienList.forEach(pcb -> {
+            DiemPhanBien diemPB = diemPhanBienList.stream()
+                    .filter(d -> d.getPhanCongPhanBien().getId().equals(pcb.getId()))
+                    .findFirst()
+                    .orElse(null);
+
+            GiangVien gv = pcb.getGiangVien();
+            giangVienList.add(PhanCongPhanBienResponse.GiangVienChamDiem.builder()
+                    .idGiangVien(gv.getId())
+                    .hoTen(gv.getHoTen())
+                    .maGiangVien(gv.getMaGiangVien())
+                    .vaiTro(pcb.getVaiTro().toString())
+                    .idBoMon(gv.getBoMon() != null ? gv.getBoMon().getId().toString() : null)
+                    .boMon(gv.getBoMon() != null ? gv.getBoMon().getTenBoMon() : null)
+                    .diem(diemPB != null && diemPB.getDiem() != null ? diemPB.getDiem() : null)
+                    .nhanXet(diemPB != null ? diemPB.getNhanXet() : null)
+                    .trangThai(diemPB != null ? diemPB.getTrangThai().name() : "CHUA_CHAM")
+                    .hopLe(null)
+                    .build());
+        });
+
+        // Thêm thành viên hội đồng
+        addGiangVienHoiDong(giangVienList, hoiDong.getChuTich(), idDeTai, diemBaoVeList, "CHU_TICH");
+        addGiangVienHoiDong(giangVienList, hoiDong.getThuKy(), idDeTai, diemBaoVeList, "THU_KY");
+        hoiDong.getThanhVienHoiDongSet().forEach(tv ->
+                addGiangVienHoiDong(giangVienList, tv.getGiangVien(), idDeTai, diemBaoVeList, "UY_VIEN")
+        );
+
+        return PhanCongPhanBienResponse.builder()
+                .id(deTai.getId())
+                .tenHoiDong(hoiDong.getTenHoiDong())
+                .maSinhVien(deTai.getSinhVien().getMaSinhVien())
+                .hoTen(deTai.getSinhVien().getHoTen())
+                .lop(deTai.getSinhVien().getLop() != null ? deTai.getSinhVien().getLop().getTenLop() : null)
+                .idDeTai(deTai.getId().toString())
+                .tenDeTai(deTai.getTenDeTai())
+                .gvhd(deTai.getGiangVienHuongDan() != null ? deTai.getGiangVienHuongDan().getHoTen() : null)
+                .idBoMon(deTai.getBoMon() != null ? deTai.getBoMon().getId().toString() : null)
+                .boMon(deTai.getBoMon() != null ? deTai.getBoMon().getTenBoMon() : null)
+                .diemBaoCao(diemBaoCao)
+                .diemPhanBien(diemPhanBienTB != null ? round(diemPhanBienTB, 2) : null)
+                .diemHoiDong(round(diemHoiDongTB, 2))
+                .giangVien(giangVienList)
+                .build();
+    }
+
+    private void addGiangVienHoiDong(
+            List<PhanCongPhanBienResponse.GiangVienChamDiem> list,
+            GiangVien gv,
+            Long idDeTai,
+            List<DiemBaoVeChiTiet> diemList,
+            String vaiTro) {
+
+        if (gv == null) return;
+
+        DiemBaoVeChiTiet diem = diemList.stream()
+                .filter(d -> {
+                    if (d.getThanhVienHoiDong() == null) return false;
+                    return d.getThanhVienHoiDong().getGiangVien() != null &&
+                            d.getThanhVienHoiDong().getGiangVien().getId().equals(gv.getId());
+                })
+                .findFirst()
+                .orElse(null);
+
+        list.add(PhanCongPhanBienResponse.GiangVienChamDiem.builder()
+                .idGiangVien(gv.getId())
+                .hoTen(gv.getHoTen())
+                .maGiangVien(gv.getMaGiangVien())
+                .vaiTro(vaiTro)
+                .idBoMon(gv.getBoMon() != null ? gv.getBoMon().getId().toString() : null)
+                .boMon(gv.getBoMon() != null ? gv.getBoMon().getTenBoMon() : null)
+                .diem(diem != null ? diem.getDiem() : null)
+                .nhanXet(diem != null ? diem.getNhanXet() : null)
+                .trangThai(diem != null ? diem.getTrangThai().name() : "CHUA_CHAM")
+                .hopLe(diem != null && diem.getHopLe() != null && diem.getHopLe() ? "HOP_LE" : "KHONG_HOP_LE")
+                .build());
+    }
+
+    private Double round(Double value, int places) {
+        if (value == null) return null;
+        return Math.round(value * Math.pow(10, places)) / Math.pow(10, places);
+    }
+
+    public String postPhanCongPhanBienToSinhVien(PhanCongPhanBienRequest request) {
+        // 1. Validate input
+        if (request.getLecturers() == null || request.getLecturers().isEmpty()) {
+            throw new ApplicationException(ErrorCode.PHAN_BIEN_LECTURER_EMPTY);
+        }
+
+        if (request.getLecturers().size() > 2) {
+            throw new ApplicationException(ErrorCode.PHAN_BIEN_MAX_2_LECTURERS);
+        }
+
+        Long deTaiId;
+        try {
+            deTaiId = Long.parseLong(request.getIdDeTai());
+        } catch (NumberFormatException e) {
+            throw new ApplicationException(ErrorCode.INVALID_DE_TAI_ID);
+        }
+
+        // 2. Kiểm tra đề tài tồn tại
+        DeTai deTai = deTaiRepository.findById(deTaiId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
+
+        // 3. Kiểm tra GVPB có phải trùng GVHD không
+        Long gvhdId = deTai.getGiangVienHuongDan() != null ? deTai.getGiangVienHuongDan().getId() : null;
+        if (gvhdId != null) {
+            boolean anyMatches = request.getLecturers().stream()
+                    .anyMatch(li -> gvhdId.equals(li.getGiangVienId()));
+            if (anyMatches) {
+                throw new ApplicationException(ErrorCode.PHAN_BIEN_CANNOT_BE_GVHD);
+            }
+        }
+
+        // 4. Kiểm tra số lượng phản biện hiện tại
+        int currentCount = phanCongPhanBienRepository.countByDeTai_Id(deTaiId);
+        if (currentCount >= 2) {
+            throw new ApplicationException(ErrorCode.PHAN_BIEN_ALREADY_FULL);
+        }
+
+        // 5. Kiểm tra trùng giảng viên trong request
+        Set<Long> lecturerIds = request.getLecturers().stream()
+                .map(PhanCongPhanBienRequest.LecturerItem::getGiangVienId)
+                .collect(Collectors.toSet());
+        if (lecturerIds.size() != request.getLecturers().size()) {
+            throw new ApplicationException(ErrorCode.DUPLICATE_LECTURER_IN_REQUEST);
+        }
+
+        // 6. Kiểm tra trùng với phản biện hiện tại
+        List<PhanCongPhanBien> existingPhanBien = phanCongPhanBienRepository.findByDeTai_Id(deTaiId);
+        Set<Long> existingIds = existingPhanBien.stream()
+                .map(p -> p.getGiangVien().getId())
+                .collect(Collectors.toSet());
+
+        for (Long gvId : lecturerIds) {
+            if (existingIds.contains(gvId)) {
+                throw new ApplicationException(ErrorCode.LECTURER_ALREADY_ASSIGNED_AS_PB);
+            }
+        }
+
+        // 7. Kiểm tra giảng viên tồn tại
+        List<GiangVien> giangViens = giangVienRepository.findAllById(lecturerIds);
+        if (giangViens.size() != lecturerIds.size()) {
+            throw new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND);
+        }
+
+        // 8. Tạo phân công phản biện
+        List<PhanCongPhanBien> newPhanBienList = new ArrayList<>();
+
+        int index = currentCount; // Bắt đầu từ vị trí hiện tại (0 hoặc 1)
+        for (PhanCongPhanBienRequest.LecturerItem item : request.getLecturers()) {
+            GiangVien gv = giangViens.stream()
+                    .filter(g -> g.getId().equals(item.getGiangVienId()))
+                    .findFirst()
+                    .orElseThrow();
+
+           VaiTroPhanBien vaiTro = (index == 0) ? VaiTroPhanBien.PHAN_BIEN_1 : VaiTroPhanBien.PHAN_BIEN_2;
+
+            PhanCongPhanBien phanBien = PhanCongPhanBien.builder()
+                    .deTai(deTai)
+                    .giangVien(gv)
+                    .vaiTro(vaiTro)
+                    .build();
+
+            newPhanBienList.add(phanBien);
+            index++;
+        }
+
+        // 9. Lưu vào DB
+        phanCongPhanBienRepository.saveAll(newPhanBienList);
+
+        // 10. Trả về thông báo thành công
+        return String.format("Phân công phản biện thành công cho đề tài [%s] - %s phản biện được thêm.",
+                deTai.getTenDeTai(), newPhanBienList.size());
+    }
+
+
+
+
 
     private File generateImportLogExcel(List<ImportLogRow> rows) throws IOException {
         Workbook wb = new XSSFWorkbook();

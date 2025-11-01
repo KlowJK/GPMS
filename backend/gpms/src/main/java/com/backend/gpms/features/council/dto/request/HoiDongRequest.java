@@ -8,6 +8,8 @@ import lombok.experimental.FieldDefaults;
 import java.time.LocalDate;
 import java.util.List;
 
+@Setter
+@Getter
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class HoiDongRequest {
@@ -19,6 +21,12 @@ public class HoiDongRequest {
 
     @NotNull(message = "THOI_GIAN_KET_THUC_REQUIRED")
     LocalDate thoiGianKetThuc;
+
+    @NotNull(message = "CHU_TICH_ID_REQUIRED")
+    Long chuTichId;
+
+    @NotNull(message = "THU_KY_ID_REQUIRED")
+    Long thuKyId;
 
     @NotNull(message = "DOT_BAO_VE_ID_REQUIRED")
     Long dotBaoVeId;

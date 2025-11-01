@@ -3,8 +3,10 @@ package com.backend.gpms.features.council.api;
 import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.council.application.HoiDongService;
 import com.backend.gpms.features.council.dto.request.HoiDongRequest;
+import com.backend.gpms.features.council.dto.request.PhanCongPhanBienRequest;
 import com.backend.gpms.features.council.dto.response.HoiDongResponse;
 import com.backend.gpms.features.council.dto.response.PhanCongBaoVeResponse;
+import com.backend.gpms.features.council.dto.response.PhanCongPhanBienResponse;
 import com.backend.gpms.features.council.dto.response.ThanhVienHoiDongResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -67,7 +69,7 @@ public class HoiDongController {
         return ApiResponse.success(hoiDongService.getHoiDongDetail(hoiDongId));
     }
 
-    @Operation(summary = "Tạo mới hội đồng - Trả về chi tiết hội đồng vừa tạo")
+    @Operation(summary = "Tạo mới hội đồng, có thể thêm nhiều giảng viên- Trả về chi tiết hội đồng vừa tạo")
     @PreAuthorize("hasAuthority('ROLE_TRO_LY_KHOA')")
     @PostMapping("/them-hoi-dong")
     public ApiResponse<ThanhVienHoiDongResponse> createHoiDong(@RequestBody @Valid HoiDongRequest request) {
@@ -91,5 +93,21 @@ public class HoiDongController {
             Pageable pageable
     ) {
         return ApiResponse.success(hoiDongService.getTatCaHoiDongByDot(dotBaoVeId, keyword,  pageable));
+    }
+
+    @Operation(summary = "Thông tin chi tiết của sinh viên trong hội đồng bảo vệ")
+    @GetMapping("/sinh-vien/{deTaiId}/chi-tiet")
+    public ApiResponse<PhanCongPhanBienResponse> getSinhVienTrongHoiDongDetail(
+            @PathVariable Long deTaiId
+    ) {
+        return ApiResponse.success(hoiDongService.getPhanCongPhanBienByHoiDong(deTaiId));
+    }
+
+@Operation(summary = "Thêm giảng viên phản biện cho đề tài trong hội đồng bảo vệ")
+    @PostMapping("/them-giang-vien-pb-de-tai")
+    public ApiResponse<String> createPhanCongPhanBienToSinhVien(
+            @RequestBody @Valid PhanCongPhanBienRequest request
+    ) {
+        return ApiResponse.success(hoiDongService.postPhanCongPhanBienToSinhVien(request));
     }
 }

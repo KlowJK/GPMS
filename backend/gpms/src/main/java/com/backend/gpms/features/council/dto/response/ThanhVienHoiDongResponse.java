@@ -32,8 +32,10 @@ public class ThanhVienHoiDongResponse {
         String hoTen;
         String maSV;
         String lop;
+        String idDeTai;
         String tenDeTai;
         String gvhd;
+        String idBoMon;
         String boMon;
     }
 }

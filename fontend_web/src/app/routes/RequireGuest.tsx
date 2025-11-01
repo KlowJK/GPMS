@@ -11,7 +11,7 @@ const getRedirectPath = (role?: string) => {
         GIANG_VIEN: '/lecturers',
         TRUONG_BO_MON: '/lecturers',
         QUAN_TRI_VIEN: '/admin',
-        TRO_LY_KHOA: '/admin',
+        TRO_LY_KHOA: '/assistant',
     }
     return (role && roleMap[role]) || '/topics'
 }
