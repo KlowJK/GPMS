@@ -1,8 +1,11 @@
+// src/features/assistants/components/MajorFormModal.tsx
 import { useMemo, useState } from 'react';
-import type { Department, Major } from '@features/assistants/services/assistantService';
-
-export type CreateMajorPayload = { maNganh: string; tenNganh: string; khoaId: number | string };
-export type UpdateMajorPayload = CreateMajorPayload;
+import type {
+  Department,
+  Major,
+  CreateMajorPayload,
+  UpdateMajorPayload,
+} from '@features/assistants/services/organization/orgApi';
 
 type Props = {
   initial?: Major;
@@ -30,7 +33,8 @@ export default function MajorFormModal({ initial, departments, onClose, onSubmit
     await onSubmit({
       maNganh: maNganh.trim(),
       tenNganh: tenNganh.trim(),
-      khoaId: Number(khoaId),
+      // gửi dạng number nếu là số
+      khoaId: /^\d+$/.test(khoaId) ? Number(khoaId) : (khoaId as unknown as number),
     });
   }
 
