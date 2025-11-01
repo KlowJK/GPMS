@@ -7,6 +7,7 @@ export type XetDuyetItem = {
   tenDeTai?: string
   trangThai: 'CHO_XET_DUYET' | 'DA_DUYET' | 'TU_CHOI'
   tongQuanDeTaiUrl?: string | null
+  duongDanCv?: string | null
   nhanXet?: string | null
 }
 

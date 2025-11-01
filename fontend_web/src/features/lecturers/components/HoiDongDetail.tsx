@@ -88,7 +88,7 @@ export default function HoiDongDetail({ open, onClose, data, isLoading, isError 
                         <th className="text-left px-3 py-2">Lớp</th>
                         <th className="text-left px-3 py-2">Tên đề tài</th>
                         <th className="text-left px-3 py-2">GVHD</th>
-                        <th className="text-left px-3 py-2">Hành động</th>
+                        {/* <th className="text-left px-3 py-2">Hành động</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -99,14 +99,14 @@ export default function HoiDongDetail({ open, onClose, data, isLoading, isError 
                           <td className="px-3 py-2 align-top">{s.lop}</td>
                           <td className="px-3 py-2 align-top">{s.tenDeTai}</td>
                           <td className="px-3 py-2 align-top">{s.gvhd}</td>
-                          <td className="px-3 py-2 align-top">
+                          {/* <td className="px-3 py-2 align-top">
                             <div className="flex gap-2">
                               <button className="px-2 py-1 text-sm border rounded text-sky-600">Xem</button>
                               {s.cvUrl && (
                                 <a className="px-2 py-1 text-sm border rounded text-slate-700" href={s.cvUrl} target="_blank" rel="noreferrer">CV</a>
                               )}
                             </div>
-                          </td>
+                          </td> */}
                         </tr>
                       ))}
                     </tbody>
