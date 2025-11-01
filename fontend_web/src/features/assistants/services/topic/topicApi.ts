@@ -8,24 +8,36 @@ export type DefenseRound = {
   tenDotBaoVe: string;
   hocKi: string;
   namHoc: string;
-  thoiGianBatDau: string;
-  thoiGianKetThuc: string;
-trangThai?: boolean | null;
+  thoiGianBatDau: string;   // yyyy-MM-dd
+  thoiGianKetThuc: string;  // yyyy-MM-dd
+  trangThai?: boolean | null;   // BE cũ (nếu có)
+  daKhoa?: boolean | null;      // BE mới có thể trả về: daKhoa/khoa/isLocked/locked
 };
+
 export type CreateUpdateDefenseRound = Omit<DefenseRound, 'id'>;
 
-export const listDefenseRounds = (params?: PageParams) => axios.get('/api/dot-bao-ve', { params });
-export const createDefenseRound = (body: CreateUpdateDefenseRound) => axios.post('/api/dot-bao-ve', body);
-export const updateDefenseRound = (id: Id, body: CreateUpdateDefenseRound) => axios.put(`/api/dot-bao-ve/${id}`, body);
-export const deleteDefenseRound = (id: Id) => axios.delete(`/api/dot-bao-ve/${id}`);
+export const listDefenseRounds = (params?: PageParams) =>
+  axios.get('/api/dot-bao-ve', { params });
+
+export const createDefenseRound = (body: CreateUpdateDefenseRound) =>
+  axios.post('/api/dot-bao-ve', body);
+
+export const updateDefenseRound = (id: Id, body: CreateUpdateDefenseRound) =>
+  axios.put(`/api/dot-bao-ve/${id}`, body);
+
+export const deleteDefenseRound = (id: Id) =>
+  axios.delete(`/api/dot-bao-ve/${id}`);
+
+/** ✅ Khóa đợt */
+export const lockDefenseRound = (id: Id) =>
+  axios.put(`/api/dot-bao-ve/${id}/khoa`);
 
 export const importStudentsToRound = (roundId: Id, file: File) => {
   const fd = new FormData();
   fd.append('file', file);
-  // gửi kèm cả 2 tên field để BE nào cũng nhận
+  // gửi kèm cả hai key để BE nào cũng nhận
   fd.append('dotBaoVeId', String(roundId));
   fd.append('idDotBaoVe', String(roundId));
-
   return axios.post('/api/dot-bao-ve/import-sinh-vien', fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });

@@ -26,7 +26,7 @@ export default function MajorsPage() {
   const [rows, setRows] = useState<Major[]>([]);
   const [deps, setDeps] = useState<Department[]>([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(10);
+  const [size] = useState(1000);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);

@@ -1,7 +1,5 @@
 // src/features/assistants/pages/DefenseRoundsPage.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-
 import { toPage } from '@/features/assistants/services/base';
 import {
   type DefenseRound,
@@ -10,39 +8,47 @@ import {
   createDefenseRound,
   updateDefenseRound,
   deleteDefenseRound,
-  // ✅ thêm API import
   importStudentsToRound,
+  lockDefenseRound, // ✅ khóa đợt
 } from '@/features/assistants/services/topic/topicApi';
-
 import DefenseRoundFormModal from '@/features/assistants/components/DefenseRoundFormModal';
+import { UploadCloud, Pencil, Trash2, Lock } from 'lucide-react'; // ✅ icon
 
 type ModalState = { open: boolean; editing?: DefenseRound | null };
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Fallback theo ngày khi BE không trả trạng thái
 function fallbackByDate(r: DefenseRound) {
   const now = today();
   if (now < r.thoiGianBatDau) return 'Sắp diễn ra';
   if (now > r.thoiGianKetThuc) return 'Kết thúc';
   return 'Đang diễn ra';
 }
+
+// Ưu tiên trạng thái từ BE (true: đang diễn ra, false: kết thúc)
 function statusOf(r: DefenseRound) {
   if (r.trangThai === true) return 'Đang diễn ra';
   if (r.trangThai === false) return 'Kết thúc';
   return fallbackByDate(r);
 }
 
+// tiện ích: kiểm tra hôm nay nằm trong khoảng của đợt
+function inRange(r: DefenseRound) {
+  const d = today();
+  return r.thoiGianBatDau <= d && d <= r.thoiGianKetThuc;
+}
+
 export default function DefenseRoundsPage() {
-  // const nav = useNavigate(); // ❌ bỏ
   const [items, setItems] = useState<DefenseRound[]>([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(10);
+  const [size] = useState(1000);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ open: false });
 
-  // ✅ state cho import file
+  // ✅ import file
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [importingFor, setImportingFor] = useState<number | string | null>(null);
   const [importBusy, setImportBusy] = useState(false);
@@ -65,11 +71,10 @@ export default function DefenseRoundsPage() {
   }
   useEffect(() => { load(); }, [page, size, keyword]); // eslint-disable-line
 
-  // ✅ handler chọn file
+  // ✅ chọn file import
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    // reset input để lần sau chọn cùng tên file vẫn nhận change
-    e.target.value = '';
+    e.target.value = ''; // reset để lần sau cùng tên vẫn trigger
     if (!file || importingFor == null) return;
 
     try {
@@ -121,7 +126,7 @@ export default function DefenseRoundsPage() {
               <th className="px-4">Năm học</th>
               <th className="px-4">Thời gian</th>
               <th className="px-4">Trạng thái</th>
-              <th className="px-4 w-[240px]">Hành động</th>
+              <th className="px-4 w-[280px]">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -130,51 +135,82 @@ export default function DefenseRoundsPage() {
             ) : items.length === 0 ? (
               <tr><td className="px-4 py-6 text-center" colSpan={6}>Chưa có đợt bảo vệ.</td></tr>
             ) : (
-              items.map((r) => (
-                <tr key={`${r.id}`} className="border-t">
-                  <td className="px-4 py-3">{r.tenDotBaoVe}</td>
-                  <td className="px-4 py-3">{r.hocKi}</td>
-                  <td className="px-4 py-3">{r.namHoc}</td>
-                  <td className="px-4 py-3">{r.thoiGianBatDau || '—'} → {r.thoiGianKetThuc || '—'}</td>
-                  <td className="px-4 py-3">
-                    {(() => {
-                      const s = statusOf(r);
-                      if (s === 'Đang diễn ra') return <span className="text-green-600">{s}</span>;
-                      if (s === 'Kết thúc') return <span className="text-red-600">{s}</span>;
-                      if (s === 'Sắp diễn ra') return <span className="text-slate-600">{s}</span>;
-                      return <span className="text-slate-400">—</span>;
-                    })()}
-                  </td>
-                  <td className="px-4 py-3">
-                    {/* ❌ bỏ nút Thời gian thực hiện */}
-                    {/* ✅ nút Import SV */}
-                    <button
-                      onClick={() => { setImportingFor(r.id); fileRef.current?.click(); }}
-                      className="mr-2 rounded border px-3 py-1"
-                      disabled={importBusy}
-                      title="Import sinh viên vào đợt từ file Excel"
-                    >
-                      {importBusy && importingFor === r.id ? 'Đang import…' : 'Import SV'}
-                    </button>
-                    <button
-                      onClick={() => setModal({ open: true, editing: r })}
-                      className="mr-2 rounded border px-3 py-1"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!confirm(`Xóa đợt "${r.tenDotBaoVe}"?`)) return;
-                        try { await deleteDefenseRound(r.id); await load(); }
-                        catch (e: any) { alert(e?.response?.data?.message || 'Không thể xóa đợt.'); }
-                      }}
-                      className="rounded border px-3 py-1 text-red-600"
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))
+              items.map((r) => {
+                const st = statusOf(r);
+                const canLock = inRange(r) && st === 'Đang diễn ra'; // chỉ cho khóa khi đang diễn ra & còn trong khoảng
+                const busyThis = importBusy && String(importingFor) === String(r.id);
+                return (
+                  <tr key={`${r.id}`} className="border-t">
+                    <td className="px-4 py-3">{r.tenDotBaoVe}</td>
+                    <td className="px-4 py-3">{r.hocKi}</td>
+                    <td className="px-4 py-3">{r.namHoc}</td>
+                    <td className="px-4 py-3">{r.thoiGianBatDau || '—'} → {r.thoiGianKetThuc || '—'}</td>
+                    <td className="px-4 py-3">
+                      {st === 'Đang diễn ra' && <span className="text-green-600">{st}</span>}
+                      {st === 'Kết thúc' && <span className="text-red-600">{st}</span>}
+                      {st === 'Sắp diễn ra' && <span className="text-slate-600">{st}</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {/* Import SV */}
+                        <button
+                          onClick={() => { setImportingFor(r.id); fileRef.current?.click(); }}
+                          className="rounded border px-3 py-1 inline-flex items-center gap-1 disabled:opacity-50"
+                          disabled={busyThis}
+                          title="Import sinh viên (Excel/CSV)"
+                        >
+                          <UploadCloud size={16} />
+                          {busyThis ? 'Đang import…' : 'Import SV'}
+                        </button>
+
+                        {/* Khóa đợt */}
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Khóa đợt "${r.tenDotBaoVe}"?`)) return;
+                            try {
+                              await lockDefenseRound(r.id);
+                              await load();
+                            } catch (e: any) {
+                              alert(e?.response?.data?.message || 'Không thể khóa đợt.');
+                            }
+                          }}
+                          className="h-9 w-9 rounded border inline-grid place-items-center disabled:opacity-40"
+                          title={canLock ? 'Khóa đợt' : 'Đợt đã kết thúc/ngoài thời gian'}
+                          disabled={!canLock}
+                        >
+                          <Lock size={16} />
+                        </button>
+
+                        {/* Sửa */}
+                        <button
+                          onClick={() => setModal({ open: true, editing: r })}
+                          className="h-9 w-9 rounded border inline-grid place-items-center"
+                          title="Sửa"
+                        >
+                          <Pencil size={16} />
+                        </button>
+
+                        {/* Xóa */}
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Xóa đợt "${r.tenDotBaoVe}"?`)) return;
+                            try {
+                              await deleteDefenseRound(r.id);
+                              await load();
+                            } catch (e: any) {
+                              alert(e?.response?.data?.message || 'Không thể xóa đợt.');
+                            }
+                          }}
+                          className="h-9 w-9 rounded border inline-grid place-items-center"
+                          title="Xóa"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -190,12 +226,12 @@ export default function DefenseRoundsPage() {
         </div>
       </div>
 
-      {/* input file ẩn dùng chung cho tất cả các hàng */}
+      {/* input file ẩn dùng chung */}
       <input
         ref={fileRef}
         type="file"
         accept=".xlsx,.xls,.csv"
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={onPickFile}
       />
 
@@ -206,7 +242,8 @@ export default function DefenseRoundsPage() {
           onSubmit={async (payload: CreateUpdateDefenseRound) => {
             if (modal.editing) await updateDefenseRound(modal.editing.id, payload);
             else await createDefenseRound(payload);
-            setModal({ open: false }); await load();
+            setModal({ open: false });
+            await load();
           }}
         />
       )}

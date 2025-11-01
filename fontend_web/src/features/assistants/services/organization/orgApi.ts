@@ -46,15 +46,47 @@ export const setSubjectHead = (body: SetSubjectHeadPayload) =>
 
 /* ===================== LỚP ===================== */
 export type ClassRoom = { id: Id; tenLop: string };
-export const listClasses = (params?: PageParams) => axios.get('/api/lop', { params });
 
-export type OrgClass = { id: Id; tenLop: string; nganhId?: Id; nganhTen?: string; khoaTen?: string };
+export type OrgClass = {
+  id: Id;
+  tenLop: string;
+  nganhId?: Id;
+  nganhTen?: string;
+  khoaTen?: string;
+};
+
 export type CreateClassPayload = { tenLop: string; nganhId: Id };
 export type UpdateClassPayload = CreateClassPayload;
 
+// Helper chung
+const toNum = (v: any) => (typeof v === 'number' ? v : (/^\d+$/.test(String(v)) ? Number(v) : v));
+const normStr = (s?: string) => (s ?? '').trim();
+
+// ✅ Chuẩn hoá body gửi lên BE. Với update, nhét luôn id vào body (nhiều BE cần)
+function normalizeClassReq(body: CreateClassPayload | UpdateClassPayload, id?: Id) {
+  const nganhId = toNum((body as any).nganhId ?? (body as any).idNganh);
+  const _id = id != null ? toNum(id) : undefined;
+  return {
+    tenLop: normStr(body.tenLop),
+    nganhId,
+    // các alias để BE nào cũng “bắt” được:
+    id: _id,
+    lopId: _id,
+    idLop: _id,
+  };
+}
+
+export const listClasses     = (params?: PageParams) => axios.get('/api/lop', { params });
 export const listOrgClasses  = (params?: PageParams) => axios.get('/api/lop', { params });
-export const createOrgClass  = (body: CreateClassPayload) => axios.post('/api/lop', body);
-export const updateOrgClass  = (id: Id, body: UpdateClassPayload) => axios.put(`/api/lop/${id}`, body);
+
+// ✅ create: không truyền id trong body
+export const createOrgClass  = (body: CreateClassPayload) =>
+  axios.post('/api/lop', normalizeClassReq(body));
+
+// ✅ update: truyền id cả ở path lẫn body
+export const updateOrgClass  = (id: Id, body: UpdateClassPayload) =>
+  axios.put(`/api/lop/${id}`, normalizeClassReq(body, id));
+
 export const deleteOrgClass  = (id: Id) => axios.delete(`/api/lop/${id}`);
 
 export async function listOrgClassesNormalized(params?: PageParams): Promise<Page<OrgClass>> {

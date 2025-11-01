@@ -15,7 +15,7 @@ export default function StaffPage() {
   const [items, setItems] = useState<Lecturer[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(1000);
+  const [size] = useState(10);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
