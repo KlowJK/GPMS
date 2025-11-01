@@ -36,4 +36,6 @@ public interface BaoCaoRepository extends JpaRepository<BaoCao, Long> {
 
     List<BaoCao> findByDeTai_IdOrderByCreatedAtDesc(Long deTaiId);
 
+    Optional<BaoCao> findTopByDeTai_IdAndTrangThaiOrderByPhienBanDesc(Long deTaiId, TrangThaiDuyetDon trangThai);
+
 }

@@ -40,11 +40,13 @@ public class LopService {
         }
         Lop lop = lopRepository.findById(lopId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.LOP_NOT_FOUND));
-        lop.setTenLop(lopRequest.getTenLop());
+
         Nganh nganh = nganhRepository.findById(lopRequest.getNganhId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.NGANH_NOT_FOUND));
+
+        lop.setTenLop(lopRequest.getTenLop());
         lop.setNganh(nganh);
-        return lopMapper.toLopResponse(lopRepository.save(lopMapper.toLop(lopRequest)));
+        return lopMapper.toLopResponse(lopRepository.save(lop));
     }
 
     public void deleteLop(Long lopId) {

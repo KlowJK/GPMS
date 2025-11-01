@@ -3,12 +3,14 @@ package com.backend.gpms.features.score.domain;
 import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.council.domain.PhanCongPhanBien;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
@@ -33,9 +35,8 @@ public class DiemPhanBien extends BaseEntity {
     @Column(name="nhan_xet", columnDefinition="text")
     String nhanXet;
 
-
     @Enumerated(EnumType.STRING)
     @Column(name="trang_thai", nullable=false, columnDefinition="tt_diem")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    TrangThaiDiem trangThai = TrangThaiDiem.CHO_PHE_DUYET;
+    TrangThaiDiem trangThai ;
 }

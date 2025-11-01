@@ -54,6 +54,17 @@ public class DotBaoVeService {
 
     }
 
+  public String khoaDotBaoVe(Long dotBaoVeId) {
+      DotBaoVe dotBaoVe = dotBaoVeRepository.findById(dotBaoVeId)
+              .orElseThrow(() -> new ApplicationException(ErrorCode.DOT_BAO_VE_NOT_FOUND));
+
+      boolean newState = !Boolean.TRUE.equals(dotBaoVe.getKhoaDot());
+      dotBaoVe.setKhoaDot(newState);
+      dotBaoVeRepository.save(dotBaoVe);
+
+      return newState ? "Khóa đợt bảo vệ thành công" : "Mở đợt bảo vệ thành công";
+  }
+
     public DotBaoVeResponse updateDotBaoVe(DotBaoVeRequest request, Long dotBaoVeId) {
         DotBaoVe dotBaoVe = dotBaoVeRepository.findById(dotBaoVeId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DOT_BAO_VE_NOT_FOUND));

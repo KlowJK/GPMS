@@ -1,4 +1,4 @@
-import { FileText, CalendarCheck, ClipboardCheck, Building } from "lucide-react";
+import { FileText, CalendarCheck, ClipboardCheck, Building, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 
@@ -17,7 +17,7 @@ function Card({
     <Link
       to={to}
       aria-label={`Đi tới ${title}`}
-      className="relative block w-96 h-[240px] rounded-xl overflow-hidden shadow-lg transform transition-transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-white/30"
+      className="relative block w-full max-w-xs sm:w-80 md:w-96 h-40 sm:h-44 md:h-[240px] rounded-xl overflow-hidden shadow-lg transform transition-transform hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-white/30"
       style={{ background: color }}
     >
       {/* decorative top-left translucent shape */}
@@ -25,9 +25,9 @@ function Card({
 
       {/* main centered column */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-6">
-        <div className="flex items-center justify-center w-40 h-36">
-          <div className="w-24 h-28 flex items-center justify-center rounded-md border border-white/80">
-            <div className="text-white">{icon}</div>
+        <div className="flex items-center justify-center w-full h-28 sm:h-32 md:h-36">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-32 flex items-center justify-center rounded-md border border-white/80">
+            <div className="text-white flex items-center justify-center">{icon}</div>
           </div>
         </div>
 
@@ -46,11 +46,13 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-12 py-10">
   <div className="grid gap-10 grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 justify-center items-start place-items-center">
-        <Card to="/lecturers/do-an/duyet" title="Duyệt đề tài" icon={<FileText size={56} />} color="#0071C6" />
-        <Card to="/lecturers/do-an/list" title="Danh sách đồ án" icon={<FileText size={56} />} color="#0071C6" />
-        <Card to="/lecturers/nhat-ky" title="Nhật ký tiến độ" icon={<CalendarCheck size={56} />} color="#0071C6" />
-        <Card to="/lecturers/bao-cao" title="Báo cáo" icon={<ClipboardCheck size={56} />} color="#0071C6" />
-        <Card to="/lecturers/hoi-dong" title="Hội đồng" icon={<Building size={56} />} color="#0071C6" />
+  <Card to="/lecturers/do-an/duyet" title="Duyệt đề tài" icon={<FileText className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+  <Card to="/lecturers/do-an/list" title="Danh sách đồ án" icon={<FileText className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+  <Card to="/lecturers/nhat-ky" title="Nhật ký tiến độ" icon={<CalendarCheck className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+  <Card to="/lecturers/bao-cao" title="Báo cáo" icon={<ClipboardCheck className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+    <Card to="/lecturers/phan-bien" title="Phản biện" icon={<MessageSquare className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+  <Card to="/lecturers/hoi-dong" title="Hội đồng" icon={<Building className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+
       </div>
 
       {/* optional small helper row under the cards (matches Figma spacing) */}
