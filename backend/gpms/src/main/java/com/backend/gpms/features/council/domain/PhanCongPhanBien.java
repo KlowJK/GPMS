@@ -4,8 +4,7 @@ import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -22,6 +21,9 @@ import org.hibernate.type.SqlTypes;
                 @Index(name = "idx_phan_cong_phan_bien_gv", columnList = "id_giang_vien")
         }
 )
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class PhanCongPhanBien extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

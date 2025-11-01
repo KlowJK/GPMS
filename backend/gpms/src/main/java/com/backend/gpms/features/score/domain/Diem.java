@@ -3,13 +3,15 @@ package com.backend.gpms.features.score.domain;
 import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.topic.domain.DeTai;
 import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.type.SqlTypes;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.JdbcTypeCode;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter @Setter
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @Entity @Table(name="diem", indexes=@Index(name="idx_diem_dt", columnList="id_de_tai"))

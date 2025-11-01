@@ -1,5 +1,4 @@
 package com.backend.gpms.features.council.dto.request;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -12,24 +11,9 @@ import java.util.List;
 @Getter
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class HoiDongRequest {
-    @NotBlank(message = "TEN_HOI_DONG_REQUIRED")
-    String tenHoiDong;
-
-    @NotNull(message = "THOI_GIAN_BAT_DAU_REQUIRED")
-    LocalDate thoiGianBatDau;
-
-    @NotNull(message = "THOI_GIAN_KET_THUC_REQUIRED")
-    LocalDate thoiGianKetThuc;
-
-    @NotNull(message = "CHU_TICH_ID_REQUIRED")
-    Long chuTichId;
-
-    @NotNull(message = "THU_KY_ID_REQUIRED")
-    Long thuKyId;
-
-    @NotNull(message = "DOT_BAO_VE_ID_REQUIRED")
-    Long dotBaoVeId;
+public class PhanCongPhanBienRequest {
+    @NotBlank(message = "DE_TAI_ID_REQUIRED")
+    String idDeTai;
 
     List<LecturerItem> lecturers;
 
