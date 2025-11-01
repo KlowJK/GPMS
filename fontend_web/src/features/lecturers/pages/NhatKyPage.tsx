@@ -14,13 +14,15 @@ export default function NhatKy() {
   // client-side pagination state (match DoAnListPage behaviour)
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(10)
+  // client-side search query for student code
+  const [query, setQuery] = useState<string>('')
 
   useEffect(() => {
     if (!openDetail) detailVm.setProposalId(null)
   }, [openDetail, detailVm])
 
-  // reset to first page when diary data or pageSize changes
-  useEffect(() => { setPage(0) }, [diaryVm.data, pageSize])
+  // reset to first page when diary data or pageSize or query changes
+  useEffect(() => { setPage(0) }, [diaryVm.data, pageSize, query])
 
   // pagination and status helpers are provided by the viewmodel (diaryVm.getPagination, diaryVm.getStatusInfo)
 
@@ -30,18 +32,29 @@ export default function NhatKy() {
         <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-[#222]">Danh sách sinh viên:</h1>
-            <div className="flex items-center gap-2">
-              <label htmlFor="week" className="font-medium text-[#222]">Tuần:</label>
-              <select
-                id="week"
-                className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"
-                value={diaryVm.week}
-                onChange={e => diaryVm.setWeek(Number(e.target.value))}
-              >
-                {Array.isArray(diaryVm.weeks) ? diaryVm.weeks.map((w: any) => (
-                  <option key={w} value={w}>Tuần {w}</option>
-                )) : null}
-              </select>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label htmlFor="week" className="font-medium text-[#222]">Tuần:</label>
+                <select
+                  id="week"
+                  className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"
+                  value={diaryVm.week}
+                  onChange={e => diaryVm.setWeek(Number(e.target.value))}
+                >
+                  {Array.isArray(diaryVm.weeks) ? diaryVm.weeks.map((w: any) => (
+                    <option key={w} value={w}>Tuần {w}</option>
+                  )) : null}
+                </select>
+              </div>
+
+              <div className="w-56">
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Tìm theo mã sinh viên"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
             </div>
           </div>
 
@@ -76,15 +89,15 @@ export default function NhatKy() {
                   <tr><td colSpan={5} className="p-6 text-center">Đang tải...</td></tr>
                 ) : diaryVm.isError ? (
                   <tr><td colSpan={5} className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</td></tr>
-                ) : diaryVm.data.length === 0 ? (
-                  <tr><td colSpan={5} className="p-6 text-center">Không có nhật ký cho tuần này</td></tr>
-                ) : (
-                  (() => {
-                    const rows = Array.isArray(diaryVm.data) ? diaryVm.data : []
-                    const totalElements = rows.length
-                    const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
-                    const pagedRows = rows.slice(page * pageSize, (page + 1) * pageSize)
-                    return pagedRows.map((s: any) => (
+                ) : (() => {
+                  const allRows = Array.isArray(diaryVm.data) ? diaryVm.data : []
+                  const filteredRows = query ? allRows.filter((r: any) => ((r.maSV ?? r.maSinhVien ?? '') + '').toLowerCase().includes(query.toLowerCase())) : allRows
+                  if (allRows.length === 0) return (<tr><td colSpan={5} className="p-6 text-center">Không có nhật ký cho tuần này</td></tr>)
+                  if (filteredRows.length === 0) return (<tr><td colSpan={5} className="p-6 text-center">Không có kết quả phù hợp với tìm kiếm</td></tr>)
+                  const totalElements = filteredRows.length
+                  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
+                  const pagedRows = filteredRows.slice(page * pageSize, (page + 1) * pageSize)
+                  return pagedRows.map((s: any) => (
                     <tr key={s.id} className="border-b border-[#E0E0E0] hover:bg-[#F2F8FC]">
                       <td className="px-4 py-2 text-center">{s.maSV}</td>
                       <td className="px-4 py-2 text-center">{s.hoTen}</td>
@@ -104,17 +117,17 @@ export default function NhatKy() {
                         </button>
                       </td>
                     </tr>
-                    ))
-                  })()
-                )}
+                  ))
+                })()}
               </tbody>
             </table>
           </div>
           <DiaryProgressModal open={openDetail} onClose={() => { setOpenDetail(false); detailVm.setProposalId(null); detailVm.setStudentId(null) }} data={detailVm.data} />
           {/* Pagination controls (client-side, similar to DoAnListPage) */}
           {(() => {
-            const rows = Array.isArray(diaryVm.data) ? diaryVm.data : []
-            const totalElements = rows.length
+            const allRows = Array.isArray(diaryVm.data) ? diaryVm.data : []
+            const filteredRows = query ? allRows.filter((r: any) => ((r.maSV ?? r.maSinhVien ?? '') + '').toLowerCase().includes(query.toLowerCase())) : allRows
+            const totalElements = filteredRows.length
             const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
             if (!totalPages || totalPages <= 1) return null
             const showPageButtons = totalPages <= 10

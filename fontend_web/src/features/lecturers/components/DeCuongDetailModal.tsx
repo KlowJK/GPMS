@@ -145,7 +145,9 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
                   if (!s) return ''
                   try {
                     // remove diacritics
-                    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g, 'D').replace(/đ/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim()
+                    // remove common academic titles/prefixes (PGS, PGS., TS, ThS, Dr, etc.) to improve matching
+                    const withoutTitle = String(s).replace(/\b(PGS|PGS\.|P\.G\.S|PGS\.|PG|TS|TS\.|THS|ThS|Th\.S|Dr|Dr\.|Mr|Mrs|Ms)\.?\s*/gi, '')
+                    return withoutTitle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g, 'D').replace(/đ/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim()
                   } catch (e) {
                     return String(s).toLowerCase().replace(/\s+/g, ' ').trim()
                   }

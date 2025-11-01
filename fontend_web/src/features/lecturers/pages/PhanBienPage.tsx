@@ -10,18 +10,30 @@ export default function PhanBienPage() {
   const { user } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<any | null>(null)
+  const [query, setQuery] = useState<string>('')
 
   // determine a reasonable display name from the logged in user
   const currentName = (user?.fullName ?? user?.name ?? user?.hoTen ?? user?.username ?? '').toString()
   // use viewmodel with current reviewer name to get visible + paged items
   const vmWithName = usePhanBienViewModel(currentName)
 
-  // reset to first page in viewmodel when visible items or clientSize changes
-  useEffect(() => { vmWithName.setClientPage(0) }, [vmWithName.visibleItems.length, vmWithName.clientSize])
+  // reset to first page in viewmodel when visible items, clientSize or query changes
+  useEffect(() => { vmWithName.setClientPage(0) }, [vmWithName.visibleItems.length, vmWithName.clientSize, query])
 
-  const totalElements = vmWithName.totalElements
-  const totalPages = vmWithName.totalPages
-  const pagedItems = vmWithName.pagedItems
+  // dev-time logging to help diagnose empty lists
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[PhanBienPage] raw items:', vm.items)
+    // eslint-disable-next-line no-console
+    console.log('[PhanBienPage] visibleItems for current user:', vmWithName.visibleItems)
+  }, [vm.items, vmWithName.visibleItems])
+
+  // derive client-side filtered + paged items from vmWithName.visibleItems
+  const sourceItems = vmWithName.visibleItems ?? []
+  const filteredItems = query ? sourceItems.filter((it: any) => (((it.maSinhVien ?? it.maSV ?? '') + '').toLowerCase().includes(query.toLowerCase()))) : sourceItems
+  const totalElements = filteredItems.length
+  const totalPages = Math.max(1, Math.ceil(totalElements / vmWithName.clientSize))
+  const pagedItems = filteredItems.slice(vmWithName.clientPage * vmWithName.clientSize, (vmWithName.clientPage + 1) * vmWithName.clientSize)
 
 
 
@@ -29,13 +41,21 @@ export default function PhanBienPage() {
     <div className="min-h-[calc(100vh-80px)]">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Phản biện</h1>
+        <div className="w-60">
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Tìm theo mã sinh viên"
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
+        </div>
       </div>
 
       <div className="bg-white shadow rounded p-6">
         {vm.isLoading ? (
           <div className="p-6 text-center">Đang tải...</div>
-        ) : !(vm.items && vm.items.length) ? (
-          <div className="p-6 text-center text-slate-500">Chưa có nhiệm vụ phản biện</div>
+        ) : !(vmWithName.visibleItems && vmWithName.visibleItems.length) ? (
+          <div className="p-6 text-center text-slate-500">Chưa có nhiệm vụ phản biện cho bạn</div>
         ) : (
           <table className="min-w-full text-sm">
             <thead>
@@ -48,7 +68,7 @@ export default function PhanBienPage() {
                 <th className="px-3 py-2 text-left">Hành động</th>
               </tr>
             </thead>
-            <tbody>
+              <tbody>
               {pagedItems.map((it: any) => (
                 <tr key={it.id} className="border-b hover:bg-slate-50">
                   <td className="px-3 py-2">{it.maSinhVien}</td>
@@ -74,12 +94,19 @@ export default function PhanBienPage() {
                         Xem chi tiết
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+                   </td>
+                 </tr>
+               ))}
+               </tbody>
+           </table>
+         )}
+        {/* Debug panel when visible list is empty (dev-only) */}
+        {!vm.isLoading && (!sourceItems || sourceItems.length === 0) ? (
+          <div className="p-4 text-xs text-slate-600 border-t bg-slate-50">
+            <div className="font-medium mb-2">Debug: items from server / visible / filtered (first 5)</div>
+            <pre className="max-h-40 overflow-auto text-[11px]">{JSON.stringify({ items: vm.items?.slice(0,5), visible: sourceItems?.slice(0,5), filtered: filteredItems?.slice(0,5) }, null, 2)}</pre>
+          </div>
+        ) : null}
         {/* Pagination controls */}
         {(() => {
           if (!totalPages || totalPages <= 1) return null

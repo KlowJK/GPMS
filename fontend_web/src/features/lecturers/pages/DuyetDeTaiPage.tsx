@@ -13,6 +13,8 @@ function Inner() {
   // client-side pagination state (match DoAnListPage)
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(10)
+  // local client-side search query (do not modify vm.search to avoid server-side effects)
+  const [query, setQuery] = useState<string>('')
 
   const onApprove = (id: string) => {
     vm.approve(id)
@@ -36,20 +38,32 @@ function Inner() {
   }
 
   // prepare client-side paging
-  const rows = (vm.data?.content ?? []) as any[]
+  const sourceRows = (vm.data?.content ?? []) as any[]
+
+  const filteredRows = (() => {
+    const q = String(query ?? '').trim()
+    if (!q) return sourceRows
+    const lower = q.toLowerCase()
+    return sourceRows.filter((r: any) => {
+      const code = String(r.maSV ?? r.maSinhVien ?? r.maSV ?? '')
+      return code.toLowerCase().includes(lower)
+    })
+  })()
+
+  const rows = filteredRows
   const totalElements = rows.length
   const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
   const pagedRows = rows.slice(page * pageSize, (page + 1) * pageSize)
 
-  // reset page to first when search or pageSize changes
-  React.useEffect(() => { setPage(0) }, [vm.search, pageSize, vm.data])
+  // reset page to first when client-side query or pageSize or source data changes
+  React.useEffect(() => { setPage(0) }, [query, pageSize, vm.data])
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-semibold">Duyệt đề tài</h2>
         <div className="w-64">
-          <input value={vm.search} onChange={e => vm.setSearch(e.target.value)} placeholder="Tìm theo mã sinh viên" className="w-full border rounded px-3 py-2 text-sm" />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã sinh viên" className="w-full border rounded px-3 py-2 text-sm" />
         </div>
       </div>
 

@@ -50,11 +50,36 @@ export function usePhanBienViewModel(currentName?: string, initialPage = 0, init
   // compute visible items for the current reviewer name (if provided)
   const visibleItems = (() => {
     if (!currentName) return items
-    const cn = currentName.toString()
+    // normalize strings for matching: remove diacritics, lower-case, collapse spaces
+    function normalizeName(x: any) {
+      if (!x) return ''
+      const s = String(x).toLowerCase()
+      // remove common academic titles/prefixes to avoid mismatches (PGS., TS., ThS., Dr., etc.)
+      const noTitle = s.replace(/\b(pg?s|p\.g\.s|ths|ts|dr|mr|mrs|ms)\.?\b\s*/gi, '')
+      try {
+        return noTitle.normalize('NFKD').replace(/\p{M}/gu, '').replace(/\s+/g, ' ').trim()
+      } catch (e) {
+        return noTitle.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+      }
+    }
+
+    // more flexible matching: consider either side contains the other or token intersection
+    function namesMatch(a: string, b: string) {
+      if (!a || !b) return false
+      if (a.includes(b) || b.includes(a)) return true
+      const ta = a.split(' ').filter(Boolean)
+      const tb = b.split(' ').filter(Boolean)
+      // require at least two token matches or full token match for short names
+      const common = ta.filter(t => tb.includes(t))
+      return common.length >= Math.min(2, Math.min(ta.length, tb.length))
+    }
+
+    const cn = normalizeName(currentName)
     return items.filter((it: any) => {
-      const gv = (it.giangVienPhanBien ?? '')
+      const rawGv = it.giangVienPhanBien ?? it.gvPhanBien ?? ''
+      const gv = normalizeName(rawGv)
       if (!gv) return false
-      return gv.toString().includes(cn)
+      return namesMatch(gv, cn)
     })
   })()
 

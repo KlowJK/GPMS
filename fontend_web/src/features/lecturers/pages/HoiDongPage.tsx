@@ -25,6 +25,8 @@ function Inner() {
   const [page, setPage] = useState(0)
   // match DoAnListPage default pageSize
   const [pageSize, setPageSize] = useState(3)
+  // client-side search query
+  const [query, setQuery] = useState<string>('')
   const idGiangVien = 5
 
   const { data, isLoading, isError } = useQuery<any, Error>({
@@ -35,11 +37,18 @@ function Inner() {
 
   // derive client-side pagination values
   const rows = (((data as any)?.content) ?? [])
-  const totalElements = rows.length
+  const filteredRows = query
+    ? rows.filter((r: any) => {
+        const name = (r.tenHoiDong ?? '').toString().toLowerCase()
+        const idStr = (r.id ?? '').toString()
+        return name.includes(query.toLowerCase()) || idStr.includes(query)
+      })
+    : rows
+  const totalElements = filteredRows.length
   const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
-  const pagedRows = rows.slice(page * pageSize, (page + 1) * pageSize)
-  // reset to first page when pageSize changes to avoid out-of-range
-  React.useEffect(() => { setPage(0) }, [pageSize])
+  const pagedRows = filteredRows.slice(page * pageSize, (page + 1) * pageSize)
+  // reset to first page when pageSize or query changes to avoid out-of-range
+  React.useEffect(() => { setPage(0) }, [pageSize, query])
 
   const [detailId, setDetailId] = useState<number | null>(null)
   const detailQuery = useQuery<any, Error>({
@@ -56,6 +65,14 @@ function Inner() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Hội đồng</h1>
+        <div className="w-60">
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Tìm theo tên hoặc ID hội đồng"
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
+        </div>
       </div>
 
       <div className="bg-white shadow rounded p-4">
@@ -121,7 +138,9 @@ function Inner() {
                 })}
               </tbody>
             </table>
-
+            {filteredRows.length === 0 && rows.length > 0 ? (
+              <div className="p-4 text-center text-slate-600">Không có kết quả phù hợp với tìm kiếm</div>
+            ) : null}
             {/* Pagination controls (match DoAnListPage) */}
             {(() => {
               if (!totalPages || totalPages <= 1) return null

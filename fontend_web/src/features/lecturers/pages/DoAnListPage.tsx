@@ -11,6 +11,9 @@ function Inner() {
   const vm = useReviewsViewModel()
   const [selectedMaSV, setSelectedMaSV] = useState<string | null>(null)
 
+  // local client-side search query (do not modify vm.search to avoid server-side effects)
+  const [query, setQuery] = useState<string>('')
+
   // client-side pagination state
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(10)
@@ -20,10 +23,28 @@ function Inner() {
     vm.setStatusFilter('DA_DUYET')
   }, [])
 
-  // reset to first page when search or pageSize changes
-  useEffect(() => { setPage(0) }, [vm.search, pageSize])
+  // reset to first page when client-side query, pageSize or source data changes
+  // sourceRows is derived below from vm.data
+  useEffect(() => { setPage(0) }, [query, pageSize, vm.data])
 
-  const rows = (vm.data?.content ?? [])
+  // source rows from API
+  const sourceRows = (vm.data?.content ?? [])
+
+  // client-side filter by student code (maSV or maSinhVien)
+  const filteredRows = (() => {
+    const q = String(query ?? '').trim()
+    if (!q) return sourceRows
+    const lower = q.toLowerCase()
+    return sourceRows.filter((r: any) => {
+      const code = String(r.maSV ?? r.maSinhVien ?? r.maSV ?? '')
+      return code.toLowerCase().includes(lower)
+    })
+  })()
+
+  // reset to first page when client-side query or pageSize or source data changes
+  // (kept above effect to depend on vm.data)
+
+  const rows = filteredRows
   const totalElements = rows.length
   const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
   const pagedRows = rows.slice(page * pageSize, (page + 1) * pageSize)
@@ -33,7 +54,12 @@ function Inner() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold">Danh sách sinh viên hướng dẫn</h2>
         <div className="w-64">
-          <input value={vm.search} onChange={e => vm.setSearch(e.target.value)} placeholder="Tìm theo mã sinh viên" className="w-full border rounded px-3 py-2 text-sm" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Tìm theo mã sinh viên"
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
         </div>
       </div>
 
