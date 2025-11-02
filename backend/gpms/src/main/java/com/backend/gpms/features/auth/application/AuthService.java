@@ -224,7 +224,11 @@ public class AuthService {
         blacklist.setUser(user);
         blacklist.setTokenHash(tokenHash);
         blacklist.setPurpose(TokenPurpose.RESET_PASSWORD);
-        blacklist.setExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
+        blacklist.setExpiresAt(
+                Instant.now()
+                        .truncatedTo(ChronoUnit.MILLIS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
         blacklist.setUsed(false);
         tokenBlacklistRepository.save(blacklist);
 
@@ -237,6 +241,14 @@ public class AuthService {
         var gvOpt = lecturerRepo.findByUserId(user.getId());
         if (gvOpt.isPresent() && gvOpt.get().getHoTen() != null && !gvOpt.get().getHoTen().isBlank()) {
             fullName = gvOpt.get().getHoTen();
+        }
+        var qtvOpt = quanTriVienRepository.findByUserId(user.getId());
+        if (qtvOpt.isPresent() && qtvOpt.get().getHoTen() != null && !qtvOpt.get().getHoTen().isBlank()) {
+            fullName = qtvOpt.get().getHoTen();
+        }
+        var tlkOpt = troLyKhoaRepository.findByUserId(user.getId());
+        if (tlkOpt.isPresent() && tlkOpt.get().getHoTen() != null && !tlkOpt.get().getHoTen().isBlank()) {
+            fullName = tlkOpt.get().getHoTen();
         }
 
         emailService.sendResetPasswordEmail(user.getEmail(), resetToken, fullName);

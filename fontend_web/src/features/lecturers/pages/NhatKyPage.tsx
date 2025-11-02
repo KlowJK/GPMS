@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatDateTime } from '@shared/utils/format'
 import useDiaryViewModel from '../viewmodels/NhatKyViewmodels'
 import DiaryProgressModal from '../components/NhatKyChiTiet'
@@ -21,6 +21,27 @@ export default function NhatKy() {
     if (!openDetail) detailVm.setProposalId(null)
   }, [openDetail, detailVm])
 
+  // Set the select default to the currently active week (if available)
+  // but only once (do not override if user switches weeks later).
+  // Important: wait until the tuans-by-lecturer query finishes so we don't
+  // pick a fallback week (the viewmodel exposes a fallback while loading).
+  const didSetDefault = useRef(false)
+  useEffect(() => {
+    // If already applied, skip
+    if (didSetDefault.current) return
+
+    // Wait until the tuans query finished to avoid using the FALLBACK_WEEKS
+    // that the viewmodel provides while the request is in flight.
+    if ((diaryVm as any).isTuansLoading) return
+
+    const tuan = diaryVm.currentWeekEntry?.tuan
+    if (tuan != null) {
+      diaryVm.setWeek(Number(tuan))
+      didSetDefault.current = true
+    }
+    // run when currentWeekEntry or loading state changes
+  }, [diaryVm.currentWeekEntry, (diaryVm as any).isTuansLoading])
+
   // reset to first page when diary data or pageSize or query changes
   useEffect(() => { setPage(0) }, [diaryVm.data, pageSize, query])
 
@@ -28,37 +49,36 @@ export default function NhatKy() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-stretch">
-      <div className="w-full max-w-full mx-auto px-0">
-        <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-[#222]">Nhật ký tiến độ</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="week" className="font-medium text-[#222]">Tuần:</label>
-                <select
-                  id="week"
-                  className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"
-                  value={diaryVm.week}
-                  onChange={e => diaryVm.setWeek(Number(e.target.value))}
-                >
-                  {Array.isArray(diaryVm.weeks) ? diaryVm.weeks.map((w: any) => (
-                    <option key={w} value={w}>Tuần {w}</option>
-                  )) : null}
-                </select>
-              </div>
-
-              <div className="w-56">
-                <input
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="Tìm theo mã sinh viên"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
+      {/* Header: title left, search + week controls right (match PhanBienPage) */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-[#222]">Nhật ký tiến độ</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="week" className="sr-only">Tuần</label>
+            <select
+              id="week"
+              className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"
+              value={diaryVm.week}
+              onChange={e => diaryVm.setWeek(Number(e.target.value))}
+            >
+              {Array.isArray(diaryVm.weeks) ? diaryVm.weeks.map((w: any) => (
+                <option key={w} value={w}>Tuần {w}</option>
+              )) : null}
+            </select>
           </div>
+            <div className="w-56">
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Tìm theo mã sinh viên"
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap gap-8 mb-6 text-sm">
+      <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
+        <div className="flex flex-wrap gap-8 mb-6 text-sm">
             <div className="flex items-center gap-2 text-[#222]">
               <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1" />
               Ngày bắt đầu : <span className="font-medium">{formatDateTime(diaryVm.currentWeekEntry?.ngayBatDau)}</span>
@@ -88,7 +108,15 @@ export default function NhatKy() {
                 {diaryVm.isLoading ? (
                   <tr><td colSpan={5} className="p-6 text-center">Đang tải...</td></tr>
                 ) : diaryVm.isError ? (
-                  <tr><td colSpan={5} className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</td></tr>
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      {(() => {
+                        // if backend returned 404 -> show friendly 'no proposal' message
+                        const status = (diaryVm as any).diaryError?.response?.status || (diaryVm as any).diaryError?.status
+                        return status === 404 ? 'Chưa có đề tài' : 'Lỗi khi tải dữ liệu'
+                      })()}
+                    </td>
+                  </tr>
                 ) : (() => {
                   const allRows = Array.isArray(diaryVm.data) ? diaryVm.data : []
                   const filteredRows = query ? allRows.filter((r: any) => ((r.maSV ?? r.maSinhVien ?? '') + '').toLowerCase().includes(query.toLowerCase())) : allRows
@@ -149,6 +177,5 @@ export default function NhatKy() {
           })()}
         </div>
       </div>
-    </div>
   );
 }

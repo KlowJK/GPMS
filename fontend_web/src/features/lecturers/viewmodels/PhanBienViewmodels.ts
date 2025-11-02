@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchDeCuongPage } from '../services/api'
 
-export function usePhanBienViewModel(currentName?: string, initialPage = 0, initialSize = 10) {
+export function usePhanBienViewModel(currentName?: string, initialPage = 0, initialSize = 1000) {
   // server-side paging (used in query)
   const [page, setPage] = useState<number>(initialPage)
   const [size, setSize] = useState<number>(initialSize)
   // client-side paging for visible (filtered) items
   const [clientPage, setClientPage] = useState<number>(0)
-  const [clientSize, setClientSize] = useState<number>(10)
+  const [clientSize, setClientSize] = useState<number>(1000)
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState<string>('')
   const qc = useQueryClient()

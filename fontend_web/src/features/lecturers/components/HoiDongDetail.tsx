@@ -17,7 +17,7 @@ export default function HoiDongDetail({ open, onClose, data, isLoading, isError 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
       <div className="bg-white rounded-md w-[900px] max-h-[88vh] overflow-auto shadow-lg">
-        <div className="flex items-center justify-between px-5 py-3 bg-sky-600 rounded-t-md text-white">
+        <div className="flex items-center justify-between px-5 py-3 bg-blue-600 rounded-t-md text-white">
           <div className="flex items-center gap-3">
             <h3 className="text-lg font-semibold">Chi tiết hội đồng</h3>
             <div className="text-sm opacity-90">{data?.maHoiDong ? `#${data.maHoiDong}` : ''}</div>
@@ -53,10 +53,15 @@ export default function HoiDongDetail({ open, onClose, data, isLoading, isError 
                 </div>
               </div>
 
+              <div>
+                <div className="text-sm text-slate-500">Địa chỉ</div>
+                <div className="mt-1 font-medium">{(data.diaChi ?? data.diaDiem) ? (data.diaChi ?? data.diaDiem) : 'Chưa có địa chỉ'}</div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-slate-500">Chủ tịch</div>
-                  <div className="mt-1 font-medium">{data.chuTri ?? '—'}</div>
+                  <div className="mt-1 font-medium">{data.chuTich ?? '—'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Thư ký</div>
@@ -86,6 +91,7 @@ export default function HoiDongDetail({ open, onClose, data, isLoading, isError 
                         <th className="text-left px-3 py-2">Mã SV</th>
                         <th className="text-left px-3 py-2">Họ và tên</th>
                         <th className="text-left px-3 py-2">Lớp</th>
+                        <th className="text-left px-3 py-2">Bộ môn</th>
                         <th className="text-left px-3 py-2">Tên đề tài</th>
                         <th className="text-left px-3 py-2">GVHD</th>
                         {/* <th className="text-left px-3 py-2">Hành động</th> */}
@@ -97,6 +103,7 @@ export default function HoiDongDetail({ open, onClose, data, isLoading, isError 
                           <td className="px-3 py-2 align-top">{s.maSV}</td>
                           <td className="px-3 py-2 align-top">{s.hoTen}</td>
                           <td className="px-3 py-2 align-top">{s.lop}</td>
+                          <td className="px-3 py-2 align-top">{s.boMon ?? s.idBoMon ?? '—'}</td>
                           <td className="px-3 py-2 align-top">{s.tenDeTai}</td>
                           <td className="px-3 py-2 align-top">{s.gvhd}</td>
                           {/* <td className="px-3 py-2 align-top">

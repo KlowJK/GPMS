@@ -9,7 +9,6 @@ import com.backend.gpms.features.auth.infra.UserRepository;
 import com.backend.gpms.features.council.domain.HoiDong;
 import com.backend.gpms.features.council.domain.ThanhVienHoiDong;
 import com.backend.gpms.features.council.infra.HoiDongRepository;
-import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.defense.domain.ThoiGianThucHien;
 import com.backend.gpms.features.defense.infra.DotBaoVeRepository;
 import com.backend.gpms.features.defense.infra.ThoiGianThucHienRepository;
@@ -35,7 +34,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +53,6 @@ public class ThongBaoService{
     UserRepository userRepository;
     ThongBaoDenRepository thongBaoDenRepository;
     DeTaiRepository deTaiRepository;
-    DotBaoVeRepository dotBaoVeRepository;
     EmailService emailService;
     ThoiGianThucHienRepository thoiGianThucHienRepository;
     HoiDongRepository hoiDongRepository;
