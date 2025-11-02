@@ -6,6 +6,7 @@ import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.auth.application.AuthService;
 import com.backend.gpms.features.auth.dto.request.ChangePasswordRequest;
 
+import com.backend.gpms.features.auth.dto.request.ForgotPasswordRequest;
 import com.backend.gpms.features.auth.dto.request.LoginRequest;
 import com.backend.gpms.features.auth.dto.request.ResetPasswordRequest;
 import com.backend.gpms.features.auth.dto.response.AuthResponse;
@@ -50,8 +51,8 @@ public class AuthController {
     }
 
     @PostMapping("/request-reset-password")
-    public ApiResponse<String> requestPasswordReset(@RequestBody Map<String, String> request) {
-        authService.requestPasswordReset(request.get("email"));
+    public ApiResponse<String> requestPasswordReset(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordReset(request.getEmail());
         return ApiResponse.success("If the email is registered, a reset link has been sent.");
     }
 

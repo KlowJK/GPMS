@@ -96,4 +96,24 @@ class AuthViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> forgotPassword(String email) async {
+    try {
+      await AuthService.requestResetPassword(email);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// ĐẶT LẠI MẬT KHẨU MỚI
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await AuthService.resetPassword(token: token, newPassword: newPassword);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

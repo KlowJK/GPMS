@@ -17,6 +17,8 @@ public class ThuVienDeTaiResponse {
     String deTai;
     String duongDan;
     Long idDotBaoVe;
+    String namHoc;
+    String hocKy;
 
     List<DeCuongCuaDeTai> deCuongCuaDeTai;
 

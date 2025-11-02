@@ -1,9 +1,16 @@
 // src/features/assistants/pages/ClassesPage.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import assistantService, {
-  OrgClass, PageParams, Id
-} from '@features/assistants/services/assistantService';
-import ClassFormModal from '@features/assistants/components/ClassFormModal';
+import { type Id, type PageParams, unwrap } from '@/features/assistants/services/base';
+import {
+  type OrgClass,
+  listOrgClassesNormalized,
+  createOrgClass,
+  updateOrgClass,
+  deleteOrgClass,
+  listMajors,
+  listDepartments,
+} from '@/features/assistants/services/organization/orgApi';
+import ClassFormModal from '@/features/assistants/components/ClassFormModal';
 import { Pencil, Search, Trash2, Plus } from 'lucide-react';
 
 type MajorRow = { id: Id; tenNganh: string; khoaId: Id };
@@ -31,7 +38,7 @@ export default function ClassesPage() {
   async function loadClasses() {
     setLoading(true); setError(null);
     try {
-      const pg = await assistantService.listOrgClassesNormalized({ page, size } as PageParams);
+      const pg = await listOrgClassesNormalized({ page, size } as PageParams);
       setItems(pg.content);
       setTotal(pg.totalElements);
     } catch (e: any) {
@@ -50,11 +57,11 @@ export default function ClassesPage() {
     (async () => {
       try {
         const [majRes, depRes] = await Promise.all([
-          assistantService.listMajors({ page:0, size: 999 }),
-          assistantService.listDepartments({ page:0, size: 999 }),
+          listMajors({ page:0, size: 999 }),
+          listDepartments({ page:0, size: 999 }),
         ]);
         // majors
-        const mraw = assistantService.unwrap<any>(majRes);
+        const mraw = unwrap<any>(majRes);
         const marr: any[] = Array.isArray(mraw?.content) ? mraw.content : (Array.isArray(mraw) ? mraw : []);
         const m: Record<string, MajorRow> = {};
         marr.forEach(x => {
@@ -63,7 +70,7 @@ export default function ClassesPage() {
         });
         setMajors(m);
         // departments
-        const draw = assistantService.unwrap<any>(depRes);
+        const draw = unwrap<any>(depRes);
         const darr: any[] = Array.isArray(draw?.content) ? draw.content : (Array.isArray(draw) ? draw : []);
         const d: Record<string, DeptRow> = {};
         darr.forEach(x => { d[String(x.id)] = { id: String(x.id), tenKhoa: x.tenKhoa ?? x.ten ?? '' };});
@@ -86,16 +93,14 @@ export default function ClassesPage() {
 
   async function handleDelete(x: OrgClass) {
     if (!confirm(`Xóa lớp "${x.tenLop}"?`)) return;
-    await assistantService.deleteOrgClass(x.id);
+    await deleteOrgClass(x.id);
     await loadClasses();
   }
 
   function openCreate() {
-    editingIdRef.current = null;
     setModal({ open: true, editing: null });
   }
   function openEdit(x: OrgClass) {
-    editingIdRef.current = x.id;          // ✨ giữ chắc id đang sửa
     setModal({ open: true, editing: x });
   }
 
@@ -165,21 +170,22 @@ export default function ClassesPage() {
       </div>
 
       {modal.open && (
-        <ClassFormModal
-          initial={modal.editing ?? undefined}
-          onClose={() => setModal({ open: false })}
-          onSubmit={async (payload) => {
-            const id = editingIdRef.current;        // ✨ quyết định PUT/POST bằng ref
-            if (id != null) {
-              await assistantService.updateOrgClass(id, payload);
-            } else {
-              await assistantService.createOrgClass(payload);
-            }
-            setModal({ open: false });
-            await loadClasses();
-          }}
-        />
-      )}
+  <ClassFormModal
+    initial={modal.editing ?? undefined}
+    onClose={() => setModal({ open: false })}
+    onSubmit={async (payload) => {
+      const editId = modal.editing?.id ?? null;   // 👉 parent quyết định
+      if (editId != null) {
+        await updateOrgClass(editId, payload);
+      } else {
+        await createOrgClass(payload);
+      }
+      setModal({ open: false });
+      await loadClasses();
+    }}
+  />
+)}
+
     </div>
   );
 }
