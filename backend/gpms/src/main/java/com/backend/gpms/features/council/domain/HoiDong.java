@@ -40,6 +40,9 @@ public class HoiDong extends BaseEntity {
     @Column(name="thoi_gian_ket_thuc")
     LocalDate thoiGianKetThuc;
 
+    @Column(name="dia_diem")
+    String diaDiem;
+
     @ManyToMany
     @JoinTable(
             name = "phan_cong_bao_ve",

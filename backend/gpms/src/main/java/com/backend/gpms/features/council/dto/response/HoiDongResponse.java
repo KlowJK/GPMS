@@ -14,4 +14,5 @@ public class HoiDongResponse {
     String tenHoiDong;
     LocalDate thoiGianBatDau;
     LocalDate thoiGianKetThuc;
+    String diaDiem;
 }
