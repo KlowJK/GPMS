@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import useHoiDongViewModel, { useHoiDongDetailViewModel } from '../viewmodels/HoiDongViewmodels'
+import { useAuth } from '@shared/hooks/useAuth'
 import HoiDongDetail from '../components/HoiDongDetail'
 import { Eye } from 'lucide-react'
 
@@ -13,7 +14,9 @@ function Inner() {
   const [pageSize, setPageSize] = useState(3)
   // client-side search query
   const [query, setQuery] = useState<string>('')
-  const idGiangVien = 5
+  // prefer the logged-in lecturer id instead of a hardcoded value
+  const { user } = useAuth()
+  const idGiangVien = (user?.teacherId ?? user?.id) as number | undefined
 
   // use viewmodel to fetch list and expose status
   const vm = useHoiDongViewModel(idGiangVien)
@@ -55,6 +58,8 @@ function Inner() {
           <div className="p-6 text-center">Đang tải...</div>
         ) : vm.isError ? (
           <div className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</div>
+        ) : rows.length === 0 ? (
+          <div className="p-6 text-center text-slate-600">Bạn chưa trong hội đồng nào</div>
         ) : (
           <>
             <table className="min-w-full table-auto">
@@ -62,6 +67,7 @@ function Inner() {
                 <tr className="border-b">
                   <th className="text-left px-6 py-4">ID</th>
                   <th className="text-left px-6 py-4">Tên hội đồng</th>
+                  <th className="text-left px-6 py-4">Địa chỉ</th>
                   <th className="text-left px-6 py-4">Thời gian bắt đầu</th>
                   <th className="text-left px-6 py-4">Thời gian kết thúc</th>
                   <th className="text-left px-6 py-4">Trạng thái</th>
@@ -91,6 +97,7 @@ function Inner() {
                     <tr key={h.id} className="border-b hover:bg-slate-50">
                       <td className="px-6 py-4">{h.id}</td>
                       <td className="px-6 py-4">{h.tenHoiDong}</td>
+                      <td className="px-6 py-4">{(h.diaChi ?? h.diaDiem) ? (h.diaChi ?? h.diaDiem) : 'Chưa có địa chỉ'}</td>
                       <td className="px-6 py-4">{h.thoiGianBatDau}</td>
                       <td className="px-6 py-4">{h.thoiGianKetThuc}</td>
                       <td className="px-6 py-4">

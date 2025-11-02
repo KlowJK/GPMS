@@ -20,7 +20,10 @@ export default function PhanBienPage() {
   // Ensure client-side page size stays at 10 for UI even if server returns up to 1000
   // (server fetch size is controlled in the viewmodel default initialSize)
   useEffect(() => {
-    try { vmWithName.setClientSize(10); vmWithName.setClientPage(0) } catch (e) {}
+    try {
+      vmWithName.setClientSize(10);
+      vmWithName.setClientPage(0);
+    } catch (e) {}
     // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -108,13 +111,7 @@ export default function PhanBienPage() {
                </tbody>
            </table>
          )}
-        {/* Debug panel when visible list is empty (dev-only) */}
-        {!vm.isLoading && (!sourceItems || sourceItems.length === 0) ? (
-          <div className="p-4 text-xs text-slate-600 border-t bg-slate-50">
-            <div className="font-medium mb-2">Debug: items from server / visible / filtered (first 5)</div>
-            <pre className="max-h-40 overflow-auto text-[11px]">{JSON.stringify({ items: vm.items?.slice(0,5), visible: sourceItems?.slice(0,5), filtered: filteredItems?.slice(0,5) }, null, 2)}</pre>
-          </div>
-        ) : null}
+        {/* Debug panel removed - no debug output in production UI */}
         {/* Pagination controls */}
         {(() => {
           if (!totalPages || totalPages <= 1) return null

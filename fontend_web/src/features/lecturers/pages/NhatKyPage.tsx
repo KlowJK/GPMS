@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatDateTime } from '@shared/utils/format'
 import useDiaryViewModel from '../viewmodels/NhatKyViewmodels'
 import DiaryProgressModal from '../components/NhatKyChiTiet'
@@ -20,6 +20,27 @@ export default function NhatKy() {
   useEffect(() => {
     if (!openDetail) detailVm.setProposalId(null)
   }, [openDetail, detailVm])
+
+  // Set the select default to the currently active week (if available)
+  // but only once (do not override if user switches weeks later).
+  // Important: wait until the tuans-by-lecturer query finishes so we don't
+  // pick a fallback week (the viewmodel exposes a fallback while loading).
+  const didSetDefault = useRef(false)
+  useEffect(() => {
+    // If already applied, skip
+    if (didSetDefault.current) return
+
+    // Wait until the tuans query finished to avoid using the FALLBACK_WEEKS
+    // that the viewmodel provides while the request is in flight.
+    if ((diaryVm as any).isTuansLoading) return
+
+    const tuan = diaryVm.currentWeekEntry?.tuan
+    if (tuan != null) {
+      diaryVm.setWeek(Number(tuan))
+      didSetDefault.current = true
+    }
+    // run when currentWeekEntry or loading state changes
+  }, [diaryVm.currentWeekEntry, (diaryVm as any).isTuansLoading])
 
   // reset to first page when diary data or pageSize or query changes
   useEffect(() => { setPage(0) }, [diaryVm.data, pageSize, query])
@@ -88,7 +109,15 @@ export default function NhatKy() {
                 {diaryVm.isLoading ? (
                   <tr><td colSpan={5} className="p-6 text-center">Đang tải...</td></tr>
                 ) : diaryVm.isError ? (
-                  <tr><td colSpan={5} className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</td></tr>
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      {(() => {
+                        // if backend returned 404 -> show friendly 'no proposal' message
+                        const status = (diaryVm as any).diaryError?.response?.status || (diaryVm as any).diaryError?.status
+                        return status === 404 ? 'Chưa có đề tài' : 'Lỗi khi tải dữ liệu'
+                      })()}
+                    </td>
+                  </tr>
                 ) : (() => {
                   const allRows = Array.isArray(diaryVm.data) ? diaryVm.data : []
                   const filteredRows = query ? allRows.filter((r: any) => ((r.maSV ?? r.maSinhVien ?? '') + '').toLowerCase().includes(query.toLowerCase())) : allRows
