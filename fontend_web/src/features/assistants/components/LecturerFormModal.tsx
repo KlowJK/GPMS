@@ -1,9 +1,9 @@
 // src/features/assistants/components/LecturerFormModal.tsx
 import { useMemo, useState } from 'react';
 
-// 👉 Lấy type Lecturer từ userApi
+// Lấy type Lecturer từ userApi
 import type { Lecturer } from '@features/assistants/services/user/userApi';
-// 👉 Lấy type Subject và API gán/huỷ Trưởng bộ môn từ orgApi
+// Lấy type Subject và API gán/huỷ Trưởng bộ môn từ orgApi
 import type { Subject } from '@features/assistants/services/organization/orgApi';
 import { setSubjectHead } from '@features/assistants/services/organization/orgApi';
 
@@ -43,6 +43,7 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
   const [hocHam, setHocHam] = useState(initial?.hocHam ?? '');
   const [email, setEmail] = useState(initial?.email ?? '');
   const [matKhau, setMatKhau] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [idBoMon, setIdBoMon] = useState<string>(
     String(initial?.idBoMon ?? subjects[0]?.id ?? '')
   );
@@ -54,13 +55,14 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
   async function handleSubmit() {
     if (saving) return;
 
-    // ✅ Validate nhanh
-    if (!maGiangVien.trim() || !hoTen.trim() || !email.trim() || !idBoMon) {
-      setErr('Vui lòng nhập đầy đủ Mã GV, Họ tên, Email và chọn Bộ môn.');
+    // Validate nhanh
+    if (!hoTen.trim() || !email.trim() || !idBoMon) {
+      setErr('Vui lòng nhập đầy đủ Họ tên, Email và chọn Bộ môn.');
       return;
     }
-    if (!isEdit && !matKhau) {
-      setErr('Vui lòng nhập mật khẩu cho tài khoản mới.');
+    // Với thêm mới yêu cầu có mã GV + mật khẩu
+    if (!isEdit && (!maGiangVien.trim() || !matKhau)) {
+      setErr('Vui lòng nhập Mã GV và Mật khẩu cho tài khoản mới.');
       return;
     }
 
@@ -69,9 +71,10 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
 
     try {
       let saved: Lecturer | undefined;
+
       if (isEdit) {
-        const payload: LecturerUpdatePayload = {
-          maGiangVien,
+        // Không thay đổi Mã GV -> không gửi lên để tránh rule unique không cần thiết
+        const payload: any = {
           hoTen,
           soDienThoai,
           hocVi,
@@ -80,14 +83,18 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
           idBoMon: toId(idBoMon),
           laTruongBoMon,
         };
-        saved = await onSubmit(payload);
+        if (maGiangVien.trim() !== (initial?.maGiangVien ?? '')) {
+          payload.maGiangVien = maGiangVien.trim();
+        }
+        saved = await onSubmit(payload as LecturerUpdatePayload);
+
         // fallback nếu API không trả body
         if (!saved && initial) {
           saved = { ...initial, ...payload, idBoMon: toId(idBoMon) } as unknown as Lecturer;
         }
       } else {
         const payload: LecturerCreatePayload = {
-          maGiangVien,
+          maGiangVien: maGiangVien.trim(),
           hoTen,
           soDienThoai,
           hocVi,
@@ -99,18 +106,20 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
         saved = await onSubmit(payload);
       }
 
-      // 👉 Gán/huỷ Trưởng bộ môn theo checkbox
-      try {
-        await setSubjectHead({
-          idBoMon: toId(idBoMon),
-          idGiangVien: laTruongBoMon ? (saved?.id as number | string) : null,
-        });
-      } catch {
-        /* ignore lỗi gán trưởng bộ môn để không chặn luồng lưu chính */
+      // ✅ Chỉ gán/huỷ Trưởng bộ môn khi SỬA
+      if (isEdit) {
+        try {
+          await setSubjectHead({
+            idBoMon: toId(idBoMon),
+            idGiangVien: laTruongBoMon ? (saved?.id as number | string) : null,
+          });
+        } catch {
+          // ignore lỗi gán trưởng bộ môn, không chặn luồng lưu
+        }
       }
 
       onClose();
-    } catch (e) {
+    } catch {
       setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
     } finally {
       setSaving(false);
@@ -133,6 +142,7 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
               className="w-full h-11 rounded border px-3"
               value={maGiangVien}
               onChange={(e) => setMaGiangVien(e.target.value)}
+              placeholder="VD: gv001"
             />
           </div>
           <div>
@@ -162,17 +172,33 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
             />
           </div>
 
-          {!isEdit && (
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Mật khẩu</label>
+          {/* Ô mật khẩu có nút bật/tắt hiển thị – thêm mới bắt buộc, sửa có thể bỏ trống */}
+          <div className="col-span-2">
+            <label className="block text-sm text-slate-600 mb-1">
+              {isEdit ? 'Mật khẩu (để trống nếu giữ nguyên)' : 'Mật khẩu'}
+            </label>
+            <div className="relative">
               <input
-                type="password"
-                className="w-full h-11 rounded border px-3"
+                type={showPw ? 'text' : 'password'}
+                className="w-full h-11 rounded border px-3 pr-24"
                 value={matKhau}
                 onChange={(e) => setMatKhau(e.target.value)}
+                placeholder={isEdit ? 'Để trống nếu không đổi mật khẩu' : 'Tối thiểu 6 ký tự'}
               />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-sm px-3 py-1 border rounded"
+                onClick={() => setShowPw((s) => !s)}
+              >
+                {showPw ? 'Ẩn' : 'Hiện'}
+              </button>
             </div>
-          )}
+            {!isEdit && !matKhau && (
+              <div className="mt-1 text-xs text-slate-500">
+                Mật khẩu bắt buộc khi tạo mới.
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="block text-sm text-slate-600 mb-1">Bộ môn</label>
@@ -188,15 +214,18 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
               ))}
             </select>
 
-            <label className="mt-2 inline-flex items-center gap-2 select-none">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={laTruongBoMon}
-                onChange={(e) => setLaTruongBoMon(e.target.checked)}
-              />
-              <span className="text-sm">Đặt làm Trưởng bộ môn</span>
-            </label>
+            {/* ✅ Chỉ hiện khi sửa – thêm mới không cho gán Trưởng bộ môn */}
+            {isEdit && (
+              <label className="mt-2 inline-flex items-center gap-2 select-none">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={laTruongBoMon}
+                  onChange={(e) => setLaTruongBoMon(e.target.checked)}
+                />
+                <span className="text-sm">Đặt làm Trưởng bộ môn</span>
+              </label>
+            )}
           </div>
 
           <div>
