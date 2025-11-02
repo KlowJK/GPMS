@@ -34,7 +34,7 @@ export default function NhatKy() {
             <h1 className="text-2xl font-semibold text-[#222]">Nhật ký tiến độ</h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <label htmlFor="week" className="font-medium text-[#222]">Tuần:</label>
+                <label htmlFor="week" className="font-medium text-[#222]"></label>
                 <select
                   id="week"
                   className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"

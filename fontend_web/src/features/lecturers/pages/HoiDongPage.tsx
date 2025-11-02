@@ -1,24 +1,10 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { axios } from '@shared/libs/axios'
+import useHoiDongViewModel, { useHoiDongDetailViewModel } from '../viewmodels/HoiDongViewmodels'
 import HoiDongDetail from '../components/HoiDongDetail'
 import { Eye } from 'lucide-react'
 
 
-async function fetchHoiDong(params: { idGiangVien?: number; page?: number; size?: number; sort?: string }) {
-  const resp = await axios.get('/api/hoi-dong', {
-    params: {
-      idGiangVien: params.idGiangVien,
-      page: params.page,
-      size: params.size,
-      sort: params.sort,
-    },
-    headers: { Accept: '*/*' },
-    timeout: 10000,
-  })
-  return resp.data?.result
-}
 
 function Inner() {
   // client-side pagination: fetch full list then page in UI (like DoAnListPage)
@@ -29,14 +15,11 @@ function Inner() {
   const [query, setQuery] = useState<string>('')
   const idGiangVien = 5
 
-  const { data, isLoading, isError } = useQuery<any, Error>({
-    queryKey: ['hoi-dong', idGiangVien],
-    // do not pass page/size so API may return full list (or large page)
-    queryFn: () => fetchHoiDong({ idGiangVien, sort: 'thoiGianBatDau,DESC' }),
-  })
+  // use viewmodel to fetch list and expose status
+  const vm = useHoiDongViewModel(idGiangVien)
 
   // derive client-side pagination values
-  const rows = (((data as any)?.content) ?? [])
+  const rows = (((vm.data as any)?.content) ?? [])
   const filteredRows = query
     ? rows.filter((r: any) => {
         const name = (r.tenHoiDong ?? '').toString().toLowerCase()
@@ -50,16 +33,8 @@ function Inner() {
   // reset to first page when pageSize or query changes to avoid out-of-range
   React.useEffect(() => { setPage(0) }, [pageSize, query])
 
-  const [detailId, setDetailId] = useState<number | null>(null)
-  const detailQuery = useQuery<any, Error>({
-    queryKey: ['hoi-dong-detail', detailId],
-    queryFn: async () => {
-      if (!detailId) return null
-      const resp = await axios.get(`/api/hoi-dong/${detailId}`, { headers: { Accept: '*/*' }, timeout: 10000 })
-      return resp.data?.result
-    },
-    enabled: !!detailId,
-  })
+  // detail viewmodel
+  const detailVm = useHoiDongDetailViewModel()
 
   return (
     <div>
@@ -76,9 +51,9 @@ function Inner() {
       </div>
 
       <div className="bg-white shadow rounded p-4">
-        {isLoading ? (
+        {vm.isLoading ? (
           <div className="p-6 text-center">Đang tải...</div>
-        ) : isError ? (
+        ) : vm.isError ? (
           <div className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</div>
         ) : (
           <>
@@ -125,7 +100,7 @@ function Inner() {
                  
                             <button
                               title="Xem chi tiết"
-                              onClick={() => setDetailId(h.id)}
+                              onClick={() => detailVm.setDetailId(h.id)}
                               className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
                             >
                               <Eye size={16} />
@@ -164,7 +139,7 @@ function Inner() {
           </>
         )}
       </div>
-      <HoiDongDetail open={!!detailId} onClose={() => setDetailId(null)} data={detailQuery.data} isLoading={detailQuery.isLoading} isError={detailQuery.isError} />
+      <HoiDongDetail open={!!detailVm.data} onClose={() => detailVm.setDetailId(null)} data={detailVm.data} isLoading={detailVm.isLoading} isError={detailVm.isError} />
     </div>
   )
 }

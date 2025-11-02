@@ -3,11 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchReviewList, rejectDeTai, approveDeTai } from '../services/api'
 import type { XetDuyetItem, PageXetDuyet } from '../models/DanhSachDuyetModels'
 
-export function useReviewsViewModel(initialPage = 0, initialSize = 10) {
+export function useReviewsViewModel(initialPage = 0, initialSize = 1000) {
   const [page, setPage] = useState(initialPage)
   const [size] = useState(initialSize)
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+  // search used for client-side filtering (moved from page)
   const [search, setSearch] = useState('')
+  // client-side pagination over the visible list
+  const [clientPage, setClientPage] = useState<number>(0)
+  const [clientSize, setClientSize] = useState<number>(10)
   const queryClient = useQueryClient()
 
   const query = useQuery<PageXetDuyet, Error>({
@@ -41,6 +45,41 @@ export function useReviewsViewModel(initialPage = 0, initialSize = 10) {
     setStatusFilter,
     search,
     setSearch,
+    // client-side paging controls
+    clientPage,
+    setClientPage,
+    clientSize,
+    setClientSize,
+    // derived client-side rows
+    sourceRows: query.data?.content ?? [],
+    filteredRows: ((query.data?.content ?? []) as any[]).filter((r: any) => {
+      const q = String(search ?? '').trim()
+      if (!q) return true
+      const lower = q.toLowerCase()
+      const code = String(r.maSV ?? r.maSinhVien ?? r.maSV ?? '')
+      return code.toLowerCase().includes(lower)
+    }),
+    totalElements: (((query.data?.content ?? []) as any[]).filter((r: any) => {
+      const q = String(search ?? '').trim()
+      if (!q) return true
+      const lower = q.toLowerCase()
+      const code = String(r.maSV ?? r.maSinhVien ?? r.maSV ?? '')
+      return code.toLowerCase().includes(lower)
+    })).length,
+    totalPages: Math.max(1, Math.ceil(((((query.data?.content ?? []) as any[]).filter((r: any) => {
+      const q = String(search ?? '').trim()
+      if (!q) return true
+      const lower = q.toLowerCase()
+      const code = String(r.maSV ?? r.maSinhVien ?? r.maSV ?? '')
+      return code.toLowerCase().includes(lower)
+    })).length) / clientSize)),
+    pagedRows: (((query.data?.content ?? []) as any[]).filter((r: any) => {
+      const q = String(search ?? '').trim()
+      if (!q) return true
+      const lower = q.toLowerCase()
+      const code = String(r.maSV ?? r.maSinhVien ?? r.maSV ?? '')
+      return code.toLowerCase().includes(lower)
+    })).slice(clientPage * clientSize, (clientPage + 1) * clientSize),
     data: query.data,
     isLoading: query.isLoading,
     isError: query.isError,

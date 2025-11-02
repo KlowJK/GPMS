@@ -17,6 +17,14 @@ export default function PhanBienPage() {
   // use viewmodel with current reviewer name to get visible + paged items
   const vmWithName = usePhanBienViewModel(currentName)
 
+  // Ensure client-side page size stays at 10 for UI even if server returns up to 1000
+  // (server fetch size is controlled in the viewmodel default initialSize)
+  useEffect(() => {
+    try { vmWithName.setClientSize(10); vmWithName.setClientPage(0) } catch (e) {}
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // reset to first page in viewmodel when visible items, clientSize or query changes
   useEffect(() => { vmWithName.setClientPage(0) }, [vmWithName.visibleItems.length, vmWithName.clientSize, query])
 
@@ -128,7 +136,7 @@ export default function PhanBienPage() {
           )
         })()}
       </div>
-      <DeCuongDetailModal open={modalOpen} onClose={() => setModalOpen(false)} item={selected} currentName={currentName} />
+      <DeCuongDetailModal open={modalOpen} onClose={() => setModalOpen(false)} item={selected} currentName={currentName} showChoActions={true} />
     </div>
   )
 }
