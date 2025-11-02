@@ -57,4 +57,19 @@ public class EmailService {
             throw new ApplicationException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    public void sendHtmlEmail(String to, String subject, String htmlBody) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+            mailSender.send(msg);
+            log.info("Sent notification email to: {}", to);
+        } catch (MessagingException e) {
+            log.error("Failed to send email to: {}", to, e);
+        }
+    }
 }

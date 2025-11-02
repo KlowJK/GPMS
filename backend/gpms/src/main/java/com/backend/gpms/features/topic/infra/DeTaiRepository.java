@@ -1,5 +1,6 @@
 package  com.backend.gpms.features.topic.infra;
 
+import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.lecturer.infra.GiangVienLoad;
 import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
 import com.backend.gpms.features.student.domain.SinhVien;
@@ -39,5 +40,7 @@ public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
     List<DeTai> findByGiangVienHuongDan_User_EmailIgnoreCase(String email);
 
     Optional<DeTai> findBySinhVien_MaSinhVienIgnoreCase(String maSinhVien);
+
+    List<DeTai> findByDotBaoVe(DotBaoVe dotBaoVeId);
 
 }

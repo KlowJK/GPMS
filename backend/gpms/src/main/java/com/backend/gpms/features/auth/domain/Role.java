@@ -5,5 +5,6 @@ public enum Role {
     TRO_LY_KHOA,
     GIANG_VIEN,
     TRUONG_BO_MON,
-    SINH_VIEN
+    SINH_VIEN,
+    CHU_NHIEM_KHOA
 }
