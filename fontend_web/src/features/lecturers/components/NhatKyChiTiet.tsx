@@ -117,21 +117,14 @@ function CommentEditor({ entry, detailVm }: { entry: any; detailVm: any }) {
     s = s.replace(/Đ/g, 'D').replace(/đ/g, 'd')
     return s.toUpperCase().replace(/\s+|_|-|\./g, '')
   }
+  // determine whether commenting is allowed for this entry
+  const statusNormalized = _normalize(entry.trangThaiNhatKy ?? entry.trangThai ?? entry.trangthai)
+  const isNotSubmitted = statusNormalized.includes('CHUA') || statusNormalized.includes('CHUANOP')
+  const isCompleted = statusNormalized.includes('HOANTHANH') || statusNormalized.includes('COMPLETED') || statusNormalized.includes('FINISHED')
+  const canComment = !(isNotSubmitted || isCompleted)
 
   const open = () => {
-  // block opening form for 'Chưa nộp' or 'Hoàn thành'
-  const s = _normalize(entry.trangThaiNhatKy ?? entry.trangThai ?? entry.trangthai)
-    if (s.includes('CHUA') || s.includes('CHUANOP')) {
-      // Chưa nộp -> cannot comment
-      window.alert('Không thể nhận xét: tuần chưa nộp.')
-      return
-    }
-    if (s.includes('HOANTHANH') || s.includes('COMPLETED') || s.includes('FINISHED')) {
-      // Hoàn thành -> cannot comment
-      window.alert('Không thể nhận xét: tuần đã hoàn thành.')
-      return
-    }
-
+    if (!canComment) return
     setText(entry.nhanXet ?? '')
     setShowForm(true)
   }
@@ -149,6 +142,8 @@ function CommentEditor({ entry, detailVm }: { entry: any; detailVm: any }) {
       }
     )
   }
+
+  if (!canComment) return null
 
   return (
     <div>

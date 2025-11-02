@@ -21,14 +21,34 @@ async function fetchHoiDong(params: { idGiangVien?: number; page?: number; size?
 }
 
 function Inner() {
+  // client-side pagination: fetch full list then page in UI (like DoAnListPage)
   const [page, setPage] = useState(0)
-  const size = 10
+  // match DoAnListPage default pageSize
+  const [pageSize, setPageSize] = useState(3)
+  // client-side search query
+  const [query, setQuery] = useState<string>('')
   const idGiangVien = 5
 
   const { data, isLoading, isError } = useQuery<any, Error>({
-    queryKey: ['hoi-dong', idGiangVien, page, size],
-    queryFn: () => fetchHoiDong({ idGiangVien, page, size, sort: 'thoiGianBatDau,DESC' }),
+    queryKey: ['hoi-dong', idGiangVien],
+    // do not pass page/size so API may return full list (or large page)
+    queryFn: () => fetchHoiDong({ idGiangVien, sort: 'thoiGianBatDau,DESC' }),
   })
+
+  // derive client-side pagination values
+  const rows = (((data as any)?.content) ?? [])
+  const filteredRows = query
+    ? rows.filter((r: any) => {
+        const name = (r.tenHoiDong ?? '').toString().toLowerCase()
+        const idStr = (r.id ?? '').toString()
+        return name.includes(query.toLowerCase()) || idStr.includes(query)
+      })
+    : rows
+  const totalElements = filteredRows.length
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
+  const pagedRows = filteredRows.slice(page * pageSize, (page + 1) * pageSize)
+  // reset to first page when pageSize or query changes to avoid out-of-range
+  React.useEffect(() => { setPage(0) }, [pageSize, query])
 
   const [detailId, setDetailId] = useState<number | null>(null)
   const detailQuery = useQuery<any, Error>({
@@ -45,6 +65,14 @@ function Inner() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Hội đồng</h1>
+        <div className="w-60">
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Tìm theo tên hoặc ID hội đồng"
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
+        </div>
       </div>
 
       <div className="bg-white shadow rounded p-4">
@@ -66,7 +94,7 @@ function Inner() {
                 </tr>
               </thead>
               <tbody>
-                {(((data as any)?.content) ?? []).map((h: any) => {
+                {pagedRows.map((h: any) => {
                   // compute status from start/end times
                   const now = new Date()
                   const start = h.thoiGianBatDau ? new Date(h.thoiGianBatDau) : null
@@ -94,25 +122,45 @@ function Inner() {
                         <span className={`inline-block px-3 py-1 rounded-full text-xs ${badgeClass}`}>{status}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 flex items-center justify-center">
-                            <button title="Xem" onClick={() => setDetailId(h.id)} className="p-2 bg-slate-50 text-sky-600 rounded-full flex items-center justify-center"><Eye size={16} /></button>
-                          </div>
-                        </div>
+                 
+                            <button
+                              title="Xem chi tiết"
+                              onClick={() => setDetailId(h.id)}
+                              className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
+                            >
+                              <Eye size={16} />
+                              Xem chi tiết
+                            </button>
+                
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-
-            {/* <div className="p-4 border-t flex items-center justify-center">
-              <div className="flex items-center gap-3">
-                <button disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))} className="px-3 py-1 border rounded">«</button>
-                <span className="px-3 py-1">Trang {(((data as any)?.pageable?.pageNumber ?? (data as any)?.number ?? page) as number) + 1} / {(data as any)?.totalPages ?? 1}</span>
-                <button disabled={!!(data as any)?.last} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border rounded">»</button>
-              </div>
-            </div> */}
+            {filteredRows.length === 0 && rows.length > 0 ? (
+              <div className="p-4 text-center text-slate-600">Không có kết quả phù hợp với tìm kiếm</div>
+            ) : null}
+            {/* Pagination controls (match DoAnListPage) */}
+            {(() => {
+              if (!totalPages || totalPages <= 1) return null
+              const showPageButtons = totalPages <= 10
+              const pages = showPageButtons ? Array.from({ length: totalPages }).map((_, i) => i) : []
+              return (
+                <div className="p-4 border-t flex items-center justify-between">
+                  <div className="text-sm text-slate-600">Hiển thị {totalElements} kết quả — Trang {page + 1} / {totalPages}</div>
+                  <div className="flex items-center gap-2">
+                    <button aria-label="previous page" disabled={page <= 0} onClick={() => setPage(Math.max(0, page - 1))} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">&lt;</button>
+                    {showPageButtons ? (
+                      pages.map(p => (
+                        <button key={p} onClick={() => setPage(p)} className={["px-3 py-1 rounded", p === page ? 'bg-sky-600 text-white' : 'bg-white border'].join(' ')}>{p + 1}</button>
+                      ))
+                    ) : null}
+                    <button aria-label="next page" disabled={page >= totalPages - 1} onClick={() => setPage(Math.min(totalPages - 1, page + 1))} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">&gt;</button>
+                  </div>
+                </div>
+              )
+            })()}
           </>
         )}
       </div>

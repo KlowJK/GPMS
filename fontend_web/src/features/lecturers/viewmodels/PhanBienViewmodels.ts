@@ -2,9 +2,13 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchDeCuongPage } from '../services/api'
 
-export function usePhanBienViewModel(initialPage = 0, initialSize = 10) {
+export function usePhanBienViewModel(currentName?: string, initialPage = 0, initialSize = 10) {
+  // server-side paging (used in query)
   const [page, setPage] = useState<number>(initialPage)
   const [size, setSize] = useState<number>(initialSize)
+  // client-side paging for visible (filtered) items
+  const [clientPage, setClientPage] = useState<number>(0)
+  const [clientSize, setClientSize] = useState<number>(10)
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState<string>('')
   const qc = useQueryClient()
@@ -43,11 +47,77 @@ export function usePhanBienViewModel(initialPage = 0, initialSize = 10) {
     return dedup
   })()
 
+  // compute visible items for the current reviewer name (if provided)
+  const visibleItems = (() => {
+    if (!currentName) return items
+    // normalize strings for matching: remove diacritics, lower-case, collapse spaces
+    function normalizeName(x: any) {
+      if (!x) return ''
+      const s = String(x).toLowerCase()
+      // remove common academic titles/prefixes to avoid mismatches (PGS., TS., ThS., Dr., etc.)
+      const noTitle = s.replace(/\b(pg?s|p\.g\.s|ths|ts|dr|mr|mrs|ms)\.?\b\s*/gi, '')
+      try {
+        return noTitle.normalize('NFKD').replace(/\p{M}/gu, '').replace(/\s+/g, ' ').trim()
+      } catch (e) {
+        return noTitle.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+      }
+    }
+
+    // more flexible matching: consider either side contains the other or token intersection
+    function namesMatch(a: string, b: string) {
+      if (!a || !b) return false
+      if (a.includes(b) || b.includes(a)) return true
+      const ta = a.split(' ').filter(Boolean)
+      const tb = b.split(' ').filter(Boolean)
+      // require at least two token matches or full token match for short names
+      const common = ta.filter(t => tb.includes(t))
+      return common.length >= Math.min(2, Math.min(ta.length, tb.length))
+    }
+
+    const cn = normalizeName(currentName)
+    return items.filter((it: any) => {
+      const rawGv = it.giangVienPhanBien ?? it.gvPhanBien ?? ''
+      const gv = normalizeName(rawGv)
+      if (!gv) return false
+      return namesMatch(gv, cn)
+    })
+  })()
+
+  // client-side pagination over visibleItems
+  const totalElements = visibleItems.length
+  const totalPages = Math.max(1, Math.ceil(totalElements / clientSize))
+  const pagedItems = visibleItems.slice(clientPage * clientSize, (clientPage + 1) * clientSize)
+
+  // helper to normalize and render status badge (moved from page)
+  function renderStatusBadge(raw: any) {
+    const s = raw == null ? '' : String(raw)
+    const key = s.toUpperCase().normalize('NFKD').replace(/\s+|_|-|\./g, '')
+
+    if (!s) {
+      return { label: 'Chưa phản biện', variant: 'neutral' }
+    }
+
+    if (key.includes('DADUYET') || key === 'DA' || key.includes('DA_DUYET') || key === 'TRUE') {
+      return { label: 'Đã duyệt', variant: 'success' }
+    }
+
+    if (key.includes('CHOXET') || key.includes('CHODUYET') || key === 'CHO') {
+      return { label: 'Chờ duyệt', variant: 'warn' }
+    }
+
+    if (key.includes('TUCHOI') || key.includes('TUCHỐI') || key.includes('TU_CHOI') || key.includes('TUCHOI') || key === 'FALSE') {
+      return { label: 'Từ chối', variant: 'danger' }
+    }
+
+    return { label: s, variant: 'neutral' }
+  }
+
   function refresh() {
     qc.invalidateQueries({ queryKey: ['de-cuong-page'] as any })
   }
 
   return {
+    // server-side query controls
     page,
     setPage,
     size,
@@ -61,6 +131,19 @@ export function usePhanBienViewModel(initialPage = 0, initialSize = 10) {
     isLoading: query.isLoading,
     isError: query.isError,
     refresh,
+
+    // visible + client-side paging for the current reviewer
+    visibleItems,
+    pagedItems,
+    totalElements,
+    totalPages,
+    clientPage,
+    setClientPage,
+    clientSize,
+    setClientSize,
+
+    // helpers
+    renderStatusBadge,
   }
 }
 

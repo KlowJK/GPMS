@@ -1,12 +1,20 @@
+// src/features/assistants/components/SubjectFormModal.tsx
 import { useEffect, useMemo, useState } from 'react';
-import assistantService from '@features/assistants/services/assistantService';
+
+import { unwrap, toPage } from '@features/assistants/services/base';
+
+// Org API (bộ môn/khoa)
 import type {
   Department,
   Subject,
-  Lecturer,
   CreateSubjectPayload,
   UpdateSubjectPayload,
-} from '@features/assistants/services/assistantService';
+} from '@features/assistants/services/organization/orgApi';
+import { setSubjectHead } from '@features/assistants/services/organization/orgApi';
+
+// User API (giảng viên)
+import type { Lecturer } from '@features/assistants/services/user/userApi';
+import { listLecturers } from '@features/assistants/services/user/userApi';
 
 type Props = {
   initial?: Subject;
@@ -36,28 +44,29 @@ export default function SubjectFormModal({ initial, departments, onClose, onSubm
   useEffect(() => {
     let alive = true;
     const q = gvSearch.trim();
-    // chỉ gọi khi có từ khoá hoặc cần preload ít nhất một lần
+
     setLoadingGV(true);
     const t = setTimeout(async () => {
       try {
-        const res = await assistantService.listLecturers({ page: 0, size: 10, q: q || undefined });
-        const pg = assistantService.toPage<Lecturer>(res, { page: 0, size: 10 });
+        const res = await listLecturers({ page: 0, size: 10, q: q || undefined });
+        const pg = toPage<Lecturer>(res, { page: 0, size: 10 });
         if (alive) setGvOptions(pg.content);
       } finally {
         if (alive) setLoadingGV(false);
       }
-    }, 250); // debounce
+    }, 250); // debounce 250ms
+
     return () => { alive = false; clearTimeout(t); };
   }, [gvSearch]);
 
   async function handleSubmit() {
-    // Lưu bộ môn
+    // Lưu bộ môn (create/update)
     const saved = await onSubmit({ tenBoMon, khoaId: toId(khoaId) });
 
-    // Gán/huỷ trưởng bộ môn theo lựa chọn (có thể để trống)
+    // Gán/huỷ Trưởng bộ môn theo lựa chọn (có thể để trống)
     const subjectId = saved?.id ?? initial?.id;
     if (subjectId != null) {
-      await assistantService.setSubjectHead({
+      await setSubjectHead({
         idBoMon: subjectId,
         idGiangVien: truongBoMonId ? toId(truongBoMonId) : null,
       });
@@ -74,15 +83,25 @@ export default function SubjectFormModal({ initial, departments, onClose, onSubm
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-sm text-slate-600 mb-1">Tên bộ môn</label>
-            <input className="w-full h-11 rounded border px-3"
-                   value={tenBoMon} onChange={e => setTenBoMon(e.target.value)} />
+            <input
+              className="w-full h-11 rounded border px-3"
+              value={tenBoMon}
+              onChange={(e) => setTenBoMon(e.target.value)}
+            />
           </div>
 
           <div className="col-span-2">
             <label className="block text-sm text-slate-600 mb-1">Khoa</label>
-            <select className="w-full h-11 rounded border px-3 bg-white"
-                    value={khoaId} onChange={e => setKhoaId(e.target.value)}>
-              {departments.map(d => <option key={`${d.id}`} value={String(d.id)}>{d.tenKhoa}</option>)}
+            <select
+              className="w-full h-11 rounded border px-3 bg-white"
+              value={khoaId}
+              onChange={(e) => setKhoaId(e.target.value)}
+            >
+              {departments.map((d) => (
+                <option key={`${d.id}`} value={String(d.id)}>
+                  {d.tenKhoa}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -105,7 +124,7 @@ export default function SubjectFormModal({ initial, departments, onClose, onSubm
                 onChange={(e) => setTruongBoMonId(e.target.value)}
               >
                 <option value="">{loadingGV ? 'Đang tải…' : '— Không chọn —'}</option>
-                {gvOptions.map(gv => (
+                {gvOptions.map((gv) => (
                   <option key={`${gv.id}`} value={String(gv.id)}>
                     {gv.hoTen} {gv.boMonTen ? `(${gv.boMonTen})` : ''}
                   </option>

@@ -8,9 +8,15 @@ export default function ReportHeader({ student, onClose }: { student: any; onClo
         <div>
           <div className="text-lg font-semibold">{student?.hoTen}</div>
           <div className="text-sm text-slate-500">Mã SV: <span className="font-medium text-slate-700">{student?.maSV}</span></div>
-          <div className="mt-2">
-            <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm">Sinh viên</span>
-          </div>
+              <div className="mt-2 flex flex-col gap-2">
+                <div>
+                  <div className="text-xs text-slate-500">Email</div>
+                  <div className="font-medium text-sm text-slate-700">{student?.email ?? '—'}</div>
+                </div>
+                <div>
+                  <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm">Sinh viên</span>
+                </div>
+              </div>
         </div>
       </div>
 
