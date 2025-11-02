@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
 import 'package:intl/intl.dart';
-import 'package:GPMS/shared/NewsDetailPage.dart';
+import 'package:GPMS/shared/components/NewsDetailPage.dart';
 
 class AllNewsPage extends StatefulWidget {
   final List<ThongBaoVaTinTuc> notifications;
@@ -40,6 +40,7 @@ class _AllNewsPageState extends State<AllNewsPage> {
     );
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
           'Tất cả tin tức',
           style: TextStyle(color: Colors.white),

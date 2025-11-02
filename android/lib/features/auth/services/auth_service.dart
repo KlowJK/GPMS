@@ -316,4 +316,109 @@ class AuthService {
       );
     }
   }
+
+  static Future<void> requestResetPassword(String email) async {
+    final uri = Uri.parse('$baseUrl/api/auth/request-reset-password');
+
+    if (kDebugMode) {
+      print('Gửi yêu cầu reset password đến: $uri');
+      print('Email: $email');
+    }
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email.trim()}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (kDebugMode) {
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Thành công: email đã được gửi
+        return;
+      } else {
+        // Lỗi từ server
+        ErrorCode errorCode;
+        try {
+          final errorData = jsonDecode(response.body);
+          errorCode = ErrorCode.fromResponse(errorData);
+        } catch (e) {
+          errorCode = ErrorCode.internalServerError;
+        }
+        throw CustomException(errorCode);
+      }
+    } on TimeoutException {
+      throw CustomException(ErrorCode.timeout);
+    } on SocketException {
+      throw CustomException(ErrorCode.noInternet);
+    } on http.ClientException {
+      throw CustomException(ErrorCode.internalServerError);
+    } catch (e) {
+      if (kDebugMode) print('Lỗi gửi yêu cầu reset: $e');
+      throw CustomException(ErrorCode.internalServerError);
+    }
+  }
+
+  /// ĐẶT LẠI MẬT KHẨU MỚI
+  static Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/auth/reset-password');
+
+    if (kDebugMode) {
+      print('Đặt lại mật khẩu tại: $uri');
+      print('Token length: ${token.length}');
+      print('New password length: ${newPassword.length}');
+    }
+
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'token': token, 'newPassword': newPassword}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (kDebugMode) {
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return;
+      } else {
+        ErrorCode errorCode;
+        try {
+          final errorData = jsonDecode(response.body);
+          errorCode = ErrorCode.fromResponse(errorData);
+        } catch (e) {
+          errorCode = ErrorCode.internalServerError;
+        }
+        throw CustomException(errorCode);
+      }
+    } on TimeoutException {
+      throw CustomException(ErrorCode.timeout);
+    } on SocketException {
+      throw CustomException(ErrorCode.noInternet);
+    } on http.ClientException {
+      throw CustomException(ErrorCode.internalServerError);
+    } catch (e) {
+      if (kDebugMode) print('Lỗi đặt lại mật khẩu: $e');
+      throw CustomException(ErrorCode.internalServerError);
+    }
+  }
 }

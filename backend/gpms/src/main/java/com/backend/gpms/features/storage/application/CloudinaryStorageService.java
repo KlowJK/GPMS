@@ -116,7 +116,7 @@ public class CloudinaryStorageService implements StorageService {
                 .collect(Collectors.toList());
     }
 
-        ThuVienDeTaiResponse mapToResponse(ThuVienDeTai thuVienDeTai) {
+    ThuVienDeTaiResponse mapToResponse(ThuVienDeTai thuVienDeTai) {
         List<ThuVienDeCuong> deCuongs = thuVienDeCuongRepository.findByThuVienDeTai(thuVienDeTai);
 
         List<ThuVienDeTaiResponse.DeCuongCuaDeTai> deCuongResponses = deCuongs.stream()
@@ -127,11 +127,20 @@ public class CloudinaryStorageService implements StorageService {
                         .build())
                 .collect(Collectors.toList());
 
+        String namHoc = null;
+        String hocKy = null;
+        if (thuVienDeTai.getDotBaoVe() != null) {
+            namHoc = thuVienDeTai.getDotBaoVe().getNamHoc();
+            hocKy = thuVienDeTai.getDotBaoVe().getHocKi(); // map hocKi -> hocKy in response
+        }
+
         return ThuVienDeTaiResponse.builder()
                 .id(thuVienDeTai.getId())
                 .deTai(thuVienDeTai.getDeTai())
                 .duongDan(thuVienDeTai.getDuongDan())
                 .idDotBaoVe(thuVienDeTai.getDotBaoVe() != null ? thuVienDeTai.getDotBaoVe().getId() : null)
+                .namHoc(namHoc)
+                .hocKy(hocKy)
                 .deCuongCuaDeTai(deCuongResponses)
                 .build();
     }

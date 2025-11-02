@@ -1,91 +1,61 @@
-import 'package:GPMS/features/lecturer/views/screens/trang_chu/trang_chu_giang_vien.dart';
-import 'package:GPMS/features/student/views/screens/trang_chu/trang_chu_sinh_vien.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
-import 'package:GPMS/features/auth/views/screens/forgot_password.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailFieldKey = GlobalKey<FormFieldState>();
-  final _passwordFieldKey = GlobalKey<FormFieldState>();
   final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  bool _obscure = true;
   bool _loading = false;
   String? _emailServerError;
-  String? _passwordServerError;
+  bool _sent = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _passwordCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _onLogin() async {
-    // Reset server-side errors
+  // Trong ForgotPasswordScreen
+
+  Future<void> _onSend() async {
     setState(() {
       _emailServerError = null;
-      _passwordServerError = null;
+      _sent = false;
     });
 
-    // Run client-side validation
-    final ok = _formKey.currentState?.validate() ?? false;
-    if (!ok) {
-      setState(() => _loading = false);
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
+
     try {
-      await context.read<AuthViewModel>().login(
+      await context.read<AuthViewModel>().forgotPassword(
         _emailCtrl.text.trim(),
-        _passwordCtrl.text,
       );
 
       if (!mounted) return;
 
-      // Navigate based on role
-      final vm = context.read<AuthViewModel>();
-      final role = vm.user?.role ?? '';
-      if (role.contains('GIANG') ||
-          role.contains('TEACHER') ||
-          role.contains('QUAN') ||
-          role.contains('TRO')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const TrangChuGiangVien()),
-        );
-      } else if (role.contains('SINH') || role.contains('STUDENT')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const TrangChuSinhVien()),
-        );
-      } else {
-        Navigator.pushReplacementNamed(context, '/');
-      }
+      setState(() => _sent = true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mã đặt lại mật khẩu đã được gửi đến email của bạn.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } on CustomException catch (e) {
       if (!mounted) return;
-      if (kDebugMode) {
-        print(
-          'Caught AuthException - code: ${e.errorCode.code}, field: ${e.errorCode.field}, message: ${e.errorCode.message}',
-        );
-      }
       setState(() {
         if (e.errorCode.field == 'email') {
           _emailServerError = e.errorCode.message;
-        } else if (e.errorCode.field == 'password') {
-          _passwordServerError = e.errorCode.message;
         } else {
           ScaffoldMessenger.of(
             context,
@@ -139,14 +109,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  'Đăng nhập',
+                                  'Quên mật khẩu',
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineSmall
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Nhập email của bạn để nhận mã đặt lại mật khẩu.',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: Colors.grey[600]),
+                                ),
+                                const SizedBox(height: 24),
+
                                 // Email field
                                 Text(
                                   'Email',
@@ -154,12 +132,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 TextFormField(
-                                  key: _emailFieldKey,
                                   controller: _emailCtrl,
-                                  textInputAction: TextInputAction.next,
                                   keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.done,
                                   decoration: InputDecoration(
-                                    hintText: 'Nhập email',
+                                    hintText: 'Nhập email của bạn',
                                     prefixIcon: const Icon(
                                       Icons.email_outlined,
                                     ),
@@ -171,72 +148,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                     if (v == null || v.trim().isEmpty) {
                                       return 'Vui lòng nhập email';
                                     }
+                                    if (!RegExp(
+                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                    ).hasMatch(v.trim())) {
+                                      return 'Email không hợp lệ';
+                                    }
                                     if (_emailServerError != null) {
                                       return _emailServerError;
                                     }
                                     return null;
                                   },
+                                  onFieldSubmitted: (_) => _onSend(),
                                 ),
-                                const SizedBox(height: 16),
-                                // Password field
-                                Text(
-                                  'Mật khẩu',
-                                  style: Theme.of(context).textTheme.labelLarge,
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  key: _passwordFieldKey,
-                                  controller: _passwordCtrl,
-                                  obscureText: _obscure,
-                                  decoration: InputDecoration(
-                                    hintText: 'Nhập mật khẩu',
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    suffixIcon: IconButton(
-                                      onPressed: () =>
-                                          setState(() => _obscure = !_obscure),
-                                      icon: Icon(
-                                        _obscure
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
-                                      ),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) {
-                                      return 'Vui lòng nhập mật khẩu';
-                                    }
-                                    if (v.length < 3) {
-                                      return 'Mật khẩu tối thiểu 6 ký tự';
-                                    }
-                                    if (_passwordServerError != null) {
-                                      return _passwordServerError;
-                                    }
-                                    return null;
-                                  },
-                                  onFieldSubmitted: (_) => _onLogin(),
-                                ),
-                                const SizedBox(height: 12),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: // Trong LoginScreen, thay thế TextButton "Quên mật khẩu?"
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const ForgotPasswordScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('Quên mật khẩu?'),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
+
+                                const SizedBox(height: 24),
+
+                                // Send Button
                                 FilledButton(
-                                  onPressed: _loading ? null : _onLogin,
+                                  onPressed: _loading || _sent ? null : _onSend,
                                   style: FilledButton.styleFrom(
                                     backgroundColor: const Color(0xFF2563EB),
                                     padding: const EdgeInsets.symmetric(
@@ -252,14 +181,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                           width: 22,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
+                                            color: Colors.white,
                                           ),
                                         )
+                                      : _sent
+                                      ? const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.check, size: 18),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Đã gửi',
+                                              style: TextStyle(fontSize: 16),
+                                            ),
+                                          ],
+                                        )
                                       : const Text(
-                                          'Đăng nhập',
+                                          'Gửi yêu cầu',
                                           style: TextStyle(fontSize: 16),
                                         ),
                                 ),
-                                const SizedBox(height: 12),
+
+                                const SizedBox(height: 16),
                               ],
                             ),
                           ),
@@ -278,28 +221,27 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+// === REUSE _HeaderHero FROM LOGIN ===
 class _HeaderHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final w = MediaQuery.of(context).size.width;
     final isWide = w >= 600;
 
     return Container(
-      // thanh hero đáp ứng, cao hơn chút ở màn hình rộng
       height: isWide ? 220 : 180,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF2563EB), Color(0xFF2563EB)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black12,
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -313,11 +255,9 @@ class _HeaderHero extends StatelessWidget {
                   ? MainAxisAlignment.start
                   : MainAxisAlignment.center,
               children: [
-                // Logo
                 Container(
                   width: isWide ? 72 : 56,
                   height: isWide ? 72 : 56,
-
                   child: const Image(
                     image: AssetImage('assets/images/logo.png'),
                     fit: BoxFit.contain,
