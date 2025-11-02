@@ -49,37 +49,36 @@ export default function NhatKy() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] flex flex-col items-stretch">
-      <div className="w-full max-w-full mx-auto px-0">
-        <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-[#222]">Nhật ký tiến độ</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="week" className="font-medium text-[#222]"></label>
-                <select
-                  id="week"
-                  className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"
-                  value={diaryVm.week}
-                  onChange={e => diaryVm.setWeek(Number(e.target.value))}
-                >
-                  {Array.isArray(diaryVm.weeks) ? diaryVm.weeks.map((w: any) => (
-                    <option key={w} value={w}>Tuần {w}</option>
-                  )) : null}
-                </select>
-              </div>
-
-              <div className="w-56">
-                <input
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="Tìm theo mã sinh viên"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
+      {/* Header: title left, search + week controls right (match PhanBienPage) */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-[#222]">Nhật ký tiến độ</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="week" className="sr-only">Tuần</label>
+            <select
+              id="week"
+              className="border border-[#B5D6F6] rounded px-2 py-1 min-w-[80px] focus:outline-none focus:ring-2 focus:ring-[#2F7CD3]"
+              value={diaryVm.week}
+              onChange={e => diaryVm.setWeek(Number(e.target.value))}
+            >
+              {Array.isArray(diaryVm.weeks) ? diaryVm.weeks.map((w: any) => (
+                <option key={w} value={w}>Tuần {w}</option>
+              )) : null}
+            </select>
           </div>
+            <div className="w-56">
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Tìm theo mã sinh viên"
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap gap-8 mb-6 text-sm">
+      <div className="bg-white shadow rounded-md p-8 border-10 border-[#2F7CD3] w-full max-w-full">
+        <div className="flex flex-wrap gap-8 mb-6 text-sm">
             <div className="flex items-center gap-2 text-[#222]">
               <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1" />
               Ngày bắt đầu : <span className="font-medium">{formatDateTime(diaryVm.currentWeekEntry?.ngayBatDau)}</span>
@@ -178,6 +177,5 @@ export default function NhatKy() {
           })()}
         </div>
       </div>
-    </div>
   );
 }
