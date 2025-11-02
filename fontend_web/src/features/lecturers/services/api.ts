@@ -277,6 +277,36 @@ export async function fetchReportsPage(params: { page?: number; size?: number; s
 }
 
 /**
+ * Fetch student basic info by student code
+ * GET /api/sinh-vien/{maSV}
+ */
+export async function fetchStudentByCode(maSV: string) {
+  if (!maSV) return null
+  const url = `/api/sinh-vien/${encodeURIComponent(String(maSV))}`
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result ?? null
+}
+
+/**
+ * Fetch list of hoi-dong (committees)
+ * GET /api/hoi-dong?{params}
+ */
+export async function fetchHoiDongList(idGiangVien?: number) {
+  const resp = await axios.get('/api/hoi-dong', {
+    params: { idGiangVien, sort: 'thoiGianBatDau,DESC' },
+    headers: { Accept: '*/*' },
+    timeout: 10000,
+  })
+  return resp.data?.result
+}
+
+export async function fetchHoiDongDetail(id: number | null) {
+  if (!id) return null
+  const resp = await axios.get(`/api/hoi-dong/${id}`, { headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result
+}
+
+/**
  * Reject a report (báo cáo) by id
  * PUT /api/bao-cao/tu-choi?idBaoCao={id}&nhanXet={nhanXet}
  * Returns: resp.data.result
