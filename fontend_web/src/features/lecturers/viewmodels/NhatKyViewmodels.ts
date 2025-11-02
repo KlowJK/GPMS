@@ -105,7 +105,8 @@ export function useDiaryViewModel(initialWeek = 1) {
     // diary list (by week)
     data: diaryQuery.data ?? [],
     isLoading: diaryQuery.isLoading,
-    isError: diaryQuery.isError,
+  isError: diaryQuery.isError,
+  diaryError: diaryQuery.error,
 
     // pagination
     page,

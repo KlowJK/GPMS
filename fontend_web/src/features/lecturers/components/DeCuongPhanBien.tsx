@@ -10,9 +10,11 @@ interface DeCuongDetailModalProps {
   onClose: () => void
   item: DeCuongItem | null
   currentName: string
+  useTbmStatus?: boolean
+  showChoActions?: boolean
 }
 
-export default function DeCuongDetailModal({ open, onClose, item, currentName }: DeCuongDetailModalProps) {
+export default function DeCuongDetailModal({ open, onClose, item, currentName, useTbmStatus, showChoActions }: DeCuongDetailModalProps) {
   if (!open || !item) return null
 
   // prefer maSinhVien then maSV
@@ -140,6 +142,8 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
               {related.map((v: any) => {
                 const reviewers = String(v.raw?.giangVienPhanBien ?? v.giangVienPhanBien ?? '')
                 const gvStatusRaw = v.raw?.gvPhanBienDuyet ?? v.gvPhanBienDuyet ?? null
+                const tbmStatusRaw = v.raw?.tbmDuyet ?? v.tbmDuyet ?? null
+                const statusRaw = useTbmStatus ? tbmStatusRaw : gvStatusRaw
 
                 const normalizeName = (s?: string) => {
                   if (!s) return ''
@@ -164,7 +168,12 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
                   return parts.some(p => nameTokens.every(t => p.includes(t)))
                 }
 
-                const assignedToCurrent = matchReviewer(reviewers, currentName) || matchReviewer(String(item.giangVienPhanBien ?? item.raw?.giangVienPhanBien ?? ''), currentName)
+                // consider reviewer assignment OR (when modal is used for TBM) TBM ownership
+                const assignedToCurrent = (
+                  matchReviewer(reviewers, currentName)
+                  || matchReviewer(String(item.giangVienPhanBien ?? item.raw?.giangVienPhanBien ?? ''), currentName)
+                  || (useTbmStatus && matchReviewer(String(item.truongBoMon ?? item.raw?.truongBoMon ?? ''), currentName))
+                )
 
                 const normalizeStatusKey = (r?: any) => {
                   if (r == null) return ''
@@ -214,8 +223,8 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
                   return { barColor: '#0284c7', badgeBg: '#f1f5f9', badgeText: '#334155', label: s }
                 }
 
-                const status = getStatusClasses(gvStatusRaw)
-                const _normalizedStatusKey = normalizeStatusKey(gvStatusRaw)
+                const status = getStatusClasses(statusRaw)
+                const _normalizedStatusKey = normalizeStatusKey(statusRaw)
                 // if status is specifically a pending-for-approval key (CHO + DUYET), hide its textual badge
                 const isChoDuyet = _normalizedStatusKey.includes('CHO') && _normalizedStatusKey.includes('DUYET')
                 return (
@@ -239,7 +248,7 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
                           {status.label && !isChoDuyet ? (
                             <div className="inline-block px-3 py-1 rounded-full text-xs" style={{ backgroundColor: status.badgeBg, color: status.badgeText }}>{status.label}</div>
                           ) : null}
-                          {isPendingStrict(gvStatusRaw) && assignedToCurrent ? (
+                          {isPendingStrict(statusRaw) && assignedToCurrent && (!isChoDuyet || !!showChoActions) ? (
                             rejectOpenId === v.id ? (
                               <div className="mt-2">
                                 <textarea value={rejectReasonInput} onChange={(e) => setRejectReasonInput(e.target.value)} placeholder="Lý do từ chối (tùy chọn)" className="w-full p-2 border rounded text-sm" rows={3} />
@@ -269,16 +278,16 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName }:
                       </div>
 
                       {/* comment area */}
-                      {((isRejected(gvStatusRaw) || isPending(gvStatusRaw) || status.label === 'Đã duyệt' || status.label === 'Đã nộp') && ((Array.isArray(v.nhanXets) && v.nhanXets.length > 0) || v.nhanXet)) ? (
+                      {((isRejected(statusRaw) || isPending(statusRaw) || status.label === 'Đã duyệt' || status.label === 'Đã nộp') && ((Array.isArray(v.nhanXets) && v.nhanXets.length > 0) || v.nhanXet)) ? (
                         <div className={
                           `mt-2 p-3 rounded text-sm ` +
-                          (isRejected(gvStatusRaw)
+                          (isRejected(statusRaw)
                             ? 'bg-rose-50 border border-rose-100 text-rose-700'
                             : (status.label === 'Đã duyệt' || status.label === 'Đã nộp')
                             ? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
                             : 'bg-slate-50 border border-slate-100 text-slate-700')
                         }>
-                          <div className="font-medium text-sm">{isRejected(gvStatusRaw) ? 'Lý do từ chối' : 'Nhận xét'}</div>
+                          <div className="font-medium text-sm">{isRejected(statusRaw) ? 'Lý do từ chối' : 'Nhận xét'}</div>
                           {Array.isArray(v.nhanXets) && v.nhanXets.length > 0 ? (
                             (() => {
                               const items = v.nhanXets as any[]

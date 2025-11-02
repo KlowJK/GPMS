@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useAuth } from '@shared/hooks/useAuth'
 import { Home, FileText, CalendarCheck, ClipboardCheck, Building, MessageSquare } from 'lucide-react'
 
 export default function Sidebar({ onClose, overlay = false }: { onClose: () => void; overlay?: boolean }) {
@@ -10,7 +11,10 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
     setSelected(location.pathname)
   }, [location.pathname])
 
-  const items = [
+  const { roles } = useAuth()
+  const isHead = roles.includes('TRUONG_BO_MON')
+
+  const baseItems = [
     { to: '/lecturers', icon: Home, label: 'Trang chủ' },
     { to: '/lecturers/do-an', icon: FileText, label: 'Đồ án' },
     { to: '/lecturers/nhat-ky', icon: CalendarCheck, label: 'Nhật ký tiến độ' },
@@ -18,6 +22,11 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
     { to: '/lecturers/phan-bien', icon: MessageSquare, label: 'Phản biện' },
     { to: '/lecturers/hoi-dong', icon: Building, label: 'Hội đồng' },
   ]
+
+  // Insert Trưởng bộ môn item for users with that role
+  const items = isHead
+    ? [baseItems[0], baseItems[1], { to: '/lecturers/truong-bo-mon', icon: Building, label: 'Trưởng bộ môn' }, ...baseItems.slice(2)]
+    : baseItems
 
   const body = (
     <aside className="h-full w-[259px] bg-[#2F7CD3] text-white flex flex-col shadow-md rounded-br-xl relative px-5 py-6">
@@ -47,6 +56,10 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
         {items.slice(1).map(({ to, icon: Icon, label }) => {
           if (to === '/lecturers/do-an') {
             return <DoAnItem key={to} to={to} Icon={Icon} overlay={overlay} onClose={onClose} />
+          }
+
+          if (to === '/lecturers/truong-bo-mon') {
+            return <TruongBoMonItem key={to} to={to} Icon={Icon} overlay={overlay} onClose={onClose} />
           }
 
           return (
@@ -103,6 +116,44 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
                   </NavLink>
                   <NavLink to={path2} className={`block text-sm ${sel2 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path2) }}>
                     Duyệt đề tài
+                  </NavLink>
+                </>
+              )
+            })()}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function TruongBoMonItem({ to, Icon, overlay, onClose }: { to: string; Icon: any; overlay: boolean; onClose: () => void }) {
+    const location = useLocation()
+    const [open, setOpen] = useState(() => location.pathname.startsWith('/lecturers/truong-bo-mon'))
+
+    useEffect(() => setOpen(location.pathname.startsWith('/lecturers/truong-bo-mon')), [location.pathname])
+
+    return (
+      <div className="w-[219px]">
+        <div className="flex items-center gap-3 px-4 py-3 text-white/80 cursor-pointer" onClick={() => setOpen(s => !s)}>
+          <Icon size={18} />
+          <span className="text-sm font-medium">Trưởng bộ môn</span>
+          <div className="ml-auto text-xs">{open ? '▾' : '▸'}</div>
+        </div>
+
+        {open && (
+          <div className="mt-2 space-y-2 pl-8">
+            {(() => {
+              const path1 = '/lecturers/truong-bo-mon/duyet-de-cuong-cuoi'
+              const path2 = '/lecturers/truong-bo-mon/phan-cong-giang-vien'
+              const sel1 = selected === path1
+              const sel2 = selected === path2
+              return (
+                <>
+                  <NavLink to={path1} className={`block text-sm ${sel1 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path1) }}>
+                    Duyệt đề cương cuối
+                  </NavLink>
+                  <NavLink to={path2} className={`block text-sm ${sel2 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path2) }}>
+                    Phân công giảng viên hướng dẫn
                   </NavLink>
                 </>
               )
