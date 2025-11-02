@@ -24,4 +24,6 @@ public interface ThoiGianThucHienRepository extends JpaRepository<ThoiGianThucHi
     Optional<ThoiGianThucHien> findTopByCongViecAndThoiGianBatDauLessThanEqualAndThoiGianKetThucGreaterThanEqualOrderByThoiGianBatDauDesc(
             CongViec cv, LocalDate today1, LocalDate today2
     );
+
+    List<ThoiGianThucHien> findByThoiGianKetThucIn(List<LocalDate> dates);
 }

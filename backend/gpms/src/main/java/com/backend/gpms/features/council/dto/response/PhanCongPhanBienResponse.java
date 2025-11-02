@@ -14,11 +14,14 @@ public class PhanCongPhanBienResponse {
 
     Long id;
     String tenHoiDong;
+    LocalDate ngayBatDau;
+    LocalDate ngayKetThuc;
     String maSinhVien;
     String hoTen;
     String lop;
     String idDeTai;
     String tenDeTai;
+    String duongDanBaoCao;
     String gvhd;
     String idBoMon;
     String boMon;

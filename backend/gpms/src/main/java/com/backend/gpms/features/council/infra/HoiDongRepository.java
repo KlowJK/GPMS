@@ -60,4 +60,6 @@ public interface HoiDongRepository extends JpaRepository<HoiDong, Long> {
     Page<HoiDong>findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(DotBaoVe dotBaoVe,Long giangVienId, Pageable pageable);
 
     List<HoiDong> findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(DotBaoVe dotBaoVe,Long giangVienId);
+
+    List<HoiDong> findByThoiGianBatDau(LocalDate date);
 }
