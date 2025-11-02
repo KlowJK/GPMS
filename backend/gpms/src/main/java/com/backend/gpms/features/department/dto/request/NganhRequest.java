@@ -17,7 +17,7 @@ public class NganhRequest {
     String tenNganh;
 
     @NotNull(message = "MA_NGANH_EMPTY")
-    @Pattern(regexp = "^TLU.*", message = "MA_NGANH_INVALID_PREFIX")
+    @Pattern(regexp = "^TLA.*", message = "MA_NGANH_INVALID_PREFIX")
     String maNganh;
 
     @NotNull(message = "KHOA_EMPTY")
