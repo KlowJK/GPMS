@@ -1,5 +1,6 @@
 // src/features/assistants/pages/Staff.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pencil } from 'lucide-react';
 import {
   type Lecturer,
   listLecturersNormalized,
@@ -152,8 +153,14 @@ export default function StaffPage() {
                   <td className="px-4 py-3">{row.soDienThoai ?? '—'}</td>
                   <td className="px-4 py-3">{bmTen}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => openEdit(row)} className="px-3 py-1 border rounded">Sửa</button>
-                  </td>
+<button
+  onClick={() => openEdit(row)}
+  className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
+  title="Sửa"
+>
+  <Pencil size={16} />
+  <span className="sr-only">Sửa</span>
+</button>                  </td>
                 </tr>
               );
             })}

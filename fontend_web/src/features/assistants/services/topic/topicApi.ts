@@ -8,27 +8,24 @@ export type DefenseRound = {
   tenDotBaoVe: string;
   hocKi: string;
   namHoc: string;
-  thoiGianBatDau: string;   // yyyy-MM-dd
-  thoiGianKetThuc: string;  // yyyy-MM-dd
-  // BE có thể trả 1 trong các field boolean sau:
-  trangThai?: boolean | null; // (BE cũ: false=đang diễn ra, true=kết thúc)
+  thoiGianBatDau: string;
+  thoiGianKetThuc: string;
+  trangThai?: boolean | null;
   daKhoa?: boolean | null;
   khoa?: boolean | null;
   isLocked?: boolean | null;
   locked?: boolean | null;
 };
 
-/** Alias để import ở file khác */
 export type CreateUpdateDefenseRound = Omit<DefenseRound, 'id'>;
 
-/** UI model: có cờ boolean + chuỗi hiển thị */
 export type DefenseRoundUI = DefenseRound & {
-  lockedFlag: boolean | null;                     // nguyên trạng từ BE (gom về 1 cờ)
-  statusText: 'Đang diễn ra' | 'Kết thúc' | '—';  // chuỗi hiển thị
+  lockedFlag: boolean | null;
+  statusText: 'Đang diễn ra' | 'Kết thúc' | '—';
 };
 
-export const listDefenseRounds = (params?: PageParams) =>
-  axios.get('/api/dot-bao-ve', { params });
+export const listDefenseRounds = (params?: PageParams & { namHoc?: string; hocKi?: string }) =>
+  axios.get('/api/dot-bao-ve', { params }); // ❗️không tự thêm mặc định
 
 export const createDefenseRound = (body: CreateUpdateDefenseRound) =>
   axios.post('/api/dot-bao-ve', body);
@@ -39,22 +36,48 @@ export const updateDefenseRound = (id: Id, body: CreateUpdateDefenseRound) =>
 export const deleteDefenseRound = (id: Id) =>
   axios.delete(`/api/dot-bao-ve/${id}`);
 
+/** Toggle khóa/mở đợt */
 export const lockDefenseRound = (id: Id) =>
   axios.put(`/api/dot-bao-ve/${id}/khoa`);
 
-export const importStudentsToRound = (roundId: Id, file: File) => {
+/** Import SV – LẤY hocKi & namHoc TỪ OBJECT ROUND */
+export const importStudentsToRound = (
+  round: Id | { id: Id; hocKi?: string; namHoc?: string },
+  file: File
+) => {
   const fd = new FormData();
+
+  // file: hỗ trợ cả 'file' lẫn 'dataFile'
   fd.append('file', file);
-  fd.append('dotBaoVeId', String(roundId));
-  fd.append('idDotBaoVe', String(roundId));
+  fd.append('dataFile', file);
+
+  const id = typeof round === 'object' ? round.id : round;
+  const hocKi = typeof round === 'object' ? round.hocKi : undefined;
+  const namHoc = typeof round === 'object' ? round.namHoc : undefined;
+
+  // id đợt: gửi cả 2
+  fd.append('dotBaoVeId', String(id));
+  fd.append('idDotBaoVe', String(id));
+
+  // học kì: alias để BE nào cũng bắt được
+  if (hocKi) {
+    fd.append('hocKi', hocKi);
+    fd.append('hocKy', hocKi);
+  }
+
+  // năm học: alias để BE nào cũng bắt được
+  if (namHoc) {
+    fd.append('namHoc', namHoc);
+    fd.append('nam_hoc', namHoc);
+  }
+
   return axios.post('/api/dot-bao-ve/import-sinh-vien', fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
-// ---- Chuẩn hoá ----
+// ---- Chuẩn hoá hiển thị ----
 function pickLockedFlag(x: any): boolean | null {
-  // lấy field boolean đầu tiên tồn tại
   return (
     (typeof x?.daKhoa === 'boolean' ? x.daKhoa : undefined) ??
     (typeof x?.khoa === 'boolean' ? x.khoa : undefined) ??
@@ -68,9 +91,8 @@ const cut = (s: any) => (typeof s === 'string' ? s.slice(0, 10) : '');
 export function normalizeDefenseRound(x: any): DefenseRoundUI {
   const lockedLike = pickLockedFlag(x);
   const statusText =
-    lockedLike === true ? 'Kết thúc'
-  : lockedLike === false ? 'Đang diễn ra'
-  : '—';
+    lockedLike === true ? 'Kết thúc' :
+    lockedLike === false ? 'Đang diễn ra' : '—';
 
   return {
     id: x.id ?? x.dotBaoVeId ?? x._id,
@@ -79,20 +101,18 @@ export function normalizeDefenseRound(x: any): DefenseRoundUI {
     namHoc: x.namHoc ?? '',
     thoiGianBatDau: cut(x.thoiGianBatDau ?? x.startDate),
     thoiGianKetThuc: cut(x.thoiGianKetThuc ?? x.endDate),
-
     trangThai: typeof x.trangThai === 'boolean' ? x.trangThai : undefined,
     daKhoa: typeof x.daKhoa === 'boolean' ? x.daKhoa : undefined,
     khoa: typeof x.khoa === 'boolean' ? x.khoa : undefined,
     isLocked: typeof x.isLocked === 'boolean' ? x.isLocked : undefined,
     locked: typeof x.locked === 'boolean' ? x.locked : undefined,
-
     lockedFlag: lockedLike,
     statusText,
   };
 }
 
 export async function listDefenseRoundsNormalized(
-  params?: PageParams
+  params?: PageParams & { namHoc?: string; hocKi?: string }
 ): Promise<Page<DefenseRoundUI>> {
   const res = await listDefenseRounds(params);
   const raw = unwrap<any>(res);

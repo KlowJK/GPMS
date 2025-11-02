@@ -10,12 +10,12 @@ import {
   createRoundTime,
   updateRoundTime,
   normalizeRoundTime,
-  
   type DefenseRound,
   type RoundTimeUI,
   type CreateRoundTime,
   type UpdateRoundTime,
 } from '@/features/assistants/services/topic/topicApi';
+import { useToast } from '@/features/admin/components/ToastProvider';
 
 const CV_LABELS: Record<string, string> = {
   DANG_KY_DE_TAI: 'Đăng ký đề tài',
@@ -27,13 +27,14 @@ const cvText = (code?: string) => (code ? (CV_LABELS[code] ?? code) : '—');
 const fmt = (d?: string) => (!d ? '—' : d.split('-').reverse().join('/'));
 
 export default function RoundTimesPage() {
+  const { success, error } = useToast();
+
   const [rounds, setRounds] = useState<DefenseRound[]>([]);
   const [times, setTimes] = useState<RoundTimeUI[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const [modal, setModal] = useState<{ open: boolean; editing?: RoundTimeUI | null }>({ open: false });
 
-  // map id -> tên đợt (để hiện ở cột Đợt bảo vệ & fallback cho record thiếu tenDotBaoVe)
   const roundNameById = useMemo(() => {
     const m = new Map<string, string>();
     rounds.forEach((r) => m.set(String(r.id), r.tenDotBaoVe));
@@ -43,7 +44,6 @@ export default function RoundTimesPage() {
   useEffect(() => {
     (async () => {
       try {
-        // 1) tải danh sách đợt
         const resR = await listDefenseRounds({ page: 0, size: 999 });
         const rawR = unwrap<any>(resR);
         const listR: DefenseRound[] = Array.isArray(rawR?.content)
@@ -55,16 +55,15 @@ export default function RoundTimesPage() {
       } catch {
         setRounds([]);
       }
-      // 2) tải toàn bộ mốc thời gian
       await loadAllTimes();
     })();
-  }, []);
+  }, []); // eslint-disable-line
 
   async function loadAllTimes() {
     setLoading(true);
-    setError(null);
+    setErr(null);
     try {
-      const res = await listRoundTimes(); // BE có thể trả page hoặc mảng
+      const res = await listRoundTimes();
       const raw = unwrap<any>(res);
       const arr: any[] = Array.isArray(raw?.content) ? raw.content : (Array.isArray(raw) ? raw : []);
       const mapped: RoundTimeUI[] = arr
@@ -73,7 +72,7 @@ export default function RoundTimesPage() {
       setTimes(mapped);
     } catch (e: any) {
       setTimes([]);
-      setError(e?.response?.data?.message || 'Không tải được dữ liệu.');
+      setErr(e?.response?.data?.message || 'Không tải được dữ liệu.');
     } finally {
       setLoading(false);
     }
@@ -85,9 +84,10 @@ export default function RoundTimesPage() {
         <h1 className="text-3xl font-semibold mx-auto">Thời gian thực hiện</h1>
       </div>
 
-      <div className="flex">
+      {/* ✅ Nút nằm bên phải nhờ ml-auto */}
+      <div className="flex items-center">
         <button
-          className="ml-auto px-4 h-10 rounded bg-blue-600 text-white inline-flex items-center gap-2"
+          className=" px-4 h-10 rounded bg-blue-600 text-white inline-flex items-center gap-2"
           onClick={() => setModal({ open: true, editing: null })}
         >
           <Plus size={16} /> Thêm thời gian
@@ -109,73 +109,72 @@ export default function RoundTimesPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center">
-                  Đang tải…
-                </td>
+                <td colSpan={6} className="px-4 py-6 text-center">Đang tải…</td>
               </tr>
             )}
-            {!loading && error && (
+            {!loading && err && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-red-600">
-                  {error}
-                </td>
+                <td colSpan={6} className="px-4 py-6 text-center text-red-600">{err}</td>
               </tr>
             )}
-            {!loading && !error && times.length === 0 && (
+            {!loading && !err && times.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center">
-                  Chưa có mốc thời gian.
-                </td>
+                <td colSpan={6} className="px-4 py-6 text-center">Chưa có mốc thời gian.</td>
               </tr>
             )}
-            {!loading &&
-              !error &&
-              times.map((t, idx) => (
-                <tr key={String(t.id)} className="border-t">
-                  <td className="px-4 py-3">{idx + 1}</td>
-                  <td className="px-4 py-3">{t.tenDotBaoVe ?? roundNameById(t.dotBaoVeId)}</td>
-                  <td className="px-4 py-3">{cvText(t.congViec)}</td>
-                  <td className="px-4 py-3">{fmt(t.thoiGianBatDau)}</td>
-                  <td className="px-4 py-3">{fmt(t.thoiGianKetThuc)}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      className="h-9 w-9 rounded border inline-grid place-items-center"
-                      title="Sửa"
-                      onClick={() => setModal({ open: true, editing: t })}
-                    >
-                      <Pencil size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            {!loading && !err && times.map((t, idx) => (
+              <tr key={String(t.id)} className="border-t">
+                <td className="px-4 py-3">{idx + 1}</td>
+                <td className="px-4 py-3">{t.tenDotBaoVe ?? roundNameById(t.dotBaoVeId)}</td>
+                <td className="px-4 py-3">{cvText(t.congViec)}</td>
+                <td className="px-4 py-3">{fmt(t.thoiGianBatDau)}</td>
+                <td className="px-4 py-3">{fmt(t.thoiGianKetThuc)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
+                    title="Sửa"
+                    onClick={() => setModal({ open: true, editing: t })}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       {modal.open && (
         <RoundTimeFormModal
-          rounds={rounds} // dropdown trong modal chọn dotBaoVeId
+          rounds={rounds}
           initial={modal.editing ?? undefined}
           onClose={() => setModal({ open: false })}
           onSubmit={async (p) => {
-            if (modal.editing) {
-              const body: UpdateRoundTime = {
-                congViec: p.congViec,
-                thoiGianBatDau: p.thoiGianBatDau,
-                thoiGianKetThuc: p.thoiGianKetThuc,
-                dotBaoVeId: p.dotBaoVeId, // cho phép đổi đợt khi sửa
-              };
-              await updateRoundTime(modal.editing.id, body);
-            } else {
-              const body: CreateRoundTime = {
-                congViec: p.congViec,
-                thoiGianBatDau: p.thoiGianBatDau,
-                thoiGianKetThuc: p.thoiGianKetThuc,
-                dotBaoVeId: p.dotBaoVeId,
-              };
-              await createRoundTime(body);
+            try {
+              if (modal.editing) {
+                const body: UpdateRoundTime = {
+                  congViec: p.congViec,
+                  thoiGianBatDau: p.thoiGianBatDau,
+                  thoiGianKetThuc: p.thoiGianKetThuc,
+                  dotBaoVeId: p.dotBaoVeId,
+                };
+                await updateRoundTime(modal.editing.id, body);
+                success('Cập nhật mốc thời gian thành công.');
+              } else {
+                const body: CreateRoundTime = {
+                  congViec: p.congViec,
+                  thoiGianBatDau: p.thoiGianBatDau,
+                  thoiGianKetThuc: p.thoiGianKetThuc,
+                  dotBaoVeId: p.dotBaoVeId,
+                };
+                await createRoundTime(body);
+                success('Thêm mốc thời gian thành công.');
+              }
+              await loadAllTimes();
+              setModal({ open: false });
+            } catch (e: any) {
+              error(e?.response?.data?.message || 'Lưu mốc thời gian thất bại.');
             }
-            await loadAllTimes();
           }}
         />
       )}

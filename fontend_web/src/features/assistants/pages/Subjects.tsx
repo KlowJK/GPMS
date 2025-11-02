@@ -1,5 +1,6 @@
 // src/features/assistants/pages/Subjects.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import {
   type Subject,
   type Department,
@@ -17,9 +18,20 @@ import SubjectFormModal from '@/features/assistants/components/SubjectFormModal'
 import { useToast } from '@/features/admin/components/ToastProvider';
 
 type ModalState = { open: boolean; editing?: Subject | null };
+type ConfirmState = { open: boolean; row?: Subject | null; busy?: boolean };
+
+/** Debounce nhỏ gọn cho ô tìm kiếm */
+function useDebounce<T>(value: T, delay = 300) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return v;
+}
 
 export default function SubjectsPage() {
-  const { success, error } = useToast();
+  const { success, error: toastError } = useToast();
 
   const [rows, setRows] = useState<Subject[]>([]);
   const [deps, setDeps] = useState<Department[]>([]);
@@ -27,41 +39,58 @@ export default function SubjectsPage() {
   const [size] = useState(1000);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
+  const qDebounced = useDebounce(q, 300);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false });
+  const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
 
   async function loadOptions() {
-    const res = await listDepartments({ page: 0, size: 999 });
-    const pg = toPage<Department>(res, { page: 0, size: 999 });
-    setDeps(pg.content);
+    try {
+      const res = await listDepartments({ page: 0, size: 999 });
+      const pg = toPage<Department>(res, { page: 0, size: 999 });
+      setDeps(pg.content);
+    } catch (e: any) {
+      setDeps([]);
+      toastError(e?.response?.data?.message || 'Không tải được danh sách khoa.');
+    }
   }
 
   async function load() {
     setLoading(true);
     try {
-      const res = await listSubjects({ page, size, q: q.trim() || undefined });
+      const res = await listSubjects({ page, size, q: qDebounced.trim() || undefined });
       const pg = toPage<Subject>(res, { page, size });
       setRows(pg.content);
       setTotal(pg.totalElements);
+    } catch (e: any) {
+      setRows([]); setTotal(0);
+      toastError(e?.response?.data?.message || 'Không tải được danh sách bộ môn.');
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => { loadOptions(); }, []);
-  useEffect(() => { load(); }, [page, size, q]);
+  useEffect(() => { load(); }, [page, size, qDebounced]);
 
   const openCreate = () => setModal({ open: true, editing: null });
   const openEdit = (row: Subject) => setModal({ open: true, editing: row });
 
-  async function onDelete(row: Subject) {
-    if (!confirm(`Xóa bộ môn "${row.tenBoMon}"?`)) return;
+  function askDelete(row: Subject) {
+    setConfirm({ open: true, row, busy: false });
+  }
+
+  async function doDelete() {
+    if (!confirm.row) return;
     try {
-      await deleteSubject(row.id);
+      setConfirm((c) => ({ ...c, busy: true }));
+      await deleteSubject(confirm.row.id);
       success('Xóa bộ môn thành công.');
+      setConfirm({ open: false, row: null, busy: false });
       await load();
-    } catch {
-      error('Không thể xóa bộ môn.');
+    } catch (e: any) {
+      setConfirm((c) => ({ ...c, busy: false }));
+      toastError(e?.response?.data?.message || 'Không thể xóa bộ môn.');
     }
   }
 
@@ -106,8 +135,25 @@ export default function SubjectsPage() {
                   {r.khoaTen ?? deps.find(d => `${d.id}` === `${r.khoaId}`)?.tenKhoa ?? '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <button className="text-blue-600 mr-4" onClick={() => openEdit(r)}>Sửa</button>
-                  <button className="text-red-600" onClick={() => onDelete(r)}>Xóa</button>
+                  <button
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
+                    onClick={() => openEdit(r)}
+                    title="Sửa"
+                    aria-label="Sửa bộ môn"
+                  >
+                    <Pencil size={16} />
+                    <span className="sr-only">Sửa</span>
+                  </button>
+
+                  <button
+                    className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50"
+                    onClick={() => askDelete(r)}
+                    title="Xóa"
+                    aria-label="Xóa bộ môn"
+                  >
+                    <Trash2 size={16} />
+                    <span className="sr-only">Xóa</span>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -125,6 +171,35 @@ export default function SubjectsPage() {
         </div>
       </div>
 
+      {/* Modal xác nhận xóa */}
+      {confirm.open && confirm.row && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
+          <div className="w-[460px] rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold mb-2">Xác nhận xóa</h3>
+            <p className="text-sm text-slate-600">
+              Bạn có chắc muốn xóa bộ môn <span className="font-medium">{confirm.row.tenBoMon}</span>?
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="h-10 rounded bg-slate-200 px-4"
+                onClick={() => setConfirm({ open: false, row: null, busy: false })}
+                disabled={confirm.busy}
+              >
+                Hủy
+              </button>
+              <button
+                className="inline-flex items-center gap-2 h-10 rounded bg-red-600 px-4 text-white disabled:opacity-50"
+                onClick={doDelete}
+                disabled={confirm.busy}
+              >
+                <Trash2 size={16} />
+                {confirm.busy ? 'Đang xóa…' : 'Xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modal.open && (
         <SubjectFormModal
           initial={modal.editing ?? undefined}
@@ -141,8 +216,8 @@ export default function SubjectsPage() {
               }
               setModal({ open: false });
               await load();
-            } catch {
-              error('Lưu bộ môn thất bại.');
+            } catch (e: any) {
+              toastError(e?.response?.data?.message || 'Lưu bộ môn thất bại.');
             }
           }}
         />

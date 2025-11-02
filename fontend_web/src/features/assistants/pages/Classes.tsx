@@ -12,11 +12,15 @@ import {
 } from '@/features/assistants/services/organization/orgApi';
 import ClassFormModal from '@/features/assistants/components/ClassFormModal';
 import { Pencil, Search, Trash2, Plus } from 'lucide-react';
+import { useToast } from '@/features/admin/components/ToastProvider';
 
 type MajorRow = { id: Id; tenNganh: string; khoaId: Id };
 type DeptRow  = { id: Id; tenKhoa: string };
+type ConfirmState = { open: boolean; row?: OrgClass | null; busy?: boolean };
 
 export default function ClassesPage() {
+  const { success, error: toastError } = useToast();
+
   const [items, setItems] = useState<OrgClass[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -32,6 +36,9 @@ export default function ClassesPage() {
   // modal & ref chống race condition
   const [modal, setModal] = useState<{ open: boolean; editing?: OrgClass | null }>({ open: false });
   const editingIdRef = useRef<Id | null>(null);
+
+  // modal xác nhận xoá
+  const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
 
   const keyword = useMemo(() => q.trim().toLowerCase(), [q]);
 
@@ -91,17 +98,31 @@ export default function ClassesPage() {
   const from = page * size + 1;
   const to = Math.min(total, page * size + items.length);
 
-  async function handleDelete(x: OrgClass) {
-    if (!confirm(`Xóa lớp "${x.tenLop}"?`)) return;
-    await deleteOrgClass(x.id);
-    await loadClasses();
-  }
-
   function openCreate() {
     setModal({ open: true, editing: null });
   }
   function openEdit(x: OrgClass) {
     setModal({ open: true, editing: x });
+  }
+
+  // mở modal xác nhận xoá
+  function askDelete(row: OrgClass) {
+    setConfirm({ open: true, row, busy: false });
+  }
+
+  // thực hiện xoá sau khi xác nhận
+  async function doDelete() {
+    if (!confirm.row) return;
+    try {
+      setConfirm(c => ({ ...c, busy: true }));
+      await deleteOrgClass(confirm.row.id);
+      success('Xóa lớp thành công.');
+      setConfirm({ open: false, row: null, busy: false });
+      await loadClasses();
+    } catch (e: any) {
+      setConfirm(c => ({ ...c, busy: false }));
+      toastError(e?.response?.data?.message || 'Không thể xóa lớp.');
+    }
   }
 
   return (
@@ -147,10 +168,10 @@ export default function ClassesPage() {
                   <td className="px-4 py-3">{khoaTen}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <button className="h-9 w-9 rounded border inline-grid place-items-center"
+                      <button className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
                               title="Sửa" onClick={() => openEdit(x)}><Pencil size={16}/></button>
-                      <button className="h-9 w-9 rounded border inline-grid place-items-center"
-                              title="Xóa" onClick={() => handleDelete(x)}><Trash2 size={16}/></button>
+                      <button className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50"
+                              title="Xóa" onClick={() => askDelete(x)}><Trash2 size={16}/></button>
                     </div>
                   </td>
                 </tr>
@@ -169,23 +190,58 @@ export default function ClassesPage() {
         </div>
       </div>
 
-      {modal.open && (
-  <ClassFormModal
-    initial={modal.editing ?? undefined}
-    onClose={() => setModal({ open: false })}
-    onSubmit={async (payload) => {
-      const editId = modal.editing?.id ?? null;   // 👉 parent quyết định
-      if (editId != null) {
-        await updateOrgClass(editId, payload);
-      } else {
-        await createOrgClass(payload);
-      }
-      setModal({ open: false });
-      await loadClasses();
-    }}
-  />
-)}
+      {/* Modal xác nhận xoá */}
+      {confirm.open && confirm.row && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
+          <div className="w-[460px] rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold mb-2">Xác nhận xóa</h3>
+            <p className="text-sm text-slate-600">
+              Bạn có chắc muốn xóa lớp <span className="font-medium">{confirm.row.tenLop}</span>?
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="h-10 rounded bg-slate-200 px-4"
+                onClick={() => setConfirm({ open: false, row: null, busy: false })}
+                disabled={confirm.busy}
+              >
+                Hủy
+              </button>
+              <button
+                className="inline-flex items-center gap-2 h-10 rounded bg-red-600 px-4 text-white disabled:opacity-50"
+                onClick={doDelete}
+                disabled={confirm.busy}
+                title="Xóa lớp"
+              >
+                <Trash2 size={16} />
+                {confirm.busy ? 'Đang xóa…' : 'Xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {modal.open && (
+        <ClassFormModal
+          initial={modal.editing ?? undefined}
+          onClose={() => setModal({ open: false })}
+          onSubmit={async (payload) => {
+            const editId = modal.editing?.id ?? null;
+            try {
+              if (editId != null) {
+                await updateOrgClass(editId, payload);
+                success('Cập nhật lớp thành công.');
+              } else {
+                await createOrgClass(payload);
+                success('Thêm lớp thành công.');
+              }
+              setModal({ open: false });
+              await loadClasses();
+            } catch (e: any) {
+              toastError(e?.response?.data?.message || 'Không thể lưu lớp.');
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
