@@ -126,6 +126,13 @@ export const router = createBrowserRouter([
                                     { index: true, lazy: () => import('@/features/lecturers/pages/TrangChuPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/list', lazy: () => import('@/features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/duyet', lazy: () => import('@/features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
+                                    {
+                                        element: <RoleGuard allow={['TRUONG_BO_MON']} />,
+                                        children: [
+                                            { path: 'truong-bo-mon/duyet-de-cuong-cuoi', lazy: () => import('@/features/lecturers/pages/TruongBoMonDuyetDeCuongCuoiPage').then(m => ({ Component: m.default })) },
+                                            { path: 'truong-bo-mon/phan-cong-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongGiangVienPage').then(m => ({ Component: m.default })) },
+                                        ],
+                                    },
                                     { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
                                     { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
                                     { path: 'phan-bien', lazy: () => import('@/features/lecturers/pages/PhanBienPage').then(m => ({ Component: m.default })) },

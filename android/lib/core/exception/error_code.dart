@@ -13,6 +13,7 @@ enum ErrorCode {
     message: 'Bạn không có quyền truy cập.',
     httpStatusCode: 403, // HttpStatus.FORBIDDEN
   ),
+
   tokenExpired(code: 1003, message: 'Token đã hết hạn.', httpStatusCode: 401),
   invalidToken(code: 1004, message: 'Token không hợp lệ.', httpStatusCode: 401),
   inactivatedAccount(
@@ -576,6 +577,16 @@ enum ErrorCode {
     code: 5003,
     message: 'Tải file minh chứng cho đơn hoãn thất bại.',
     httpStatusCode: 500,
+  ),
+  noInternet(
+    code: 5004,
+    message: 'Không có kết nối Internet.',
+    httpStatusCode: 503, // HttpStatus.SERVICE_UNAVAILABLE
+  ),
+  timeout(
+    code: 5005,
+    message: 'Yêu cầu hết thời gian chờ.',
+    httpStatusCode: 504, // HttpStatus.GATEWAY_TIMEOUT
   );
 
   const ErrorCode({
