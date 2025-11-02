@@ -86,4 +86,6 @@ ORDER BY d.createdAt DESC
     List<DeCuong> findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(String maSinhVien);
 
     Optional<DeCuong> findFirstByDeTai_IdOrderByUpdatedAtDesc(Long ids);
+
+    List<DeCuong> findByDeTai_IdOrderByPhienBanDesc(Long deTaiIds);
 }

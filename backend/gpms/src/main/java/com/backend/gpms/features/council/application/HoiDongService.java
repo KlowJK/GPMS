@@ -359,11 +359,13 @@ public class HoiDongService{
                 .average()
                 .orElse(0.0);
 
+        BaoCao baoCao = baoCaoRepository.findTopByDeTai_IdAndTrangThaiOrderByPhienBanDesc(idDeTai , TrangThaiDuyetDon.DA_DUYET)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.BAO_CAO_NOT_FOUND));
+
+        String duongDanBaoCao = baoCao.getDuongDanFile() != null ? baoCao.getDuongDanFile() : null;
+
         // Điểm báo cáo
-        Double diemBaoCao = baoCaoRepository.findTopByDeTai_IdAndTrangThaiOrderByPhienBanDesc(
-                        idDeTai, TrangThaiDuyetDon.DA_DUYET)
-                .map(BaoCao::getDiemHuongDan)
-                .orElse(null);
+        Double diemBaoCao = baoCao.getDiemHuongDan() != null ? baoCao.getDiemHuongDan() : 0.0;
 
         List<PhanCongPhanBienResponse.GiangVienChamDiem> giangVienList = new ArrayList<>();
 
@@ -399,11 +401,14 @@ public class HoiDongService{
         return PhanCongPhanBienResponse.builder()
                 .id(deTai.getId())
                 .tenHoiDong(hoiDong.getTenHoiDong())
+                .ngayBatDau(hoiDong.getThoiGianBatDau())
+                .ngayKetThuc(hoiDong.getThoiGianKetThuc())
                 .maSinhVien(deTai.getSinhVien().getMaSinhVien())
                 .hoTen(deTai.getSinhVien().getHoTen())
                 .lop(deTai.getSinhVien().getLop() != null ? deTai.getSinhVien().getLop().getTenLop() : null)
                 .idDeTai(deTai.getId().toString())
                 .tenDeTai(deTai.getTenDeTai())
+                .duongDanBaoCao(duongDanBaoCao)
                 .gvhd(deTai.getGiangVienHuongDan() != null ? deTai.getGiangVienHuongDan().getHoTen() : null)
                 .idBoMon(deTai.getBoMon() != null ? deTai.getBoMon().getId().toString() : null)
                 .boMon(deTai.getBoMon() != null ? deTai.getBoMon().getTenBoMon() : null)

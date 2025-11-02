@@ -10,7 +10,13 @@ import com.backend.gpms.features.defense.dto.request.DotBaoVeRequest;
 import com.backend.gpms.features.defense.dto.response.AddSinhVienToDotBaoVeResponse;
 import com.backend.gpms.features.defense.dto.response.DotBaoVeResponse;
 import com.backend.gpms.features.defense.infra.DotBaoVeRepository;
+import com.backend.gpms.features.outline.domain.DeCuong;
+import com.backend.gpms.features.outline.infra.DeCuongRepository;
 import com.backend.gpms.features.storage.application.StorageService;
+import com.backend.gpms.features.storage.domain.ThuVienDeCuong;
+import com.backend.gpms.features.storage.domain.ThuVienDeTai;
+import com.backend.gpms.features.storage.infra.ThuVienDeCuongRepository;
+import com.backend.gpms.features.storage.infra.ThuVienDeTaiRepository;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -25,9 +31,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.*;
@@ -45,6 +49,9 @@ public class DotBaoVeService {
     DotBaoVeMapper dotBaoVeMapper;
     DeTaiRepository deTaiRepository;
     StorageService cloudinaryService;
+    ThuVienDeTaiRepository thuVienDeTaiRepository;
+    ThuVienDeCuongRepository thuVienDeCuongRepository;
+    DeCuongRepository deCuongRepository;
 
 
     public DotBaoVeResponse createDotBaoVe(DotBaoVeRequest request) {
@@ -62,8 +69,44 @@ public class DotBaoVeService {
       dotBaoVe.setKhoaDot(newState);
       dotBaoVeRepository.save(dotBaoVe);
 
-      return newState ? "Khóa đợt bảo vệ thành công" : "Mở đợt bảo vệ thành công";
+      if (newState) {
+          luuVaoThuVienKhiKhoaDot(dotBaoVe);
+          return "Khóa đợt bảo vệ thành công";
+      } else {
+          return "Mở đợt bảo vệ thành công";
+      }
   }
+    private void luuVaoThuVienKhiKhoaDot(DotBaoVe dotBaoVe) {
+        List<DeTai> deTais = deTaiRepository.findByDotBaoVe(dotBaoVe);
+
+        for (DeTai deTai : deTais) {
+            ThuVienDeTai thuVienDeTai = thuVienDeTaiRepository
+                    .findByDeTaiAndDotBaoVe_Id(deTai.getTenDeTai(), dotBaoVe.getId())
+                    .orElseGet(() -> {
+                        ThuVienDeTai newThuVien = new ThuVienDeTai();
+                        newThuVien.setDeTai(deTai.getTenDeTai());
+                        newThuVien.setDuongDan(deTai.getNoiDungDeTaiUrl()); // Hàm hỗ trợ trích đường dẫn
+                        newThuVien.setDotBaoVe(dotBaoVe);
+                        return thuVienDeTaiRepository.save(newThuVien);
+                    });
+
+            // 2. Lấy tất cả đề cương đã được duyệt của đề tài này
+            List<DeCuong> deCuongsDaDuyet = deCuongRepository.findByDeTai_IdOrderByPhienBanDesc(deTai.getId());
+
+            for (DeCuong deCuong : deCuongsDaDuyet) {
+                boolean daTonTai = thuVienDeCuongRepository.existsByThuVienDeTaiAndPhienBan(
+                        thuVienDeTai, String.valueOf(deCuong.getPhienBan()));
+
+                if (!daTonTai) {
+                    ThuVienDeCuong thuVienDeCuong = new ThuVienDeCuong();
+                    thuVienDeCuong.setThuVienDeTai(thuVienDeTai);
+                    thuVienDeCuong.setDuongDan(deCuong.getDuongDanFile());
+                    thuVienDeCuong.setPhienBan(String.valueOf(deCuong.getPhienBan()));
+                    thuVienDeCuongRepository.save(thuVienDeCuong);
+                }
+            }
+        }
+    }
 
     public DotBaoVeResponse updateDotBaoVe(DotBaoVeRequest request, Long dotBaoVeId) {
         DotBaoVe dotBaoVe = dotBaoVeRepository.findById(dotBaoVeId)

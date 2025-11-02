@@ -58,7 +58,7 @@ public class NhatKyTienTrinhController {
         return ApiResponse.success(service.nopNhatKy(request));
     }
     @Operation(summary = "Duyệt nhật ký tiến trình, đầu vào id nhật ký + nhận xét - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @PutMapping("/{id}/duyet")
     public ApiResponse<NhatKyTienTrinhResponse> duyetNhatKy(
             @Valid @RequestBody DuyetNhatKyRequest request) {
@@ -66,7 +66,7 @@ public class NhatKyTienTrinhController {
     }
 
     @Operation(summary = "Lấy page nhật ký sinh viên được giảng viên hướng dẫn - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @GetMapping("/my-supervised-students")
     public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
             @RequestParam(name = "status", required = false) TrangThaiNhatKy status,
@@ -77,7 +77,7 @@ public class NhatKyTienTrinhController {
         return ApiResponse.success(service.getNhatKyPage(status,pageable));
     }
     @Operation(summary = "App - Lấy danh sách nhật ký sinh viên được giảng viên hướng dẫn - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @GetMapping("/my-supervised-students/list")
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyPage(
             @RequestParam(name = "status", required = false) TrangThaiNhatKy status
@@ -86,7 +86,7 @@ public class NhatKyTienTrinhController {
     }
 
     @Operation(summary = "Nếu includeAll =false ấy tuần tự động tính theo ngày hiện tại, còn lại tất cả, tuần được tính theo ngày đề tài được duyệt đến ngày kết thúc đợt - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @GetMapping("/tuans-by-lecturer")
     public ApiResponse<List<TuanResponse>> getTuanListByGVHD(
             @RequestParam(name = "includeAll", required = false, defaultValue = "false") boolean includeAll) {
@@ -94,7 +94,7 @@ public class NhatKyTienTrinhController {
     }
 
     @Operation(summary = "Lấy page sinh viên thuộc tuần hiện tại hoặc tất cả sinh viên nếu includeAll=true - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @GetMapping("/all-nhat-ky")
     public ApiResponse<Page<NhatKyTienTrinhResponse>> getNhatKyPage(
             @RequestParam(name = "tuan",defaultValue = "0", required = false) int status,
@@ -107,7 +107,7 @@ public class NhatKyTienTrinhController {
     }
 
     @Operation(summary = "Lấy list sinh viên thuộc tuần hiện tại hoặc tất cả sinh viên nếu includeAll=true - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @GetMapping("/all-nhat-ky/list")
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyPage(
             @RequestParam(name = "tuan", defaultValue = "0",required = false) int status
@@ -118,7 +118,7 @@ public class NhatKyTienTrinhController {
     }
 
     @Operation(summary = "Lấy list nhật ký của sinh viên thuộc tuần hiện tại (Đầu vào idDeTai) - Role giảng viên")
-    @PreAuthorize("hasAuthority('ROLE_GIANG_VIEN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_TRUONG_BO_MON')")
     @GetMapping("/{id}")
     public ApiResponse<List<NhatKyTienTrinhResponse>> getNhatKyListByGiangVien(
             @PathVariable("id") Long id
