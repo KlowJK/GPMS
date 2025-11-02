@@ -8,5 +8,5 @@ import java.util.List;
 public interface ThongBaoRepository extends JpaRepository<ThongBao, Long> {
     List<ThongBao> findByLoaiThongBaoOrderByCreatedAtDesc(LoaiThongBao loaiThongBao);
     List<ThongBao> findByThongBaoDens_User_IdOrderByCreatedAtDesc(Long id);
-
+    List<ThongBao> findAll();
 }

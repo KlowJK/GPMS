@@ -31,6 +31,9 @@ public class HoiDongRequest {
     @NotNull(message = "DOT_BAO_VE_ID_REQUIRED")
     Long dotBaoVeId;
 
+    @NotBlank(message = "DIA_DIEM_REQUIRED")
+    String diaDiem;
+
     List<LecturerItem> lecturers;
 
     @Data
