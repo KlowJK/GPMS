@@ -1,10 +1,120 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { fetchReviewList } from '../services/api'
+import { Eye } from 'lucide-react'
 
 export default function TruongBoMonPhanCongGiangVienPage() {
+  const [rows, setRows] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isError, setIsError] = useState(false)
+  const [page, setPage] = useState<number>(0)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [query, setQuery] = useState<string>('')
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      setIsLoading(true)
+      setIsError(false)
+      try {
+        // request a large page from server, UI will page client-side
+        const resp = await fetchReviewList({ status: 'TU_CHOI', page: 0, size: 1000, sort: ['hoTen,ASC'] })
+        if (!mounted) return
+        setRows(Array.isArray(resp?.content) ? resp.content : [])
+      } catch (err) {
+        if (!mounted) return
+        setIsError(true)
+      } finally {
+        if (!mounted) return
+        setIsLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
+
+  // reset to first page when data, pageSize or query changes
+  useEffect(() => { setPage(0) }, [rows, pageSize, query])
+
+  const q = (query || '').toLowerCase().trim()
+  const filtered = q ? rows.filter(r => (((r.maSV ?? '') + ' ' + (r.hoTen ?? '') + ' ' + (r.tenLop ?? '') + ' ' + (r.tenDeTai ?? '')).toLowerCase().includes(q))) : rows
+  const totalElements = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Phân công giảng viên hướng dẫn (Trưởng bộ môn)</h1>
-      <p>Trang này dùng để phân công giảng viên hướng dẫn cho sinh viên - scaffold placeholder.</p>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Phân công giảng viên hướng dẫn </h1>
+        <div className="w-64">
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/lớp/đề tài" className="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+      </div>
+
+      <div className="bg-white shadow rounded">
+        {isLoading ? (
+          <div className="p-6 text-center">Đang tải...</div>
+        ) : isError ? (
+          <div className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</div>
+        ) : !rows || rows.length === 0 ? (
+          <div className="p-6 text-center">Không có dữ liệu</div>
+        ) : (
+          <table className="min-w-full table-auto">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left px-6 py-4">Mã sinh viên</th>
+                <th className="text-left px-6 py-4">Họ và tên</th>
+                <th className="text-left px-6 py-4">Lớp</th>
+                <th className="text-left px-6 py-4">Tên đề tài</th>
+                <th className="text-left px-6 py-4">Trạng thái</th>
+                <th className="text-left px-6 py-4">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paged.map(r => (
+                <tr key={r.idDeTai ?? r.id ?? r.maSV} className="border-b hover:bg-slate-50">
+                  <td className="px-6 py-4 font-medium">{r.maSV}</td>
+                  <td className="px-6 py-4">{r.hoTen}</td>
+                  <td className="px-6 py-4">{r.tenLop}</td>
+                  <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
+                  <td className="px-6 py-4">{r.trangThai ?? r.trangthai ?? r.status ?? '—'}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <button title="Xem" className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100">
+                        <Eye size={16} />
+                        Xem
+                      </button>
+                      <button title="Phân công" className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border rounded text-emerald-700 hover:bg-emerald-100">
+                        Phân công
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination controls */}
+        {(() => {
+          if (!totalPages || totalPages <= 1) return null
+          const showPageButtons = totalPages <= 10
+          const pages = showPageButtons ? Array.from({ length: totalPages }).map((_, i) => i) : []
+          return (
+            <div className="p-4 border-t flex items-center justify-between">
+              <div className="text-sm text-slate-600">Hiển thị {totalElements} kết quả — Trang {page + 1} / {totalPages}</div>
+              <div className="flex items-center gap-2">
+                <button aria-label="previous page" disabled={page <= 0} onClick={() => setPage(Math.max(0, page - 1))} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">&lt;</button>
+                {showPageButtons ? (
+                  pages.map(p => (
+                    <button key={p} onClick={() => setPage(p)} className={[(p === page ? 'bg-sky-600 text-white' : 'bg-white border'), 'px-3 py-1 rounded'].join(' ')}>{p + 1}</button>
+                  ))
+                ) : null}
+                <button aria-label="next page" disabled={page >= totalPages - 1} onClick={() => setPage(Math.min(totalPages - 1, page + 1))} className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50">&gt;</button>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
     </div>
   )
 }

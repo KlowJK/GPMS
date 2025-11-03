@@ -32,6 +32,7 @@ export function useHoiDongDetailViewModel() {
     isLoading: query.isLoading,
     isError: query.isError,
     setDetailId,
+    refetch: query.refetch,
   }
 }
 

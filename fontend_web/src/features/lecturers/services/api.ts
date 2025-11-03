@@ -343,6 +343,30 @@ export async function saveCommonScore(payload: { idDeTai: number | string; diem:
 }
 
 /**
+ * Approve common scores for a deTai (POST /api/diem/{idDeTai}/phe-duyet-diem-chung)
+ */
+export async function approveCommonScore(idDeTai: number | string) {
+  const url = `/api/diem/${encodeURIComponent(String(idDeTai))}/phe-duyet-diem-chung`
+  try {
+    const resp = await axios.post(url, null, { headers: { Accept: '*/*' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
+/**
  * Reject a report (báo cáo) by id
  * PUT /api/bao-cao/tu-choi?idBaoCao={id}&nhanXet={nhanXet}
  * Returns: resp.data.result

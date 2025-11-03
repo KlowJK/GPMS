@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import useHoiDongViewModel, { useHoiDongDetailViewModel } from '../viewmodels/HoiDongViewmodels'
 import HoiDongScoreModal from '../components/HoiDongScoreModal'
+import { useAuth } from '@shared/hooks/useAuth'
+import { toast } from 'sonner'
+import { approveCommonScore } from '../services/api'
+import ConfirmDialog from '@features/admin/components/ConfirmDialog'
 
 export default function HoiDongDetailPage() {
     const { id } = useParams()
@@ -34,6 +38,9 @@ export default function HoiDongDetailPage() {
     const data = detailVm.data
     const [scoreOpen, setScoreOpen] = useState(false)
     const [selectedStudent, setSelectedStudent] = useState<any | null>(null)
+    const { roles } = useAuth()
+    const [approving, setApproving] = useState<Record<string, boolean>>({})
+    const [pendingApprovalId, setPendingApprovalId] = useState<number | string | null>(null)
 
     function openScore(s: any) {
         setSelectedStudent(s)
@@ -153,7 +160,21 @@ export default function HoiDongDetailPage() {
                                                     <td className="px-3 py-2 align-top">{s.tenDeTai}</td>
                                                     <td className="px-3 py-2 align-top">{s.gvhd}</td>
                                                     <td className="px-3 py-2 align-top">
-                                                        <button onClick={() => openScore(s)} className="px-2 py-1 text-sm border rounded text-sky-600">Chấm điểm</button>
+                                                        {/* Duyệt kết quả first (swapped), then Chấm điểm; both buttons same size */}
+                                                    {roles && roles.includes('CHU_NHIEM_KHOA') ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                const idDeTai = s.idDeTai ?? s.id
+                                                                if (!idDeTai) return
+                                                                setPendingApprovalId(idDeTai)
+                                                            }}
+                                                            disabled={approving[String(s.idDeTai ?? s.id)]}
+                                                            className="inline-flex items-center gap-2 px-3 py-1 text-sm border rounded bg-sky-50 text-sky-700 hover:bg-sky-100"
+                                                        >
+                                                            Duyệt
+                                                        </button>
+                                                    ) : null}
+                                                        <button onClick={() => openScore(s)} className="ml-2 inline-flex items-center gap-2 px-3 py-1 text-sm border rounded text-sky-700 hover:bg-sky-50">Chấm điểm</button>
                                                     </td>
                                                 </tr>
                                             ))
@@ -209,6 +230,32 @@ export default function HoiDongDetailPage() {
                     // dedupe
                     return Array.from(new Set(parents))
                 })()}
+            />
+            {/* Confirm dialog for approving common scores (nicer than window.confirm) */}
+            <ConfirmDialog
+                open={!!pendingApprovalId}
+                title="Phê duyệt điểm chung"
+                description="Bạn có chắc muốn phê duyệt điểm chung cho đề tài này không? Hành động này sẽ không thể hoàn tác."
+                confirmText="Phê duyệt"
+                cancelText="Hủy"
+                onClose={() => setPendingApprovalId(null)}
+                onConfirm={async () => {
+                    const id = pendingApprovalId
+                    if (!id) return setPendingApprovalId(null)
+                    const key = String(id)
+                    try {
+                        setApproving(prev => ({ ...prev, [key]: true }))
+                        await approveCommonScore(id)
+                        toast.success('Phê duyệt điểm thành công')
+                        if (typeof detailVm.refetch === 'function') detailVm.refetch()
+                    } catch (err: any) {
+                        const msg = err?.response?.data?.message ?? err?.message ?? 'Phê duyệt thất bại'
+                        toast.error(String(msg))
+                    } finally {
+                        setApproving(prev => ({ ...prev, [key]: false }))
+                        setPendingApprovalId(null)
+                    }
+                }}
             />
         </div>
     )
