@@ -109,6 +109,18 @@ public class GiangVienController {
         return ApiResponse.success(giangVienService.getDeTaiSinhVienApproval(status, pageable));
     }
 
+    @Operation(summary = "Lấy danh sách sinh viên chưa có giảng viên hướng dẫn - Role giảng viên, trưởng bộ môn")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRUONG_BO_MON','ROLE_CHU_NHIEM_KHOA')")
+    @GetMapping("/sinh-vien-chua-co-gvhd")
+    public ApiResponse<Page<ApprovalSinhVienResponse>> getDeTaiSinhVienTuChoi(
+            @RequestParam(name = "status", required = false) TrangThaiDeTai status,
+            @ParameterObject
+            @PageableDefault(page = 0, size = 10, sort = "hoTen", direction = Sort.Direction.ASC)
+            Pageable pageable) {
+
+        return ApiResponse.success(giangVienService.getDeTaiSinhVienTuChoi(status, pageable));
+    }
+
     @Operation(summary = "List đề cương của sinh viên đã nộp cho giảng viên")
     @GetMapping("/sinh-vien/log")
     public ApiResponse<List<DeCuongNhanXetResponse>> viewDeCuongLog(@RequestParam String maSinhVien) {

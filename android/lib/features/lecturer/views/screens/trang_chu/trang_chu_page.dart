@@ -6,9 +6,40 @@ import 'package:GPMS/features/lecturer/views/widgets/chip_pill.dart';
 import 'package:GPMS/features/lecturer/views/widgets/section_header.dart';
 import 'package:GPMS/features/lecturer/views/widgets/task_tile.dart';
 import 'package:GPMS/features/lecturer/views/widgets/notice_tile.dart';
+import 'package:GPMS/shared/components/all_news_page.dart';
+import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/shared/models/de_tai.dart';
+import 'package:GPMS/shared/components/app_card_list.dart';
+import 'package:GPMS/shared/components/topic_detail_page.dart';
+import 'package:GPMS/shared/components/all_topics_page.dart';
+import 'package:GPMS/core/services/main_service.dart';
+import 'package:intl/intl.dart';
 
-class TrangChuPage extends StatelessWidget {
+class TrangChuPage extends StatefulWidget {
   const TrangChuPage({super.key});
+
+  @override
+  State<TrangChuPage> createState() => TrangChuState();
+}
+
+class TrangChuState extends State<TrangChuPage> {
+  late Future<List<ThongBaoVaTinTuc>> _notificationsFuture;
+  late Future<List<DeTai>> _deTaiList;
+  late DateFormat _dateFormat;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshData(); // Khởi tạo lần đầu
+    _dateFormat = DateFormat('dd/MM/yy');
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _notificationsFuture = MainService.listThongBao();
+      _deTaiList = MainService.listDeTai();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,10 +122,12 @@ class TrangChuPage extends StatelessWidget {
                 // ===== Việc tuần này =====
                 SectionHeader(
                   title: 'Việc tuần này',
-                  actionText: 'Xem tất cả',
-                  onAction: () {},
-                  horizontalPadding: pad,
+                  trailing: TextButton(
+                    onPressed: () {},
+                    child: const Text('Xem tất cả'),
+                  ),
                 ),
+
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: pad, vertical: gap),
                   sliver: SliverToBoxAdapter(
@@ -131,9 +164,10 @@ class TrangChuPage extends StatelessWidget {
                 // ===== Thông báo =====
                 SectionHeader(
                   title: 'Thông báo',
-                  actionText: 'Xem tất cả',
-                  onAction: () {},
-                  horizontalPadding: pad,
+                  trailing: TextButton(
+                    onPressed: () {},
+                    child: const Text('Xem tất cả'),
+                  ),
                 ),
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: pad, vertical: gap),
@@ -162,12 +196,30 @@ class TrangChuPage extends StatelessWidget {
                   ),
                 ),
 
-                // ===== Tin tức =====
                 SectionHeader(
                   title: 'Tin tức',
-                  actionText: 'Xem tất cả',
-                  onAction: () {},
-                  horizontalPadding: pad,
+                  trailing: FutureBuilder<List<ThongBaoVaTinTuc>>(
+                    future: _notificationsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox.shrink();
+                      } else if (snapshot.hasError || !snapshot.hasData) {
+                        return const SizedBox.shrink();
+                      }
+                      final notifications = snapshot.data!;
+                      return TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AllNewsPage(notifications: notifications),
+                            ),
+                          );
+                        },
+                        child: const Text('Xem thêm'),
+                      );
+                    },
+                  ),
                 ),
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: pad, vertical: gap),
@@ -193,38 +245,62 @@ class TrangChuPage extends StatelessWidget {
                   ),
                 ),
 
-                // ===== Thư viện đề tài =====
                 SectionHeader(
-                  title: 'Thư viện đề tài',
-                  actionText: 'Xem tất cả đề tài',
-                  onAction: () {
-                    // TODO: điều hướng danh sách đề tài
-                  },
-                  horizontalPadding: pad,
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: pad),
-                  sliver: SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SearchField(hintText: 'Tìm kiếm đề tài...'),
-                        SizedBox(height: gap),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: const [
-                            ChipPill(label: 'Đợt 2', selected: true),
-                            ChipPill(label: '2023'),
-                            ChipPill(label: 'AI'),
-                            ChipPill(label: 'Mobile'),
-                            ChipPill(label: 'Web'),
-                          ],
+                  title: 'Đề tài nổi bật',
+                  trailing: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AllTopicsPage(),
                         ),
-                        SizedBox(height: gap * 2),
-                      ],
-                    ),
+                      );
+                    },
+                    child: const Text('Xem thêm'),
                   ),
+                ),
+
+                AppCardList<DeTai>(
+                  future: _deTaiList,
+                  maxItems: 4,
+                  leadingIcon: Icons.description,
+                  showTrailingText: false, // Không có ngày
+                  itemBuilder: (dt, _) {
+                    return ListTile(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TopicDetailPage(deTai: dt),
+                          ),
+                        );
+                      },
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
+                        child: const Icon(Icons.description, size: 18),
+                      ),
+                      title: Text(
+                        dt.deTai,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${dt.hocKy} - ${dt.namHoc}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    );
+                  },
                 ),
 
                 // Spacer cuối trang

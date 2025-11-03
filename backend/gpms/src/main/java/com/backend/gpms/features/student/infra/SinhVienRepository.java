@@ -59,4 +59,7 @@ public interface SinhVienRepository extends JpaRepository<SinhVien, Long> {
             @Param("dotBaoVe") DotBaoVe dotBaoVe,
             @Param("q") String q
     );
+
+    Page<SinhVien> findByDeTai_BoMon_IdAndDeTai_DotBaoVe(Long boMonId, DotBaoVe dotBaoVe, Pageable pageable);
+    Page<SinhVien> findByDeTai_BoMon_IdAndDeTai_TrangThaiAndDeTai_DotBaoVe(Long boMonId, TrangThaiDeTai trangThai, DotBaoVe dotBaoVe, Pageable pageable);
 }
