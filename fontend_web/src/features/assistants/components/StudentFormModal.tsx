@@ -5,7 +5,6 @@ import { Eye, EyeOff } from 'lucide-react';
 import type { Id } from '@features/assistants/services/base';
 import { unwrap } from '@features/assistants/services/base';
 
-// User APIs & types
 import type {
   Student,
   CreateStudentBody,
@@ -13,7 +12,6 @@ import type {
 } from '@features/assistants/services/user/userApi';
 import { getStudentByMSV } from '@features/assistants/services/user/userApi';
 
-// Org APIs & types (lấy danh sách lớp đã load sẵn từ page)
 import type { OrgClass as ClassRoom } from '@features/assistants/services/organization/orgApi';
 
 type Props = {
@@ -32,28 +30,40 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
   const [soDienThoai, setSoDienThoai] = useState(initial?.soDienThoai ?? '');
   const [matKhau, setMatKhau] = useState('');
   const [idLop, setIdLop] = useState<Id | ''>('');
-  const [lopHienTai, setLopHienTai] = useState<string>('');
+  const [lopHienTai, setLopHienTai] = useState<string>(initial?.lopTen ?? '');
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Prefill khi sửa: lấy idLop hiện tại
+  // Prefill đầy đủ khi mở modal
   useEffect(() => {
+    // đặt lại các field văn bản
     setMaSinhVien(initial?.maSinhVien ?? '');
     setHoTen(initial?.hoTen ?? '');
     setEmail(initial?.email ?? '');
     setSoDienThoai(initial?.soDienThoai ?? '');
     setMatKhau('');
-    setIdLop('');
-    setLopHienTai(initial?.lopTen ?? '');
 
+    // 1) ưu tiên lấy idLop từ initial (đã normalize ở FE)
+    const initId =
+      (initial as any)?.idLop ?? (initial as any)?.lopId ?? (initial as any)?.lop?.id ?? '';
+    const initTenLop =
+      initial?.lopTen ?? (initial as any)?.tenLop ?? (initial as any)?.lop?.tenLop ?? '';
+
+    if (initId !== '') setIdLop(Number(initId));
+    else setIdLop('');
+
+    if (initTenLop) setLopHienTai(initTenLop);
+
+    // 2) nếu vẫn chưa có idLop thì gọi chi tiết theo MSV để lấy đúng id lớp
     async function fetchDetail() {
-      if (!initial?.maSinhVien) return;
+      if (!initial?.maSinhVien || initId) return;
       try {
         const res = await getStudentByMSV(initial.maSinhVien);
         const data = unwrap<any>(res);
-        const id = data?.idLop ?? data?.lopId ?? data?.lop?.id;
-        if (id != null) setIdLop(id);
-        if (data?.tenLop && !lopHienTai) setLopHienTai(data.tenLop);
+        const gotId = data?.idLop ?? data?.lopId ?? data?.lop?.id;
+        const gotTen = data?.tenLop ?? data?.lop?.tenLop;
+        if (gotId != null) setIdLop(Number(gotId));
+        if (gotTen && !initTenLop) setLopHienTai(gotTen);
       } catch {
         /* ignore */
       }
@@ -75,24 +85,38 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
   async function handleSubmit() {
     setErr(null);
 
+    const idLopValid = idLop !== '' && idLop !== null && idLop !== undefined;
+
     if (!isEdit) {
-      if (!maSinhVien || !hoTen || !email || !soDienThoai || !matKhau || !idLop) {
+      if (!maSinhVien.trim() || !hoTen.trim() || !email.trim() || !soDienThoai.trim() || !idLopValid || !matKhau.trim()) {
         setErr('Vui lòng nhập đủ thông tin bắt buộc.');
         return;
       }
-    } else if (!hoTen || !email || !soDienThoai || !idLop) {
-      setErr('Vui lòng nhập đủ thông tin bắt buộc.');
-      return;
+    } else {
+      if (!hoTen.trim() || !email.trim() || !soDienThoai.trim() || !idLopValid) {
+        setErr('Vui lòng nhập đủ thông tin bắt buộc.');
+        return;
+      }
     }
 
     try {
       if (isEdit) {
-        const payload: UpdateStudentBody = { hoTen, soDienThoai, email, idLop: idLop as Id };
-        if (matKhau) payload.matKhau = matKhau;
+        const payload: UpdateStudentBody = {
+          hoTen: hoTen.trim(),
+          soDienThoai: soDienThoai.trim(),
+          email: email.trim(),
+          idLop: Number(idLop as Id),
+        };
+        if (matKhau.trim()) payload.matKhau = matKhau.trim();
         await onSubmit(payload);
       } else {
         const payload: CreateStudentBody = {
-          maSinhVien, hoTen, soDienThoai, email, matKhau, idLop: idLop as Id,
+          maSinhVien: maSinhVien.trim(),
+          hoTen: hoTen.trim(),
+          soDienThoai: soDienThoai.trim(),
+          email: email.trim(),
+          matKhau: matKhau.trim(),
+          idLop: Number(idLop as Id),
         };
         await onSubmit(payload);
       }
@@ -109,28 +133,44 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
         {err && <div className="mb-3 text-sm text-red-600">{err}</div>}
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Mã sinh viên</label>
-            <input className="w-full h-11 rounded border px-3"
-                   value={maSinhVien} onChange={(e) => setMaSinhVien(e.target.value)} disabled={isEdit} />
-          </div>
+          {/* Mã sinh viên: ẩn khi sửa */}
+          {!isEdit && (
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Mã sinh viên</label>
+              <input
+                className="w-full h-11 rounded border px-3"
+                value={maSinhVien}
+                onChange={(e) => setMaSinhVien(e.target.value)}
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm text-slate-600 mb-1">Họ và tên</label>
-            <input className="w-full h-11 rounded border px-3"
-                   value={hoTen} onChange={(e) => setHoTen(e.target.value)} />
+            <input
+              className="w-full h-11 rounded border px-3"
+              value={hoTen}
+              onChange={(e) => setHoTen(e.target.value)}
+            />
           </div>
 
           <div>
             <label className="block text-sm text-slate-600 mb-1">Số điện thoại</label>
-            <input className="w-full h-11 rounded border px-3"
-                   value={soDienThoai} onChange={(e) => setSoDienThoai(e.target.value)} />
+            <input
+              className="w-full h-11 rounded border px-3"
+              value={soDienThoai}
+              onChange={(e) => setSoDienThoai(e.target.value)}
+            />
           </div>
 
           <div>
             <label className="block text-sm text-slate-600 mb-1">Email</label>
-            <input type="email" className="w-full h-11 rounded border px-3"
-                   value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              className="w-full h-11 rounded border px-3"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
           <div className="col-span-2">
@@ -138,22 +178,35 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
               {isEdit ? 'Mật khẩu (để trống nếu giữ nguyên)' : 'Mật khẩu'}
             </label>
             <div className="relative">
-              <input type={showPw ? 'text' : 'password'} className="w-full h-11 rounded border px-3 pr-10"
-                     value={matKhau} onChange={(e) => setMatKhau(e.target.value)} />
-              <button type="button" onClick={() => setShowPw(s => !s)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
-                      title={showPw ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>
-                {showPw ? <EyeOff size={18}/> : <Eye size={18}/>}
+              <input
+                type={showPw ? 'text' : 'password'}
+                className="w-full h-11 rounded border px-3 pr-10"
+                value={matKhau}
+                onChange={(e) => setMatKhau(e.target.value)}
+                placeholder={isEdit ? 'Để trống nếu không muốn đổi' : ''}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((s) => !s)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
+                title={showPw ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              >
+                {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
           <div>
             <label className="block text-sm text-slate-600 mb-1">Lớp</label>
-            <select className="w-full h-11 rounded border px-3 bg-white"
-                    value={idLop === '' ? '' : String(idLop)}
-                    onChange={(e) => setIdLop(e.target.value ? Number(e.target.value) : '')}>
-              <option value="">{isEdit ? `— Giữ nguyên: ${lopHienTai || '—'} —` : '— Chọn lớp —'}</option>
+            <select
+              className="w-full h-11 rounded border px-3 bg-white"
+              value={idLop === '' ? '' : String(idLop)}
+              onChange={(e) => setIdLop(e.target.value ? Number(e.target.value) as Id : '')}
+            >
+              {/* Khi sửa: nếu đã có idLop thì option đầu chỉ là placeholder, không bị chọn */}
+              <option value="">
+                {isEdit ? (lopHienTai ? `Giữ nguyên: ${lopHienTai}` : '— Chọn lớp —') : '— Chọn lớp —'}
+              </option>
               {classes.map((c) => (
                 <option key={String(c.id)} value={String(c.id)}>
                   {c.tenLop}
@@ -164,7 +217,9 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">Quay lại</button>
+          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">
+            Quay lại
+          </button>
           <button onClick={handleSubmit} className="px-4 h-10 rounded bg-blue-600 text-white">
             {isEdit ? 'Cập nhật' : 'Lưu'}
           </button>
