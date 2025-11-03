@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { fetchHoiDongStudentDetail, saveCommonScore } from '../services/api'
+import { toast } from 'sonner'
 import { useAuth } from '@shared/hooks/useAuth'
 
 export default function HoiDongScoreModal({
@@ -203,6 +204,15 @@ export default function HoiDongScoreModal({
                   // call API to save
                   const payload: any = { idDeTai: student.idDeTai ?? student.id, diem: val, nhanXet: '' }
                   const resp = await saveCommonScore(payload)
+                  // show success toast with green icon
+                  toast.success('Chấm điểm thành công', {
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="#10B981" />
+                        <path d="M16 9l-4.5 6L8 12.5" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ),
+                  })
                   // eslint-disable-next-line no-console
                   console.log('Save response', resp)
 
@@ -220,7 +230,7 @@ export default function HoiDongScoreModal({
                   setIsSaving(false)
                   // eslint-disable-next-line no-console
                   console.error('Error saving score', err)
-                  alert('Lỗi khi lưu điểm')
+                  toast.error('Chấm điểm thất bại')
                 }
               }}
               disabled={isSaving}
