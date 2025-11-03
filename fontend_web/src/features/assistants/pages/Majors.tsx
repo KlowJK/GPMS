@@ -19,6 +19,7 @@ import {
 } from '@/features/assistants/services/organization/orgApi';
 
 type ModalState = { open: boolean; editing?: Major | null };
+type ConfirmState = { open: boolean; row?: Major | null; busy?: boolean };
 
 export default function MajorsPage() {
   const { success, error } = useToast();
@@ -31,6 +32,9 @@ export default function MajorsPage() {
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false });
+
+  // ✅ modal xác nhận xoá
+  const [confirm, setConfirm] = useState<ConfirmState>({ open: false, row: null, busy: false });
 
   async function loadDeps() {
     try {
@@ -60,13 +64,22 @@ export default function MajorsPage() {
   function openCreate() { setModal({ open: true, editing: null }); }
   function openEdit(row: Major) { setModal({ open: true, editing: row }); }
 
-  async function onDelete(row: Major) {
-    if (!confirm(`Xóa ngành "${row.tenNganh}"?`)) return;
+  // ✅ mở modal xác nhận xoá
+  function askDelete(row: Major) {
+    setConfirm({ open: true, row, busy: false });
+  }
+
+  // ✅ thực hiện xoá sau khi xác nhận
+  async function doDelete() {
+    if (!confirm.row) return;
     try {
-      await deleteMajor(row.id);
+      setConfirm(c => ({ ...c, busy: true }));
+      await deleteMajor(confirm.row.id);
       success('Xóa ngành thành công.');
+      setConfirm({ open: false, row: null, busy: false });
       await load();
     } catch {
+      setConfirm(c => ({ ...c, busy: false }));
       error('Không thể xóa ngành.');
     }
   }
@@ -124,7 +137,7 @@ export default function MajorsPage() {
                     <span className="sr-only">Sửa</span>
                   </button>
                   <button
-                    onClick={() => onDelete(r)}
+                    onClick={() => askDelete(r)}
                     aria-label="Xóa"
                     title="Xóa"
                     className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50"
@@ -152,6 +165,36 @@ export default function MajorsPage() {
           >Sau</button>
         </div>
       </div>
+
+      {/* ✅ Modal xác nhận xoá */}
+      {confirm.open && confirm.row && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
+          <div className="w-[460px] rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold mb-2">Xác nhận xóa</h3>
+            <p className="text-sm text-slate-600">
+              Bạn có chắc muốn xóa ngành <span className="font-medium">{confirm.row.tenNganh}</span>?
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="h-10 rounded bg-slate-200 px-4"
+                onClick={() => setConfirm({ open: false, row: null, busy: false })}
+                disabled={confirm.busy}
+              >
+                Hủy
+              </button>
+              <button
+                className="inline-flex items-center gap-2 h-10 rounded bg-red-600 px-4 text-white disabled:opacity-50"
+                onClick={doDelete}
+                disabled={confirm.busy}
+                title="Xóa ngành"
+              >
+                <Trash2 size={16} />
+                {confirm.busy ? 'Đang xóa…' : 'Xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal.open && (
         <MajorFormModal

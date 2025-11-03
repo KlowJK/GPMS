@@ -58,14 +58,14 @@ public interface SinhVienMapper {
     SinhVienSupervisedResponse toStudentSupervisedResponse(SinhVien sv);
 
     @Mapping(source = "maSinhVien" , target = "maSV")
-    @Mapping(source = "deTai.id", target = "idDeTai")
+    @Mapping(source = "deTai.id", target = "idDeTai", defaultValue = "0")
     @Mapping(source = "lop.tenLop", target = "tenLop")
-    @Mapping(source = "deTai.tenDeTai", target = "tenDeTai")
+    @Mapping(source = "deTai.tenDeTai", target = "tenDeTai", defaultValue = "Chưa đăng ký")
     @Mapping(source = "deTai.trangThai", target = "trangThai")
     @Mapping(source = "deTai.noiDungDeTaiUrl", target = "tongQuanDeTaiUrl")
     @Mapping(source = "duongDanCv", target = "duongDanCv")
     @Mapping(source = "deTai.nhanXet", target = "nhanXet")
-    @Mapping(source = "deTai.boMon.id", target = "idBoMon")
+    @Mapping(source = "lop.nganh.boMon.id", target = "idBoMon")
     ApprovalSinhVienResponse toDeTaiSinhVienApprovalResponse(SinhVien sv);
 
     @Mapping(source = "maSinhVien" , target = "maSV")

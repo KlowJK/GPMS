@@ -8,7 +8,7 @@ import {
   updateDefenseRound,
   deleteDefenseRound,
   importStudentsToRound,
-  lockDefenseRound, // toggle khóa/mở theo BE
+  lockDefenseRound,
 } from '@/features/assistants/services/topic/topicApi';
 import DefenseRoundFormModal from '@/features/assistants/components/DefenseRoundFormModal';
 import { UploadCloud, Pencil, Trash2, Lock } from 'lucide-react';
@@ -16,7 +16,6 @@ import { useToast } from '@/features/admin/components/ToastProvider';
 
 type ModalState = { open: boolean; editing?: DefenseRoundUI | null };
 
-/** Chuẩn hóa cờ khóa từ nhiều key BE có thể trả */
 function getLockedFlag(row: any): boolean {
   const v =
     row?.lockedFlag ??
@@ -27,6 +26,10 @@ function getLockedFlag(row: any): boolean {
     (typeof row?.trangThai === 'boolean' ? row.trangThai : undefined);
   return Boolean(v);
 }
+
+type ConfirmState = { open: boolean; round?: DefenseRoundUI | null; intent?: 'lock' | 'unlock' };
+// Modal xác nhận xoá
+type DeleteState = { open: boolean; row?: DefenseRoundUI | null; busy?: boolean };
 
 export default function DefenseRoundsPage() {
   const { success, error } = useToast();
@@ -42,8 +45,16 @@ export default function DefenseRoundsPage() {
 
   // import file
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [importingFor, setImportingFor] = useState<number | string | null>(null);
+  const [importingFor, setImportingFor] = useState<DefenseRoundUI | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+
+  // xác nhận khóa/mở đợt
+  const [confirmBox, setConfirmBox] = useState<ConfirmState>({ open: false });
+  const [agree, setAgree] = useState(false);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
+  // xác nhận xoá
+  const [delBox, setDelBox] = useState<DeleteState>({ open: false, row: null, busy: false });
 
   const keyword = useMemo(() => q.trim(), [q]);
 
@@ -71,11 +82,14 @@ export default function DefenseRoundsPage() {
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || importingFor == null) return;
+    if (!file || !importingFor) return;
 
     try {
       setImportBusy(true);
-      await importStudentsToRound(importingFor, file);
+      await importStudentsToRound(
+        { id: importingFor.id, hocKi: importingFor.hocKi, namHoc: importingFor.namHoc },
+        file
+      ); // gửi đủ hocKi & namHoc
       success('Import sinh viên thành công.');
       await load();
     } catch (ex: any) {
@@ -83,6 +97,55 @@ export default function DefenseRoundsPage() {
     } finally {
       setImportBusy(false);
       setImportingFor(null);
+    }
+  }
+
+  // mở hộp xác nhận khóa/mở
+  function openConfirm(r: DefenseRoundUI) {
+    const isLocked = getLockedFlag(r);
+    setConfirmBox({ open: true, round: r, intent: isLocked ? 'unlock' : 'lock' });
+    setAgree(false);
+  }
+
+  // xác nhận thao tác khóa/mở
+  async function doConfirm() {
+    if (!confirmBox.round || !confirmBox.intent) return;
+    try {
+      setConfirmBusy(true);
+      await lockDefenseRound(confirmBox.round.id);
+      // cập nhật lạc quan
+      setItems(prev =>
+        prev.map(it =>
+          String(it.id) === String(confirmBox.round!.id)
+            ? ({ ...it, lockedFlag: confirmBox.intent === 'lock' } as any)
+            : it
+        )
+      );
+      success(confirmBox.intent === 'lock' ? 'Khóa đợt thành công.' : 'Mở đợt thành công.');
+      setConfirmBox({ open: false });
+    } catch (ex: any) {
+      error(ex?.response?.data?.message || 'Thao tác thất bại.');
+    } finally {
+      setConfirmBusy(false);
+    }
+  }
+
+  // mở modal xác nhận xoá
+  function askDelete(row: DefenseRoundUI) {
+    setDelBox({ open: true, row, busy: false });
+  }
+  // thực hiện xoá
+  async function doDelete() {
+    if (!delBox.row) return;
+    try {
+      setDelBox(c => ({ ...c, busy: true }));
+      await deleteDefenseRound(delBox.row.id);
+      success('Xóa đợt thành công.');
+      setDelBox({ open: false, row: null, busy: false });
+      await load();
+    } catch (ex: any) {
+      setDelBox(c => ({ ...c, busy: false }));
+      error(ex?.response?.data?.message || 'Không thể xóa đợt.');
     }
   }
 
@@ -144,7 +207,7 @@ export default function DefenseRoundsPage() {
             ) : (
               items.map((r) => {
                 const isLocked = getLockedFlag(r); // true = đã khóa → Kết thúc
-                const busyThis = importBusy && String(importingFor) === String(r.id);
+                const busyThis = importBusy && importingFor && String(importingFor.id) === String(r.id);
                 const statusText = isLocked ? 'Kết thúc' : 'Đang diễn ra';
                 return (
                   <tr key={`${r.id}`} className="border-t">
@@ -166,43 +229,20 @@ export default function DefenseRoundsPage() {
                         {/* Import SV */}
                         <button
                           onClick={() => {
-                            setImportingFor(r.id);
+                            setImportingFor(r);
                             fileRef.current?.click();
                           }}
                           className="rounded border px-3 py-1 inline-flex items-center gap-1 disabled:opacity-50"
-                          disabled={busyThis}
+                          disabled={!!busyThis}
                           title="Import sinh viên (Excel/CSV)"
                         >
                           <UploadCloud size={16} />
                           {busyThis ? 'Đang import…' : 'Import SV'}
                         </button>
 
-                        {/* Khóa/Mở đợt – toggle; đổi màu icon theo trạng thái */}
+                        {/* Khóa/Mở đợt – toggle; icon đỏ khi đã khóa */}
                         <button
-                          onClick={async () => {
-                            const ok = confirm(
-                              isLocked
-                                ? `Mở lại đợt "${r.tenDotBaoVe}"?`
-                                : `Khóa đợt "${r.tenDotBaoVe}"?`
-                            );
-                            if (!ok) return;
-                            try {
-                              await lockDefenseRound(r.id);
-                              // cập nhật lạc quan để đổi trạng thái & màu ngay
-                              setItems((prev) =>
-                                prev.map((it) =>
-                                  String(it.id) === String(r.id)
-                                    ? ({ ...it, lockedFlag: !isLocked } as any)
-                                    : it
-                                )
-                              );
-                              success(isLocked ? 'Mở đợt thành công.' : 'Khóa đợt thành công.');
-                              // optional: refresh lại để đồng bộ tuyệt đối
-                              // await load();
-                            } catch (ex: any) {
-                              error(ex?.response?.data?.message || 'Thao tác thất bại.');
-                            }
-                          }}
+                          onClick={() => openConfirm(r)}
                           className="h-9 w-9 rounded border inline-grid place-items-center"
                           title={isLocked ? 'Mở lại đợt' : 'Khóa đợt'}
                         >
@@ -218,18 +258,9 @@ export default function DefenseRoundsPage() {
                           <Pencil size={16} />
                         </button>
 
-                        {/* Xóa */}
+                        {/* Xóa (mở modal xác nhận) */}
                         <button
-                          onClick={async () => {
-                            if (!confirm(`Xóa đợt "${r.tenDotBaoVe}"?`)) return;
-                            try {
-                              await deleteDefenseRound(r.id);
-                              success('Xóa đợt thành công.');
-                              await load();
-                            } catch (ex: any) {
-                              error(ex?.response?.data?.message || 'Không thể xóa đợt.');
-                            }
-                          }}
+                          onClick={() => askDelete(r)}
                           className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50"
                           title="Xóa"
                         >
@@ -265,6 +296,78 @@ export default function DefenseRoundsPage() {
 
       {/* input file ẩn dùng chung */}
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onPickFile} />
+
+      {/* Modal xác nhận khóa/mở */}
+      {confirmBox.open && confirmBox.round && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-[520px]">
+            <h3 className="text-lg font-semibold">
+              {confirmBox.intent === 'lock' ? 'Khóa đợt bảo vệ' : 'Mở lại đợt bảo vệ'}
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              {confirmBox.round.tenDotBaoVe} — {confirmBox.round.hocKi} / {confirmBox.round.namHoc}
+              <br />
+              Thời gian: {confirmBox.round.thoiGianBatDau} → {confirmBox.round.thoiGianKetThuc}
+            </p>
+
+            {confirmBox.intent === 'lock' && (
+              <label className="mt-4 flex items-start gap-2 select-none">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                />
+                <span className="text-sm">
+                  Tôi xác nhận khóa đợt này. Thao tác có thể chặn/cố định một số quy trình (nộp bài, chỉnh sửa…).
+                </span>
+              </label>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setConfirmBox({ open: false })} className="px-4 h-10 rounded border" disabled={confirmBusy}>
+                Hủy
+              </button>
+              <button
+                onClick={doConfirm}
+                className={`px-4 h-10 rounded text-white ${confirmBox.intent === 'lock' ? 'bg-red-600' : 'bg-blue-600'} disabled:opacity-50`}
+                disabled={confirmBusy || (confirmBox.intent === 'lock' && !agree)}
+              >
+                {confirmBusy ? 'Đang xử lý…' : confirmBox.intent === 'lock' ? 'Khóa đợt' : 'Mở lại đợt'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xác nhận xoá đợt */}
+      {delBox.open && delBox.row && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
+          <div className="w-[480px] rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold mb-2">Xác nhận xóa</h3>
+            <p className="text-sm text-slate-600">
+              Bạn có chắc muốn xóa đợt <span className="font-medium">{delBox.row.tenDotBaoVe}</span>?
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="h-10 rounded bg-slate-200 px-4"
+                onClick={() => setDelBox({ open: false, row: null, busy: false })}
+                disabled={!!delBox.busy}
+              >
+                Hủy
+              </button>
+              <button
+                className="inline-flex items-center gap-2 h-10 rounded bg-red-600 px-4 text-white disabled:opacity-50"
+                onClick={doDelete}
+                disabled={!!delBox.busy}
+                title="Xóa đợt"
+              >
+                <Trash2 size={16} /> {delBox.busy ? 'Đang xóa…' : 'Xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal.open && (
         <DefenseRoundFormModal
