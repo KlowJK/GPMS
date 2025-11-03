@@ -1,5 +1,6 @@
 // src/features/assistants/pages/Students.tsx
 import { useEffect, useMemo, useState } from 'react';
+import {Plus} from 'lucide-react';
 import {
   type Student,
   type CreateStudentBody,
@@ -136,14 +137,14 @@ export default function StudentsPage() {
           onClick={() => setModal({ open: true, editing: null })}
           className="px-4 py-2 rounded-lg bg-blue-600 text-white inline-flex items-center gap-2"
         >
-          <UserPlus size={16} /> Thêm tài khoản
+          <Plus size={16} /> Thêm tài khoản
         </button>
         <button
           onClick={() => setImodal({ open: true })}
           className="px-3 py-2 rounded-lg border inline-flex items-center gap-2"
           title="Import danh sách từ Excel"
         >
-          <UploadCloud size={16} /> Tải danh sách (Excel)
+           Import Excel
         </button>
         <div className="relative ml-2">
           <Search
@@ -222,7 +223,7 @@ export default function StudentsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      className="h-9 w-9 rounded border inline-grid place-items-center"
+                      className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
                       onClick={() => setModal({ open: true, editing: s })}
                       title="Sửa"
                     >

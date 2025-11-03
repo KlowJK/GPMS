@@ -1,20 +1,13 @@
 // src/features/assistants/components/SubjectFormModal.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { unwrap, toPage } from '@features/assistants/services/base';
-
-// Org API (bộ môn/khoa)
+// Org API types
 import type {
   Department,
   Subject,
   CreateSubjectPayload,
   UpdateSubjectPayload,
 } from '@features/assistants/services/organization/orgApi';
-import { setSubjectHead } from '@features/assistants/services/organization/orgApi';
-
-// User API (giảng viên)
-import type { Lecturer } from '@features/assistants/services/user/userApi';
-import { listLecturers } from '@features/assistants/services/user/userApi';
 
 type Props = {
   initial?: Subject;
@@ -30,55 +23,53 @@ function toId(v: string | number) {
 export default function SubjectFormModal({ initial, departments, onClose, onSubmit }: Props) {
   const isEdit = useMemo(() => Boolean(initial?.id), [initial]);
 
-  const [tenBoMon, setTenBoMon] = useState(initial?.tenBoMon ?? '');
-  const [khoaId, setKhoaId] = useState<string>(String(initial?.khoaId ?? departments[0]?.id ?? ''));
-
-  // --- Trưởng bộ môn: searchable dropdown ---
-  const [gvSearch, setGvSearch] = useState('');
-  const [gvOptions, setGvOptions] = useState<Lecturer[]>([]);
-  const [loadingGV, setLoadingGV] = useState(false);
-  const [truongBoMonId, setTruongBoMonId] = useState<string>(
-    initial?.truongBoMonId ? String(initial.truongBoMonId) : ''
+  const [tenBoMon, setTenBoMon] = useState<string>(initial?.tenBoMon ?? '');
+  const [khoaId, setKhoaId] = useState<string>(() =>
+    initial?.khoaId != null
+      ? String(initial.khoaId)
+      : departments[0]?.id != null
+      ? String(departments[0].id)
+      : ''
   );
 
-  useEffect(() => {
-    let alive = true;
-    const q = gvSearch.trim();
-
-    setLoadingGV(true);
-    const t = setTimeout(async () => {
-      try {
-        const res = await listLecturers({ page: 0, size: 10, q: q || undefined });
-        const pg = toPage<Lecturer>(res, { page: 0, size: 10 });
-        if (alive) setGvOptions(pg.content);
-      } finally {
-        if (alive) setLoadingGV(false);
-      }
-    }, 250); // debounce 250ms
-
-    return () => { alive = false; clearTimeout(t); };
-  }, [gvSearch]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function handleSubmit() {
-    // Lưu bộ môn (create/update)
-    const saved = await onSubmit({ tenBoMon, khoaId: toId(khoaId) });
+    if (saving) return;
 
-    // Gán/huỷ Trưởng bộ môn theo lựa chọn (có thể để trống)
-    const subjectId = saved?.id ?? initial?.id;
-    if (subjectId != null) {
-      await setSubjectHead({
-        idBoMon: subjectId,
-        idGiangVien: truongBoMonId ? toId(truongBoMonId) : null,
-      });
+    if (!tenBoMon.trim() || !khoaId) {
+      setErr('Vui lòng nhập Tên bộ môn và chọn Khoa.');
+      return;
     }
 
-    onClose();
+    setErr(null);
+    setSaving(true);
+    try {
+      // chỉ gửi đúng 2 trường BE cần
+      const payload: CreateSubjectPayload = {
+        tenBoMon: tenBoMon.trim(),
+        khoaId: toId(khoaId),
+      };
+      await onSubmit(payload as (CreateSubjectPayload | UpdateSubjectPayload));
+      onClose();
+    } catch {
+      setErr('Không thể lưu bộ môn. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
   }
+
+  const hasDepartments = departments?.length > 0;
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
       <div className="bg-white rounded-2xl p-6 w-[560px]">
-        <h2 className="text-xl font-semibold mb-4">{isEdit ? 'Sửa bộ môn' : 'Thêm bộ môn'}</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {isEdit ? 'Sửa bộ môn' : 'Thêm bộ môn'}
+        </h2>
+
+        {err && <div className="mb-3 text-sm text-red-600">{err}</div>}
 
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
@@ -87,6 +78,7 @@ export default function SubjectFormModal({ initial, departments, onClose, onSubm
               className="w-full h-11 rounded border px-3"
               value={tenBoMon}
               onChange={(e) => setTenBoMon(e.target.value)}
+              placeholder="VD: Khoa học máy tính"
             />
           </div>
 
@@ -96,48 +88,31 @@ export default function SubjectFormModal({ initial, departments, onClose, onSubm
               className="w-full h-11 rounded border px-3 bg-white"
               value={khoaId}
               onChange={(e) => setKhoaId(e.target.value)}
+              disabled={!hasDepartments}
             >
-              {departments.map((d) => (
-                <option key={`${d.id}`} value={String(d.id)}>
-                  {d.tenKhoa}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="col-span-2">
-            <label className="block text-sm text-slate-600 mb-1">Trưởng bộ môn (tuỳ chọn)</label>
-
-            {/* Ô tìm kiếm giảng viên */}
-            <input
-              className="w-full h-11 rounded border px-3"
-              placeholder="Tìm theo tên/email/mã GV…"
-              value={gvSearch}
-              onChange={(e) => setGvSearch(e.target.value)}
-            />
-
-            {/* Dropdown kết quả */}
-            <div className="relative">
-              <select
-                className="mt-2 w-full h-11 rounded border px-3 bg-white"
-                value={truongBoMonId}
-                onChange={(e) => setTruongBoMonId(e.target.value)}
-              >
-                <option value="">{loadingGV ? 'Đang tải…' : '— Không chọn —'}</option>
-                {gvOptions.map((gv) => (
-                  <option key={`${gv.id}`} value={String(gv.id)}>
-                    {gv.hoTen} {gv.boMonTen ? `(${gv.boMonTen})` : ''}
+              {hasDepartments ? (
+                departments.map((d) => (
+                  <option key={`${d.id}`} value={String(d.id)}>
+                    {d.tenKhoa}
                   </option>
-                ))}
-              </select>
-            </div>
+                ))
+              ) : (
+                <option value="">— Chưa có dữ liệu khoa —</option>
+              )}
+            </select>
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200">Quay lại</button>
-          <button onClick={handleSubmit} className="px-4 h-10 rounded bg-blue-600 text-white">
-            {isEdit ? 'Cập nhật' : 'Lưu'}
+          <button onClick={onClose} className="px-4 h-10 rounded bg-slate-200" disabled={saving}>
+            Quay lại
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-4 h-10 rounded bg-blue-600 text-white disabled:opacity-50"
+            disabled={saving || !hasDepartments}
+          >
+            {isEdit ? (saving ? 'Đang cập nhật…' : 'Cập nhật') : (saving ? 'Đang lưu…' : 'Lưu')}
           </button>
         </div>
       </div>
