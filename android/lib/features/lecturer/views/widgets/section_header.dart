@@ -1,33 +1,23 @@
 import 'package:flutter/material.dart';
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({
-    required this.title,
-    required this.actionText,
-    required this.onAction,
-    required this.horizontalPadding,
-  });
+  const SectionHeader({super.key, required this.title, this.trailing});
 
   final String title;
-  final String actionText;
-  final VoidCallback onAction;
-  final double horizontalPadding;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(
+    final style = Theme.of(
       context,
     ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Row(
-          children: [
-            Text(title, style: textStyle),
-            const Spacer(),
-            TextButton(onPressed: onAction, child: Text(actionText)),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: style)),
+          if (trailing != null) trailing!,
+        ],
       ),
     );
   }

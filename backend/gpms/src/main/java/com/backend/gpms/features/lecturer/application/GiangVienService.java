@@ -157,6 +157,27 @@ public class GiangVienService {
         return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
     }
 
+    public Page<ApprovalSinhVienResponse> getDeTaiSinhVienTuChoi(TrangThaiDeTai status, Pageable pageable) {
+        String email = currentEmail();
+
+        Long gvhdId = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND))
+                .getId();
+
+        Long idBoMon = giangVienRepository.findById(gvhdId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND))
+                .getBoMon()
+                .getId();
+
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+
+        Page<SinhVien> page = (status == null)
+                ? sinhVienRepository.findByDeTai_BoMon_IdAndDeTai_DotBaoVe(idBoMon,dotBaoVe, pageable)
+                : sinhVienRepository.findByDeTai_BoMon_IdAndDeTai_TrangThaiAndDeTai_DotBaoVe(idBoMon, status, dotBaoVe, pageable);
+
+        return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
+    }
+
     public List<DeCuongNhanXetResponse> viewDeCuongLog(String maSinhVien) {
 
         List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(maSinhVien);

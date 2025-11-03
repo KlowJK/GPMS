@@ -7,10 +7,11 @@ import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
 import 'package:GPMS/core/services/main_service.dart';
 import 'package:intl/intl.dart';
 import 'package:GPMS/shared/components/NewsDetailPage.dart';
-import 'package:GPMS/shared/components/AllNewsPage.dart';
+import 'package:GPMS/shared/components/all_news_page.dart';
 import 'package:GPMS/shared/models/de_tai.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
 import 'package:GPMS/shared/components/all_topics_page.dart';
+import 'package:GPMS/features/auth/views/screens/forgot_password.dart';
 
 void main() {
   runApp(
@@ -36,7 +37,10 @@ class GPMSApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFE3E3E8),
       ),
       home: const HomeGuestResponsive(),
-      routes: {'/login': (_) => const LoginScreen()},
+      routes: {
+        '/login': (_) => const LoginScreen(),
+        '/forgot-password': (_) => const ForgotPasswordScreen(),
+      },
     );
   }
 }
