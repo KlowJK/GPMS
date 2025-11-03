@@ -1,10 +1,13 @@
 package com.backend.gpms.features.council.domain;
 
 import com.backend.gpms.common.util.BaseEntity;
+import com.backend.gpms.features.defense.domain.CongViec;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter @Setter
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
@@ -23,5 +26,10 @@ public class ThanhVienHoiDong extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="id_giang_vien", nullable=false)
     GiangVien giangVien;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name="vai_tro", nullable=false)
+    ChucVuHoiDong vaiTro;
 
 }

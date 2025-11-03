@@ -49,6 +49,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -83,67 +84,31 @@ public class HoiDongService{
     EntityManager em;
 
 
-    public Page<HoiDongResponse> getHoiDongsDangDienRa(String keyword, Long idDetai, Long idGiangVien, Pageable pageable) {
-        boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
+    public Page<HoiDongResponse> getHoiDongsDangDienRa(
+            String keyword, Long idDetai, Long idGiangVien, Pageable pageable) {
+
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+        boolean hasKeyword = StringUtils.hasText(keyword);
         boolean hasIdDetai = idDetai != null && idDetai > 0;
         boolean hasIdGiangVien = idGiangVien != null && idGiangVien > 0;
 
-        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+        Page<HoiDong> page;
 
-        // 1. Ưu tiên: Tìm theo keyword
         if (hasKeyword) {
-            Page<HoiDong> page = hoiDongRepository.findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(
-                    dotBaoVe, keyword, pageable);
-            return page.map(hoiDongMapper::toListItem);
+            page = hoiDongRepository.findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(
+                    dotBaoVe, keyword.trim(), pageable);
+
+        } else if (hasIdDetai) {
+            page = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDetai, pageable);
+
+        } else if (hasIdGiangVien) {
+            page = hoiDongRepository.findHoiDongByGiangVienPhanBienOrThanhVien(
+                    dotBaoVe, idGiangVien, pageable);
+
+        } else {
+            page = hoiDongRepository.findHoiDongByDotBaoVe(dotBaoVe, pageable);
         }
 
-        // 2. Ưu tiên: Tìm theo idDetai
-        if (hasIdDetai) {
-            Page<HoiDong> page = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDetai, pageable);
-            return page.map(hoiDongMapper::toListItem);
-        }
-
-        // 3. Xử lý trường hợp giảng viên (có thể là phản biện + thành viên HD)
-        if (hasIdGiangVien) {
-            // Lấy đề tài đang phản biện (nếu có)
-            Optional<PhanCongPhanBien> phanCongOpt = phanCongPhanBienRepository.findByGiangVien_Id(idGiangVien);
-            Long idDeTaiPhanBien = phanCongOpt.map(p -> p.getDeTai().getId()).orElse(null);
-
-            Set<Long> hoiDongIds = new HashSet<>();
-
-            List<HoiDong> hoiDongs = new ArrayList<>();
-
-            // 3.1. Nếu là phản biện → lấy hội đồng của đề tài đang phản biện
-            if (idDeTaiPhanBien != null) {
-                Page<HoiDong> pagePhanBien = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDeTaiPhanBien, Pageable.unpaged());
-                pagePhanBien.getContent().stream()
-                        .filter(hd -> hoiDongIds.add(hd.getId())) // tránh trùng
-                        .forEach(hoiDongs::add);
-            }
-
-            // 3.2. Lấy hội đồng mà giảng viên là thành viên
-            Page<HoiDong> pageThanhVien = hoiDongRepository.findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(
-                    dotBaoVe, idGiangVien, Pageable.unpaged());
-
-            pageThanhVien.getContent().stream()
-                    .filter(hd -> hoiDongIds.add(hd.getId())) // tránh trùng
-                    .forEach(hoiDongs::add);
-
-            // 3.3. Sắp xếp + phân trang thủ công
-            List<HoiDong> sorted = hoiDongs.stream()
-                    .sorted(Comparator.comparing(HoiDong::getId)) // hoặc theo thời gian, tên, v.v.
-                    .collect(Collectors.toList());
-
-            int start = (int) pageable.getOffset();
-            int end = Math.min(start + pageable.getPageSize(), sorted.size());
-            List<HoiDong> pagedList = start < sorted.size() ? sorted.subList(start, end) : Collections.emptyList();
-
-            Page<HoiDong> resultPage = new PageImpl<>(pagedList, pageable, sorted.size());
-            return resultPage.map(hoiDongMapper::toListItem);
-        }
-
-        // 4. Default: Tất cả hội đồng đang diễn ra
-        Page<HoiDong> page = hoiDongRepository.findHoiDongByDotBaoVe(dotBaoVe, pageable);
         return page.map(hoiDongMapper::toListItem);
     }
 
@@ -199,57 +164,64 @@ public class HoiDongService{
 
 
     public ThanhVienHoiDongResponse createHoiDong(HoiDongRequest request) {
+        // 1. Kiểm tra đợt bảo vệ
         DotBaoVe dot = dotBaoVeRepository.findById(request.getDotBaoVeId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DOT_BAO_VE_NOT_FOUND));
 
-        if (request.getThoiGianBatDau().isAfter(request.getThoiGianKetThuc()))
+        // 2. Kiểm tra thời gian
+        LocalDate start = request.getThoiGianBatDau();
+        LocalDate end = request.getThoiGianKetThuc();
+        if (start.isAfter(end)) {
             throw new ApplicationException(ErrorCode.INVALID_TIME_RANGE);
-        if (request.getThoiGianBatDau().isBefore(dot.getNgayBatDau())
-                || request.getThoiGianKetThuc().isAfter(dot.getNgayKetThuc()))
+        }
+        if (start.isBefore(dot.getNgayBatDau()) || end.isAfter(dot.getNgayKetThuc())) {
             throw new ApplicationException(ErrorCode.INVALID_TIME_RANGE);
-
-        var lecturers = request.getLecturers() == null ? List.<HoiDongRequest.LecturerItem>of()
-                : request.getLecturers();
-
+        }
+        GiangVien chuTich = getGiangVienById(request.getChuTichId());
+        GiangVien thuKy = getGiangVienById(request.getThuKyId());
         HoiDong hd = new HoiDong();
         hd.setTenHoiDong(request.getTenHoiDong());
-        hd.setThoiGianBatDau(request.getThoiGianBatDau());
-        hd.setThoiGianKetThuc(request.getThoiGianKetThuc());
-        GiangVien chuTich = giangVienRepository.findById(request.getChuTichId())
-                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        hd.setThoiGianBatDau(start);
+        hd.setThoiGianKetThuc(end);
+        hd.setDiaDiem(request.getDiaDiem());
         hd.setChuTich(chuTich);
-        GiangVien thuKy = giangVienRepository.findById(request.getThuKyId())
-                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
         hd.setThuKy(thuKy);
         hd.setDotBaoVe(dot);
-        hd.setDiaDiem(request.getDiaDiem());
         hd.setDeTaiSet(new HashSet<>());
         hd.setThanhVienHoiDongSet(new HashSet<>());
 
         HoiDong saved = hoiDongRepository.save(hd);
 
-        // tạo và lưu các thành viên
         List<ThanhVienHoiDong> members = new ArrayList<>();
+        members.add(createThanhVien(saved, chuTich, ChucVuHoiDong.CHU_TICH));
+        members.add(createThanhVien(saved, thuKy, ChucVuHoiDong.THU_KY));
+        List<HoiDongRequest.LecturerItem> lecturers = request.getLecturers() != null
+                ? request.getLecturers()
+                : Collections.emptyList();
         for (var li : lecturers) {
-            GiangVien gv = giangVienRepository.findById(li.getGiangVienId())
-                    .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
-
-
-
-            ThanhVienHoiDong tv = new ThanhVienHoiDong();
-            tv.setHoiDong(saved);
-            tv.setGiangVien(gv);
-            members.add(tv);
+            GiangVien gv = getGiangVienById(li.getGiangVienId());
+            members.add(createThanhVien(saved, gv, ChucVuHoiDong.UY_VIEN));
         }
-        thanhVienHoiDongRepository.saveAll(members);
 
-        em.flush();
-        em.clear();
+        thanhVienHoiDongRepository.saveAll(members);
 
         HoiDong full = hoiDongRepository.fetchDetail(saved.getId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.HOI_DONG_NOT_FOUND));
 
         return hoiDongMapper.toDetail(full);
+    }
+
+    private GiangVien getGiangVienById(Long id) {
+        return giangVienRepository.findById(id)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+    }
+
+    private ThanhVienHoiDong createThanhVien(HoiDong hd, GiangVien gv, ChucVuHoiDong vaiTro) {
+        ThanhVienHoiDong tv = new ThanhVienHoiDong();
+        tv.setHoiDong(hd);
+        tv.setGiangVien(gv);
+        tv.setVaiTro(vaiTro);
+        return tv;
     }
 
     public PhanCongBaoVeResponse importSinhVienToHoiDong(Long hoiDongId, MultipartFile excelFile) {
