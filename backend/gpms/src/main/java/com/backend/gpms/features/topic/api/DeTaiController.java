@@ -71,7 +71,7 @@ public class DeTaiController {
         return ApiResponse.success(deTaiService.getMyDeTai());
     }
 
-    @Operation(summary = "Add giảng viên - Role trợ lý khoa")
+    @Operation(summary = "Add giảng viên hướng dẫn cho đề tài ")
     @PostMapping("/gan-de-tai")
     public ApiResponse<DeTaiGiangVienHuongDanResponse> addGiangVienHuongDan(@RequestBody DeTaiGiangVienHuongDanRequest request) {
         return ApiResponse.success(deTaiService.addGiangVienHuongDan(request));
