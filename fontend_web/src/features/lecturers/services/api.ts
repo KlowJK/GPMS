@@ -307,6 +307,42 @@ export async function fetchHoiDongDetail(id: number | null) {
 }
 
 /**
+ * Fetch detailed info for a student's defense (committee member scores etc.)
+ * GET /api/hoi-dong/sinh-vien/{deTaiId}/chi-tiet
+ */
+export async function fetchHoiDongStudentDetail(deTaiId: number | string | null) {
+  if (!deTaiId) return null
+  const url = `/api/hoi-dong/sinh-vien/${encodeURIComponent(String(deTaiId))}/chi-tiet`
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result ?? null
+}
+
+/**
+ * Save a common score for a deTai (POST /api/diem/nhap-diem-chung)
+ * Body: { idDeTai, diem, nhanXet }
+ */
+export async function saveCommonScore(payload: { idDeTai: number | string; diem: number; nhanXet?: string }) {
+  const url = '/api/diem/nhap-diem-chung'
+  try {
+    const resp = await axios.post(url, payload, { headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}
+
+/**
  * Reject a report (báo cáo) by id
  * PUT /api/bao-cao/tu-choi?idBaoCao={id}&nhanXet={nhanXet}
  * Returns: resp.data.result
