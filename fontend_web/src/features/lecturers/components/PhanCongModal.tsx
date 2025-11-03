@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchStudentsWithoutSupervisor, fetchStudentByCode } from '../services/api'
+import { fetchStudentsWithoutSupervisor, fetchStudentByCode } from '../services'
 import { listLecturersNormalized } from '@/features/assistants/services/user/userApi'
 import { axios } from '@shared/libs/axios'
 import { loadLecturersForStudent } from '../viewmodels/TruongBoMonViewmodels'

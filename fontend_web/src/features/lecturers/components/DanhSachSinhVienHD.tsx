@@ -3,7 +3,7 @@ import ThongTinSinhVien from './ThongTinSinhVien'
 import { useQuery } from '@tanstack/react-query'
 import { axios } from '@shared/libs/axios'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { approveProposal, rejectProposal, fetchStudentProposals, rejectDeCuong, approveDeCuong } from '../services/api'
+import { approveProposal, rejectProposal, fetchStudentProposals, rejectDeCuong, approveDeCuong } from '../services'
 
 export default function StudentDetail({ open, maSV, onClose }: { open: boolean; maSV?: string | null; onClose: () => void }) {
   const query = useQuery<any, Error>({

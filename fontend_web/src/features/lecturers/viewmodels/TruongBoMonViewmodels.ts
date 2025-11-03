@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchDeCuongPage } from '../services/api'
-import { getLecturersByBoMon } from '../services/api'
+import { fetchDeCuongPage, getLecturersByBoMon } from '../services'
 import { listLecturersNormalized } from '@/features/assistants/services/user/userApi'
 
 function normalizeName(x: any) {

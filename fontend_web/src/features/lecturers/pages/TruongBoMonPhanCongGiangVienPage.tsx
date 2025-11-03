@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchStudentsWithoutSupervisor } from '../services/api'
+import { fetchStudentsWithoutSupervisor } from '../services'
 import PhanCongModal from '../components/PhanCongModal'
 
 export default function TruongBoMonPhanCongGiangVienPage() {

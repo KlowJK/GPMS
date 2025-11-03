@@ -4,7 +4,7 @@ import useHoiDongViewModel, { useHoiDongDetailViewModel } from '../viewmodels/Ho
 import HoiDongScoreModal from '../components/HoiDongScoreModal'
 import { useAuth } from '@shared/hooks/useAuth'
 import { toast } from 'sonner'
-import { approveCommonScore } from '../services/api'
+import { approveCommonScore } from '../services'
 import ConfirmDialog from '@features/admin/components/ConfirmDialog'
 
 export default function HoiDongDetailPage() {
