@@ -1,11 +1,9 @@
 // src/features/assistants/components/LecturerFormModal.tsx
 import { useMemo, useState } from 'react';
 
-// Lấy type Lecturer từ userApi
+// Types
 import type { Lecturer } from '@features/assistants/services/user/userApi';
-// Lấy type Subject và API gán/huỷ Trưởng bộ môn từ orgApi
 import type { Subject } from '@features/assistants/services/organization/orgApi';
-import { setSubjectHead } from '@features/assistants/services/organization/orgApi';
 
 export type LecturerCreatePayload = {
   maGiangVien: string;
@@ -17,15 +15,12 @@ export type LecturerCreatePayload = {
   matKhau: string;
   idBoMon: string | number;
 };
-export type LecturerUpdatePayload = Omit<LecturerCreatePayload, 'matKhau'> & {
-  laTruongBoMon?: boolean;
-};
+export type LecturerUpdatePayload = Omit<LecturerCreatePayload, 'matKhau'>; // ❌ bỏ laTruongBoMon
 
 type Props = {
   initial?: Lecturer;
   subjects: Subject[];
   onClose: () => void;
-  // Nên trả về Lecturer đã lưu để xử lý setSubjectHead chính xác
   onSubmit: (data: LecturerCreatePayload | LecturerUpdatePayload) => Promise<Lecturer | undefined>;
 };
 
@@ -44,10 +39,7 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
   const [email, setEmail] = useState(initial?.email ?? '');
   const [matKhau, setMatKhau] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [idBoMon, setIdBoMon] = useState<string>(
-    String(initial?.idBoMon ?? subjects[0]?.id ?? '')
-  );
-  const [laTruongBoMon, setLaTruongBoMon] = useState<boolean>(Boolean(initial?.laTruongBoMon));
+  const [idBoMon, setIdBoMon] = useState<string>(String(initial?.idBoMon ?? subjects[0]?.id ?? ''));
 
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -55,12 +47,10 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
   async function handleSubmit() {
     if (saving) return;
 
-    // Validate nhanh
     if (!hoTen.trim() || !email.trim() || !idBoMon) {
       setErr('Vui lòng nhập đầy đủ Họ tên, Email và chọn Bộ môn.');
       return;
     }
-    // Với thêm mới yêu cầu có mã GV + mật khẩu
     if (!isEdit && (!maGiangVien.trim() || !matKhau)) {
       setErr('Vui lòng nhập Mã GV và Mật khẩu cho tài khoản mới.');
       return;
@@ -70,10 +60,7 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
     setSaving(true);
 
     try {
-      let saved: Lecturer | undefined;
-
       if (isEdit) {
-        // Không thay đổi Mã GV -> không gửi lên để tránh rule unique không cần thiết
         const payload: any = {
           hoTen,
           soDienThoai,
@@ -81,17 +68,11 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
           hocHam,
           email,
           idBoMon: toId(idBoMon),
-          laTruongBoMon,
         };
         if (maGiangVien.trim() !== (initial?.maGiangVien ?? '')) {
           payload.maGiangVien = maGiangVien.trim();
         }
-        saved = await onSubmit(payload as LecturerUpdatePayload);
-
-        // fallback nếu API không trả body
-        if (!saved && initial) {
-          saved = { ...initial, ...payload, idBoMon: toId(idBoMon) } as unknown as Lecturer;
-        }
+        await onSubmit(payload as LecturerUpdatePayload);
       } else {
         const payload: LecturerCreatePayload = {
           maGiangVien: maGiangVien.trim(),
@@ -103,21 +84,10 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
           matKhau,
           idBoMon: toId(idBoMon),
         };
-        saved = await onSubmit(payload);
+        await onSubmit(payload);
       }
 
-      // ✅ Chỉ gán/huỷ Trưởng bộ môn khi SỬA
-      if (isEdit) {
-        try {
-          await setSubjectHead({
-            idBoMon: toId(idBoMon),
-            idGiangVien: laTruongBoMon ? (saved?.id as number | string) : null,
-          });
-        } catch {
-          // ignore lỗi gán trưởng bộ môn, không chặn luồng lưu
-        }
-      }
-
+      // ✅ Không còn gán/huỷ Trưởng bộ môn tại đây
       onClose();
     } catch {
       setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
@@ -172,7 +142,6 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
             />
           </div>
 
-          {/* Ô mật khẩu có nút bật/tắt hiển thị – thêm mới bắt buộc, sửa có thể bỏ trống */}
           <div className="col-span-2">
             <label className="block text-sm text-slate-600 mb-1">
               {isEdit ? 'Mật khẩu (để trống nếu giữ nguyên)' : 'Mật khẩu'}
@@ -193,18 +162,13 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
                 {showPw ? 'Ẩn' : 'Hiện'}
               </button>
             </div>
-            {!isEdit && !matKhau && (
-              <div className="mt-1 text-xs text-slate-500">
-                Mật khẩu bắt buộc khi tạo mới.
-              </div>
-            )}
           </div>
 
           <div>
             <label className="block text-sm text-slate-600 mb-1">Bộ môn</label>
             <select
               className="w-full h-11 rounded border px-3 bg-white"
-              value={idBoMon}
+              value={String(idBoMon)}
               onChange={(e) => setIdBoMon(e.target.value)}
             >
               {subjects.map((s) => (
@@ -213,19 +177,6 @@ export default function LecturerFormModal({ initial, subjects, onClose, onSubmit
                 </option>
               ))}
             </select>
-
-            {/* ✅ Chỉ hiện khi sửa – thêm mới không cho gán Trưởng bộ môn */}
-            {isEdit && (
-              <label className="mt-2 inline-flex items-center gap-2 select-none">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={laTruongBoMon}
-                  onChange={(e) => setLaTruongBoMon(e.target.checked)}
-                />
-                <span className="text-sm">Đặt làm Trưởng bộ môn</span>
-              </label>
-            )}
           </div>
 
           <div>

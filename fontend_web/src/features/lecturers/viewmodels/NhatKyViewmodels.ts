@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchDiaryListByWeek, fetchTuansByLecturer } from '../services/api'
+import { fetchDiaryListByWeek, fetchTuansByLecturer } from '../services'
 import { parseISOToDate } from '@shared/utils/format'
 
 // fallback week entries used only when API data missing

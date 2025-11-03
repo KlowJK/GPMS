@@ -71,27 +71,107 @@ export async function listLecturersNormalized(params?: PageParams): Promise<Page
 }
 /* ===================== SINH VIÊN ===================== */
 export type Student = {
-  id: Id; email: string; maSinhVien: string; hoTen: string; soDienThoai?: string; lopTen?: string; duDieuKien?: boolean;
+  id: Id;
+  email: string;
+  maSinhVien: string;
+  hoTen: string;
+  soDienThoai?: string;
+  lopTen?: string;
+  duDieuKien?: boolean;
+  /** ✅ thêm để FE có thể prefill/dropdown chính xác khi sửa */
+  idLop?: Id;
 };
-export type CreateStudentBody = {
-  maSinhVien: string; hoTen: string; soDienThoai: string; email: string; matKhau: string; idLop: Id;
-};
-export type UpdateStudentBody = { hoTen: string; soDienThoai: string; email: string; idLop: Id; matKhau?: string };
 
-export const listStudents = (params?: PageParams) => axios.get('/api/sinh-vien', { params });
+export type CreateStudentBody = {
+  maSinhVien: string;
+  hoTen: string;
+  soDienThoai: string;
+  email: string;
+  matKhau: string;
+  idLop: Id;
+};
+
+export type UpdateStudentBody = {
+  hoTen: string;
+  soDienThoai: string;
+  email: string;
+  idLop: Id;
+  matKhau?: string; // gửi khi đổi, bỏ qua nếu undefined/empty
+};
+
+export const listStudents = (params?: PageParams) =>
+  axios.get('/api/sinh-vien', { params });
+
 export const searchStudents = (info: string, params?: PageParams) =>
   axios.get('/api/sinh-vien/search', { params: { ...params, info } });
-export const getStudentByMSV = (maSV: string) => axios.get(`/api/sinh-vien/${maSV}`);
-export const getStudentById  = (id: Id) => axios.get(`/api/sinh-vien/by-id/${id}`);
-export const createStudent   = (body: CreateStudentBody) => axios.post('/api/sinh-vien', body);
-export const updateStudentByCode = (maSV: string, body: UpdateStudentBody) => axios.put(`/api/sinh-vien/${maSV}`, body);
-export const changeStudentStatusByCode = (maSV: string) => axios.put(`/api/sinh-vien/change-status/${maSV}`);
-export const importStudents  = (formData: FormData) =>
-  axios.post('/api/sinh-vien/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
+export const getStudentByMSV = (maSV: string) =>
+  axios.get(`/api/sinh-vien/${maSV}`);
+
+export const getStudentById = (id: Id) =>
+  axios.get(`/api/sinh-vien/by-id/${id}`);
+
+/** ✅ Chuẩn hoá payload CREATE → gửi đủ alias (maSV/hoVaTen/sdt/lopId/idLop) */
+function toStudentCreateDto(b: CreateStudentBody) {
+  const id = b.idLop as any;
+  return {
+    // tên “đúng” theo FE
+    maSinhVien: b.maSinhVien,
+    hoTen: b.hoTen,
+    soDienThoai: b.soDienThoai,
+    email: b.email,
+    matKhau: b.matKhau,
+    idLop: id,
+
+    // alias phổ biến theo BE
+    maSV: b.maSinhVien,
+    hoVaTen: b.hoTen,
+    sdt: b.soDienThoai,
+    lopId: id,
+  };
+}
+
+/** ✅ Chuẩn hoá payload UPDATE → gửi đủ alias (hoVaTen/sdt/lopId/idLop) và chỉ gửi matKhau khi có nhập */
+function toStudentUpdateDto(b: UpdateStudentBody) {
+  const id = b.idLop as any;
+  const dto: any = {
+    hoTen: b.hoTen,
+    soDienThoai: b.soDienThoai,
+    email: b.email,
+    idLop: id,
+
+    // alias
+    hoVaTen: b.hoTen,
+    sdt: b.soDienThoai,
+    lopId: id,
+  };
+  if (b.matKhau && String(b.matKhau).trim().length > 0) {
+    dto.matKhau = b.matKhau;
+  }
+  return dto;
+}
+
+export const createStudent = (body: CreateStudentBody) =>
+  axios.post('/api/sinh-vien', toStudentCreateDto(body));
+
+export const updateStudentByCode = (maSV: string, body: UpdateStudentBody) =>
+  axios.put(`/api/sinh-vien/${maSV}`, toStudentUpdateDto(body));
+
+export const changeStudentStatusByCode = (maSV: string) =>
+  axios.put(`/api/sinh-vien/change-status/${maSV}`);
+
+export const importStudents = (formData: FormData) =>
+  axios.post('/api/sinh-vien/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+/** ✅ Chuẩn hoá bản ghi đọc về */
 export function normalizeStudent(x: any): Student {
   const acc = x.taiKhoan ?? x.user ?? {};
   const lop = x.lop ?? {};
+  const idLop =
+    x.idLop ?? x.lopId ?? lop.id ?? x.lop?.id;
+
   return {
     id: x.id ?? x.idSV ?? x.sinhVienId ?? x._id,
     email: x.email ?? acc.email ?? '',
@@ -100,6 +180,7 @@ export function normalizeStudent(x: any): Student {
     soDienThoai: x.soDienThoai ?? x.sdt ?? '',
     lopTen: x.tenLop ?? x.lopTen ?? lop.tenLop ?? lop.ten ?? '',
     duDieuKien: typeof x.kichHoat === 'boolean' ? x.kichHoat : (x.duDieuKien ?? false),
+    idLop: idLop, // ✅ thêm để FE có thể gán thẳng vào dropdown
   };
 }
 

@@ -43,7 +43,56 @@ export type SetSubjectHeadResponse = {
 };
 export const setSubjectHead = (body: SetSubjectHeadPayload) =>
   axios.post<SetSubjectHeadResponse>('/api/bo-mon/truong-bo-mon', body);
+export const listSubjectsWithHead = (params?: PageParams) =>
+  axios.get('/api/bo-mon/with-truong-bo-mon', { params });
 
+function normalizeSubjectRow(x: any): Subject {
+  const kv = x.khoa ?? {};
+  const head = x.truongBoMon ?? {};
+
+  return {
+    id: x.id ?? x.boMonId ?? x._id,
+
+    tenBoMon: x.tenBoMon ?? x.ten ?? '',
+
+    // ⬇️ BE có thể trả 'khoaTen' hoặc 'tenKhoa' (root) hoặc 'khoa.tenKhoa'
+    khoaId:  x.khoaId ?? x.idKhoa ?? kv.id,
+    khoaTen: x.khoaTen ?? x.tenKhoa ?? kv.tenKhoa ?? kv.ten ?? '',
+
+    // ⬇️ Ưu tiên đủ loại alias, thêm 'truongBoMonHoTen'
+    truongBoMonId:
+      x.truongBoMonId ??
+      x.idTruongBoMon ??
+      head.id ??
+      x.headId ??
+      x.giangVienId,
+
+    truongBoMonTen:
+      x.truongBoMonTen ??
+      x.truongBoMonHoTen ??   // <<< THÊM DÒNG NÀY
+      x.tenTruongBoMon ??
+      head.hoTen ??
+      x.headName ??
+      x.giangVienTen ??
+      x.tenGiangVien ??
+      '',
+  };
+}
+
+/** Trả về Page<Subject> đã có sẵn truongBoMonId/ten nếu BE cung cấp */
+export async function listSubjectsWithHeadNormalized(
+  params?: PageParams
+): Promise<Page<Subject>> {
+  const res = await listSubjectsWithHead(params);
+  const raw = unwrap<any>(res);
+  const arr: any[] = Array.isArray(raw?.content) ? raw.content : (Array.isArray(raw) ? raw : []);
+  return {
+    content: arr.map(normalizeSubjectRow),
+    totalElements: raw?.totalElements ?? arr.length ?? 0,
+    page: params?.page ?? 0,
+    size: params?.size ?? 10,
+  };
+}
 /* ===================== LỚP ===================== */
 export type ClassRoom = { id: Id; tenLop: string };
 

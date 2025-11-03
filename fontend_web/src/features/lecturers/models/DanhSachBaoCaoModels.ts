@@ -10,7 +10,7 @@ export interface Student {
   tenNganh?: string
   gioiTinh?: string
   tenLop?: string
-  // raw extra fields
+  duongDanCv?: string 
   [key: string]: any
 }
 
