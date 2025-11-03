@@ -49,14 +49,15 @@ export default function ConfirmDialog({
         {description && <p className="text-sm text-slate-600 mt-2">{description}</p>}
 
         <div className="flex justify-end gap-3 mt-6">
-          <button className="px-4 h-10 rounded border" disabled={loading} onClick={onClose}>{cancelText}</button>
+          {/* Confirm on the left, Cancel on the right (swapped) - both buttons same size */}
           <button
-            className="px-4 h-10 rounded bg-red-600 text-white disabled:opacity-50"
+            className="px-4 h-10 rounded bg-sky-600 text-white disabled:opacity-50"
             disabled={loading}
             onClick={handleConfirm}
           >
             {confirmText}
           </button>
+          <button className="px-4 h-10 rounded border" disabled={loading} onClick={onClose}>{cancelText}</button>
         </div>
       </div>
     </div>

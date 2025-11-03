@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao, fetchStudentByCode } from '../services/api'
+import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao, fetchStudentByCode } from '../services'
 
 export default function useReportDetailViewModel(maSV?: string | null) {
   const qc = useQueryClient()
