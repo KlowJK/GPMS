@@ -24,6 +24,9 @@ public class BoMon extends BaseEntity {
     @OneToMany(mappedBy = "boMon")
     Set<GiangVien> giangVienSet;
 
+    @OneToMany(mappedBy = "boMon")
+    Set<Nganh> nganhSet;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="id_khoa", nullable=false)
     Khoa khoa;

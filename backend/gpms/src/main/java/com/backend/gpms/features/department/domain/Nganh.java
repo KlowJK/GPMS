@@ -23,6 +23,10 @@ public class Nganh extends BaseEntity {
     @JoinColumn(name="id_khoa", nullable=false)
     Khoa khoa;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_bo_mon", nullable=false)
+    BoMon boMon;
+
     @OneToMany(mappedBy = "nganh")
     Set<Lop> lopSet;
 }

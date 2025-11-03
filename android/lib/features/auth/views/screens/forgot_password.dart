@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
+import 'package:GPMS/features/auth/views/widgets/header_hero.dart';
+import 'package:GPMS/features/auth/views/screens/reset_password.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -45,11 +47,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       setState(() => _sent = true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mã đặt lại mật khẩu đã được gửi đến email của bạn.'),
-          backgroundColor: Colors.green,
-        ),
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => ResetPasswordScreen()),
       );
     } on CustomException catch (e) {
       if (!mounted) return;
@@ -94,7 +93,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   constraints: BoxConstraints(maxWidth: maxCardWidth),
                   child: Column(
                     children: [
-                      _HeaderHero(),
+                      HeaderHero(),
                       const SizedBox(height: 16),
                       Card(
                         elevation: 0,
@@ -215,84 +214,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-// === REUSE _HeaderHero FROM LOGIN ===
-class _HeaderHero extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final isWide = w >= 600;
-
-    return Container(
-      height: isWide ? 220 : 180,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF2563EB), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isWide ? 900 : 600),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: isWide
-                  ? MainAxisAlignment.start
-                  : MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: isWide ? 72 : 56,
-                  height: isWide ? 72 : 56,
-                  child: const Image(
-                    image: AssetImage('assets/images/logo.png'),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: isWide
-                        ? CrossAxisAlignment.start
-                        : CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'TRƯỜNG ĐẠI HỌC THỦY LỢI',
-                        textAlign: isWide ? TextAlign.left : TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      Text(
-                        'THUY LOI UNIVERSITY',
-                        textAlign: isWide ? TextAlign.left : TextAlign.center,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
