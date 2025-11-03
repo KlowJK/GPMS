@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { axios } from '@shared/libs/axios'
-import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao } from '../services/api'
+import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao, fetchStudentByCode } from '../services/api'
 
 export default function useReportDetailViewModel(maSV?: string | null) {
   const qc = useQueryClient()
@@ -10,8 +9,7 @@ export default function useReportDetailViewModel(maSV?: string | null) {
     queryKey: ['sinh-vien', maSV],
     queryFn: async () => {
       if (!maSV) return null
-      const resp = await axios.get(`/api/sinh-vien/${encodeURIComponent(String(maSV))}`, { headers: { Accept: '*/*' }, timeout: 10000 })
-      return resp.data?.result
+      return await fetchStudentByCode(String(maSV))
     },
     enabled: !!maSV,
   })
