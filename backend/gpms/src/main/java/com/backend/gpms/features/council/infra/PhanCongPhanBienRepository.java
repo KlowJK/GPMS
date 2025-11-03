@@ -1,6 +1,7 @@
 package com.backend.gpms.features.council.infra;
 
 import com.backend.gpms.features.council.domain.PhanCongPhanBien;
+import org.apache.poi.sl.draw.geom.GuideIf;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -14,4 +15,6 @@ public interface PhanCongPhanBienRepository extends JpaRepository<PhanCongPhanBi
     Optional<PhanCongPhanBien> findByDeTai_IdAndGiangVien_Id(Long deTaiId, Long giangVienId);
 
     boolean existsByDeTai_IdAndGiangVien_Id(Long deTaiId, Long giangVienId);
+
+    Optional<PhanCongPhanBien> findByGiangVien_Id(Long giangVienId);
 }
