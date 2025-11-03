@@ -37,6 +37,21 @@ export async function fetchReviewList(params: { status?: string; page?: number; 
   return result
 }
 
+/**
+ * Fetch students who don't have a supervisor yet
+ * GET /api/giang-vien/sinh-vien-chua-co-gvhd
+ */
+export async function fetchStudentsWithoutSupervisor(params: { page?: number; size?: number; sort?: string[] } = {}) {
+  const searchParams = new URLSearchParams()
+  if (typeof params.page === 'number') searchParams.append('page', String(params.page))
+  if (typeof params.size === 'number') searchParams.append('size', String(params.size))
+  if (params.sort) params.sort.forEach(s => searchParams.append('sort', s))
+
+  const url = `/api/giang-vien/sinh-vien-chua-co-gvhd?${searchParams.toString()}`
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result ?? { content: [] }
+}
+
 export async function approveReview(idDeTai: string) {
   const url = `/api/giang-vien/do-an/${encodeURIComponent(idDeTai)}/approve`
   const resp = await axios.post(url)
@@ -284,7 +299,24 @@ export async function fetchStudentByCode(maSV: string) {
   if (!maSV) return null
   const url = `/api/sinh-vien/${encodeURIComponent(String(maSV))}`
   const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
-  return resp.data?.result ?? null
+  const raw = resp.data?.result ?? null
+  if (!raw) return null
+
+  // normalize commonly used fields so UI components can rely on stable keys
+  const normalized = {
+    // keep original raw fields available
+    ...raw,
+    maSV: raw.maSV ?? raw.maSinhVien ?? raw.ma ?? raw.msv,
+    hoTen: raw.hoTen ?? raw.hoVaTen ?? raw.ten ?? raw.name,
+    email: raw.email ?? raw.taiKhoan?.email ?? raw.user?.email,
+    soDienThoai: raw.soDienThoai ?? raw.sdt ?? raw.phone,
+    ngaySinh: raw.ngaySinh ?? raw.birthDate ?? raw.dateOfBirth,
+    tenNganh: raw.tenNganh ?? raw.nganhTen ?? raw.nganh?.tenNganh,
+    // CV url aliases consolidated to `duongDanCv`
+    duongDanCv: raw.duongDanCv ?? raw.duongDanFile ?? raw.fileUrl ?? raw.cvUrl ?? (raw.cv && raw.cv.url) ?? raw.linkCv ?? null,
+  }
+
+  return normalized
 }
 
 /**
@@ -315,6 +347,18 @@ export async function fetchHoiDongStudentDetail(deTaiId: number | string | null)
   const url = `/api/hoi-dong/sinh-vien/${encodeURIComponent(String(deTaiId))}/chi-tiet`
   const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
   return resp.data?.result ?? null
+}
+
+/**
+ * Get lecturers by department id
+ * GET /api/giang-vien/{boMonId}
+ * Returns array (resp.data.result)
+ */
+export async function getLecturersByBoMon(boMonId: string | number) {
+  if (!boMonId) return []
+  const url = `/api/giang-vien/${encodeURIComponent(String(boMonId))}`
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result ?? resp.data ?? []
 }
 
 /**

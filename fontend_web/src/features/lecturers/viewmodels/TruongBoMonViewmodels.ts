@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchDeCuongPage } from '../services/api'
+import { getLecturersByBoMon } from '../services/api'
+import { listLecturersNormalized } from '@/features/assistants/services/user/userApi'
 
 function normalizeName(x: any) {
   if (!x) return ''
@@ -116,3 +118,42 @@ export function useTruongBoMonViewModel(initialName?: string, initialPage = 0, i
 }
 
 export default useTruongBoMonViewModel
+
+// --- Helpers used by UI components ---
+export function extractBoMonId(s: any) {
+  if (!s) return null
+  return s.idBoMon ?? s.boMonId ?? s.id_bm ?? s.id_bomon ?? s.boMon?.id ?? s.boMonId ?? null
+}
+
+/**
+ * Load lecturers for a student: prefer GET /api/giang-vien/{boMonId} when boMon available,
+ * otherwise fallback to the normalized lecturers list.
+ */
+export async function loadLecturersForStudent(student: any) {
+  const boMonId = extractBoMonId(student)
+  if (boMonId) {
+    try {
+      const arr = await getLecturersByBoMon(boMonId)
+      if (Array.isArray(arr) && arr.length > 0) {
+        return arr.map((x: any) => ({
+          id: String(x.id ?? x.giangVienId ?? x.maGiangVien ?? x.maGV ?? x.hoTen ?? ''),
+          maGiangVien: x.maGiangVien ?? x.maGV,
+          hoTen: x.hoTen ?? x.hoVaTen ?? x.ten ?? '',
+          raw: x,
+        }))
+      }
+    } catch (e) {
+      // ignore and fallback
+      console.debug('loadLecturersForStudent: getLecturersByBoMon failed', e)
+    }
+  }
+
+  // fallback: return the normalized lecturers list (first page large size)
+  try {
+    const res = await listLecturersNormalized({ page: 0, size: 1000 })
+    return Array.isArray(res?.content) ? res.content : []
+  } catch (e) {
+    console.debug('loadLecturersForStudent: fallback list failed', e)
+    return []
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { fetchReviewList } from '../services/api'
-import { Eye } from 'lucide-react'
+import { fetchStudentsWithoutSupervisor } from '../services/api'
+import PhanCongModal from '../components/PhanCongModal'
 
 export default function TruongBoMonPhanCongGiangVienPage() {
   const [rows, setRows] = useState<any[]>([])
@@ -9,6 +9,8 @@ export default function TruongBoMonPhanCongGiangVienPage() {
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(10)
   const [query, setQuery] = useState<string>('')
+  const [assignRow, setAssignRow] = useState<any | null>(null)
+  const [showAssignModal, setShowAssignModal] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -16,10 +18,13 @@ export default function TruongBoMonPhanCongGiangVienPage() {
       setIsLoading(true)
       setIsError(false)
       try {
-        // request a large page from server, UI will page client-side
-        const resp = await fetchReviewList({ status: 'TU_CHOI', page: 0, size: 1000, sort: ['hoTen,ASC'] })
-        if (!mounted) return
-        setRows(Array.isArray(resp?.content) ? resp.content : [])
+  // request a large page from server, UI will page client-side
+  const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 1000, sort: ['hoTen,ASC'] })
+  if (!mounted) return
+  // only show records with status TU_CHOI
+  const items = Array.isArray(resp?.content) ? resp.content : []
+  const onlyRejected = items.filter((r: any) => ((String(r.trangThai ?? r.trangthai ?? r.status ?? '')).toUpperCase() === 'TU_CHOI'))
+  setRows(onlyRejected)
       } catch (err) {
         if (!mounted) return
         setIsError(true)
@@ -65,7 +70,8 @@ export default function TruongBoMonPhanCongGiangVienPage() {
                 <th className="text-left px-6 py-4">Họ và tên</th>
                 <th className="text-left px-6 py-4">Lớp</th>
                 <th className="text-left px-6 py-4">Tên đề tài</th>
-                <th className="text-left px-6 py-4">Trạng thái</th>
+                 <th className="text-left px-6 py-4">Tổng quan</th>
+                {/* Trạng thái column removed */}
                 <th className="text-left px-6 py-4">Hành động</th>
               </tr>
             </thead>
@@ -76,14 +82,20 @@ export default function TruongBoMonPhanCongGiangVienPage() {
                   <td className="px-6 py-4">{r.hoTen}</td>
                   <td className="px-6 py-4">{r.tenLop}</td>
                   <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
-                  <td className="px-6 py-4">{r.trangThai ?? r.trangthai ?? r.status ?? '—'}</td>
+                    <td className="px-6 py-4">
+                      {r.tongQuanDeTaiUrl ? (
+                        <a href={r.tongQuanDeTaiUrl} target="_blank" rel="noreferrer" className="text-sky-600 underline text-sm">Xem tổng quan</a>
+                      ) : (
+                        <span className="text-sm text-slate-500">—</span>
+                      )}
+                    </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <button title="Xem" className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100">
-                        <Eye size={16} />
-                        Xem
-                      </button>
-                      <button title="Phân công" className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border rounded text-emerald-700 hover:bg-emerald-100">
+                      <button
+                        title="Phân công"
+                        onClick={() => { setAssignRow(r); setShowAssignModal(true) }}
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border rounded text-emerald-700 hover:bg-emerald-100"
+                      >
                         Phân công
                       </button>
                     </div>
@@ -93,6 +105,19 @@ export default function TruongBoMonPhanCongGiangVienPage() {
             </tbody>
           </table>
         )}
+
+        <PhanCongModal
+          open={showAssignModal}
+          onClose={() => { setShowAssignModal(false); setAssignRow(null) }}
+          row={assignRow}
+          onAssigned={(payload) => {
+            // TODO: call assignment API. For now just log and refetch list (optimistic)
+            console.log('assigned', payload)
+            setRows(prev => prev.filter(x => String(x.idDeTai ?? x.id ?? x.maSV) !== String(payload.idDeTai)))
+            setShowAssignModal(false)
+            setAssignRow(null)
+          }}
+        />
 
         {/* Pagination controls */}
         {(() => {
