@@ -45,6 +45,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -77,30 +78,72 @@ public class HoiDongService{
     DiemRepository diemRepository;
     BaoCaoRepository baoCaoRepository;
 
+
     @PersistenceContext
     EntityManager em;
 
 
-    public Page<HoiDongResponse> getHoiDongsDangDienRa(String keyword,Long idDetai,Long idGiangVien, Pageable pageable) {
+    public Page<HoiDongResponse> getHoiDongsDangDienRa(String keyword, Long idDetai, Long idGiangVien, Pageable pageable) {
         boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
-        boolean hasIdDetai = idDetai != null && idDetai >0;
-        boolean hasIdGiangVien = idGiangVien != null && idGiangVien >0;
+        boolean hasIdDetai = idDetai != null && idDetai > 0;
+        boolean hasIdGiangVien = idGiangVien != null && idGiangVien > 0;
 
         DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
 
-        Page<HoiDong> page;
+        // 1. Ưu tiên: Tìm theo keyword
         if (hasKeyword) {
-            page = hoiDongRepository.findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(dotBaoVe, keyword, pageable);
-        }else
-        if (hasIdDetai) {
-            page = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDetai, pageable);
-        } else
-        if (hasIdGiangVien) {
-            page = hoiDongRepository.findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(dotBaoVe,idGiangVien, pageable);
-        } else {
-            page = hoiDongRepository.findHoiDongByDotBaoVe(dotBaoVe, pageable);
+            Page<HoiDong> page = hoiDongRepository.findHoiDongByDotBaoVeAndTenHoiDongContainingIgnoreCase(
+                    dotBaoVe, keyword, pageable);
+            return page.map(hoiDongMapper::toListItem);
         }
 
+        // 2. Ưu tiên: Tìm theo idDetai
+        if (hasIdDetai) {
+            Page<HoiDong> page = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDetai, pageable);
+            return page.map(hoiDongMapper::toListItem);
+        }
+
+        // 3. Xử lý trường hợp giảng viên (có thể là phản biện + thành viên HD)
+        if (hasIdGiangVien) {
+            // Lấy đề tài đang phản biện (nếu có)
+            Optional<PhanCongPhanBien> phanCongOpt = phanCongPhanBienRepository.findByGiangVien_Id(idGiangVien);
+            Long idDeTaiPhanBien = phanCongOpt.map(p -> p.getDeTai().getId()).orElse(null);
+
+            Set<Long> hoiDongIds = new HashSet<>();
+
+            List<HoiDong> hoiDongs = new ArrayList<>();
+
+            // 3.1. Nếu là phản biện → lấy hội đồng của đề tài đang phản biện
+            if (idDeTaiPhanBien != null) {
+                Page<HoiDong> pagePhanBien = hoiDongRepository.findByDotBaoVeAndDeTaiSet_Id(dotBaoVe, idDeTaiPhanBien, Pageable.unpaged());
+                pagePhanBien.getContent().stream()
+                        .filter(hd -> hoiDongIds.add(hd.getId())) // tránh trùng
+                        .forEach(hoiDongs::add);
+            }
+
+            // 3.2. Lấy hội đồng mà giảng viên là thành viên
+            Page<HoiDong> pageThanhVien = hoiDongRepository.findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(
+                    dotBaoVe, idGiangVien, Pageable.unpaged());
+
+            pageThanhVien.getContent().stream()
+                    .filter(hd -> hoiDongIds.add(hd.getId())) // tránh trùng
+                    .forEach(hoiDongs::add);
+
+            // 3.3. Sắp xếp + phân trang thủ công
+            List<HoiDong> sorted = hoiDongs.stream()
+                    .sorted(Comparator.comparing(HoiDong::getId)) // hoặc theo thời gian, tên, v.v.
+                    .collect(Collectors.toList());
+
+            int start = (int) pageable.getOffset();
+            int end = Math.min(start + pageable.getPageSize(), sorted.size());
+            List<HoiDong> pagedList = start < sorted.size() ? sorted.subList(start, end) : Collections.emptyList();
+
+            Page<HoiDong> resultPage = new PageImpl<>(pagedList, pageable, sorted.size());
+            return resultPage.map(hoiDongMapper::toListItem);
+        }
+
+        // 4. Default: Tất cả hội đồng đang diễn ra
+        Page<HoiDong> page = hoiDongRepository.findHoiDongByDotBaoVe(dotBaoVe, pageable);
         return page.map(hoiDongMapper::toListItem);
     }
 
@@ -179,6 +222,7 @@ public class HoiDongService{
                     .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
         hd.setThuKy(thuKy);
         hd.setDotBaoVe(dot);
+        hd.setDiaDiem(request.getDiaDiem());
         hd.setDeTaiSet(new HashSet<>());
         hd.setThanhVienHoiDongSet(new HashSet<>());
 
