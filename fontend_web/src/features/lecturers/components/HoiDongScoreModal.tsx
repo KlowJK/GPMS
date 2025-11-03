@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchHoiDongStudentDetail, saveCommonScore } from '../services/api'
+import { fetchHoiDongStudentDetail, saveCommonScore } from '../services'
 import { toast } from 'sonner'
 import { useAuth } from '@shared/hooks/useAuth'
 

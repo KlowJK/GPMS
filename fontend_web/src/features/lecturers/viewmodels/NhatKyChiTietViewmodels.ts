@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchStudentDiaryByProposal, reviewDiaryEntry } from '../services/api'
+import { fetchStudentDiaryByProposal, reviewDiaryEntry } from '../services'
 
 export function useDiaryDetailViewModel() {
   const [proposalId, setProposalId] = useState<string | number | null>(null)

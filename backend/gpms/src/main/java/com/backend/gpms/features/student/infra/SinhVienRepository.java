@@ -7,13 +7,14 @@ import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface SinhVienRepository extends JpaRepository<SinhVien, Long> {
+public interface SinhVienRepository extends JpaRepository<SinhVien, Long>, JpaSpecificationExecutor<SinhVien> {
     Optional<SinhVien> findByUserId(Long userId);
 
     Optional<SinhVien> findByUser_Email(String email);
@@ -62,4 +63,25 @@ public interface SinhVienRepository extends JpaRepository<SinhVien, Long> {
 
     Page<SinhVien> findByDeTai_BoMon_IdAndDeTai_DotBaoVe(Long boMonId, DotBaoVe dotBaoVe, Pageable pageable);
     Page<SinhVien> findByDeTai_BoMon_IdAndDeTai_TrangThaiAndDeTai_DotBaoVe(Long boMonId, TrangThaiDeTai trangThai, DotBaoVe dotBaoVe, Pageable pageable);
+
+    @Query("""
+    SELECT DISTINCT sv FROM SinhVien sv
+    JOIN sv.lop l
+    JOIN l.nganh n
+    LEFT JOIN sv.deTai dt
+    WHERE n.boMon.id = :idBoMon
+      AND (dt.dotBaoVe = :dotBaoVe OR dt.id IS NULL)
+      AND (
+        :status IS NULL
+        OR (:status = 'TU_CHOI' AND (dt.trangThai = :status OR dt.id IS NULL))
+        OR (:status != 'TU_CHOI' AND dt.trangThai = :status)
+      )
+    """)
+    Page<SinhVien> findSinhVienForBoMonApproval(
+            @Param("idBoMon") Long idBoMon,
+            @Param("dotBaoVe") DotBaoVe dotBaoVe,
+            @Param("status") TrangThaiDeTai status,
+            Pageable pageable
+    );
+
 }

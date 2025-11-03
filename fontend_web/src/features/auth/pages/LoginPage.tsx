@@ -12,6 +12,7 @@ const getRedirectPath = (role: string): string => {
     const roleMap: Record<string, string> = {
         GIANG_VIEN: '/lecturers',
         TRUONG_BO_MON: '/lecturers',
+        CHU_NHIEM_KHOA: '/lecturers',
         QUAN_TRI_VIEN: '/admin',
         TRO_LY_KHOA: '/assistant',
     }

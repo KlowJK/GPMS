@@ -29,6 +29,7 @@ import com.backend.gpms.features.outline.infra.DeCuongRepository;
 import com.backend.gpms.features.outline.infra.NhanXetDeCuongRepository;
 import com.backend.gpms.features.progress.application.NhatKyTienTrinhService;
 import com.backend.gpms.features.student.domain.SinhVien;
+import com.backend.gpms.features.student.domain.SinhVienSpecification;
 import com.backend.gpms.features.student.infra.SinhVienRepository;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -42,6 +43,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -159,25 +161,22 @@ public class GiangVienService {
 
     public Page<ApprovalSinhVienResponse> getDeTaiSinhVienTuChoi(TrangThaiDeTai status, Pageable pageable) {
         String email = currentEmail();
+        GiangVien gv = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
-        Long gvhdId = giangVienRepository.findByUser_Email(email)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND))
-                .getId();
-
-        Long idBoMon = giangVienRepository.findById(gvhdId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND))
-                .getBoMon()
-                .getId();
-
+        Long idBoMon = gv.getBoMon().getId();
         DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
 
-        Page<SinhVien> page = (status == null)
-                ? sinhVienRepository.findByDeTai_BoMon_IdAndDeTai_DotBaoVe(idBoMon,dotBaoVe, pageable)
-                : sinhVienRepository.findByDeTai_BoMon_IdAndDeTai_TrangThaiAndDeTai_DotBaoVe(idBoMon, status, dotBaoVe, pageable);
+        Specification<SinhVien> spec = SinhVienSpecification.belongsToBoMonAndDotBaoVe(idBoMon, dotBaoVe);
 
+        if (status != null) {
+            spec = spec.and(SinhVienSpecification.hasStatusOrNotRegistered(status, dotBaoVe));
+        }
+        // Nếu status == null → lấy tất cả sinh viên thuộc bộ môn
+
+        Page<SinhVien> page = sinhVienRepository.findAll(spec, pageable);
         return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
     }
-
     public List<DeCuongNhanXetResponse> viewDeCuongLog(String maSinhVien) {
 
         List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(maSinhVien);

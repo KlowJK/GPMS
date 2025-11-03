@@ -1,5 +1,6 @@
 package com.backend.gpms.common.mapper;
 
+import com.backend.gpms.features.council.domain.ChucVuHoiDong;
 import com.backend.gpms.features.council.dto.response.ThanhVienHoiDongResponse.SinhVienTrongHoiDong;
 import com.backend.gpms.features.council.domain.HoiDong;
 import com.backend.gpms.features.council.domain.ThanhVienHoiDong;
@@ -31,17 +32,19 @@ public interface HoiDongMapper {
     @Mapping(target = "sinhVienList", expression = "java(toSinhVienList(entity.getDeTaiSet()))")
     ThanhVienHoiDongResponse toDetail(HoiDong entity);
 
-    @Named("mapThanhVienHoiDongSetToGiangVienPhanBien")
-    default List<String> mapThanhVienHoiDongSetToGiangVienPhanBien(Set<ThanhVienHoiDong> set) {
-        if (set == null) return List.of();
-        List<String> out = new ArrayList<>();
-        for (ThanhVienHoiDong tv : set) {
-            if (tv == null || tv.getGiangVien() == null) continue;
-            String name = tv.getGiangVien().getHoTen();
-            if (name != null && !name.isBlank()) out.add(name);
-        }
-        return out;
-    }
+   @Named("mapThanhVienHoiDongSetToGiangVienPhanBien")
+   default List<String> mapThanhVienHoiDongSetToGiangVienPhanBien(Set<ThanhVienHoiDong> set) {
+       if (set == null) return List.of();
+       List<String> out = new ArrayList<>();
+       for (ThanhVienHoiDong tv : set) {
+           if (tv == null) continue;
+           if (tv.getVaiTro() != ChucVuHoiDong.UY_VIEN) continue;
+           if (tv.getGiangVien() == null) continue;
+           String name = tv.getGiangVien().getHoTen();
+           if (name != null && !name.isBlank()) out.add(name);
+       }
+       return out;
+   }
 
     @Named("enumName")
     default String enumName(Enum<?> e) {
