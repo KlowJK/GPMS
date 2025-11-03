@@ -21,4 +21,5 @@ public class ApprovalSinhVienResponse {
     TrangThaiDeTai trangThai;
     String tongQuanDeTaiUrl;
     String nhanXet;
+    String idBoMon;
 }
