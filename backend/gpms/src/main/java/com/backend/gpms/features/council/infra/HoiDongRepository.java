@@ -62,4 +62,23 @@ public interface HoiDongRepository extends JpaRepository<HoiDong, Long> {
     List<HoiDong> findByDotBaoVeAndThanhVienHoiDongSet_GiangVien_Id(DotBaoVe dotBaoVe,Long giangVienId);
 
     List<HoiDong> findByThoiGianBatDau(LocalDate date);
+
+    @Query("""
+    SELECT DISTINCT hd FROM HoiDong hd
+    WHERE hd.dotBaoVe = :dotBaoVe
+      AND (EXISTS (
+        SELECT 1 FROM PhanCongPhanBien pcb 
+        WHERE pcb.giangVien.id = :idGiangVien 
+          AND pcb.deTai MEMBER OF hd.deTaiSet
+      ) OR EXISTS (
+        SELECT 1 FROM ThanhVienHoiDong tv 
+        WHERE tv.hoiDong = hd 
+          AND tv.giangVien.id = :idGiangVien
+      ))
+    """)
+    Page<HoiDong> findHoiDongByGiangVienPhanBienOrThanhVien(
+            @Param("dotBaoVe") DotBaoVe dotBaoVe,
+            @Param("idGiangVien") Long idGiangVien,
+            Pageable pageable
+    );
 }
