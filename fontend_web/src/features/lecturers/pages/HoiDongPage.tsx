@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import useHoiDongViewModel, { useHoiDongDetailViewModel } from '../viewmodels/HoiDongViewmodels'
+import useHoiDongViewModel from '../viewmodels/HoiDongViewmodels'
 import { useAuth } from '@shared/hooks/useAuth'
-import HoiDongDetail from '../components/HoiDongDetail'
+import { useNavigate } from 'react-router-dom'
 import { Eye } from 'lucide-react'
 
 
@@ -36,8 +36,7 @@ function Inner() {
   // reset to first page when pageSize or query changes to avoid out-of-range
   React.useEffect(() => { setPage(0) }, [pageSize, query])
 
-  // detail viewmodel
-  const detailVm = useHoiDongDetailViewModel()
+  const navigate = useNavigate()
 
   return (
     <div>
@@ -107,13 +106,12 @@ function Inner() {
                  
                             <button
                               title="Xem chi tiết"
-                              onClick={() => detailVm.setDetailId(h.id)}
+                              onClick={() => navigate(`/lecturers/hoi-dong/${h.id}`)}
                               className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
                             >
                               <Eye size={16} />
                               Xem chi tiết
                             </button>
-                
                       </td>
                     </tr>
                   )
@@ -145,8 +143,7 @@ function Inner() {
             })()}
           </>
         )}
-      </div>
-      <HoiDongDetail open={!!detailVm.data} onClose={() => detailVm.setDetailId(null)} data={detailVm.data} isLoading={detailVm.isLoading} isError={detailVm.isError} />
+  </div>
     </div>
   )
 }
