@@ -18,6 +18,7 @@ import java.util.Optional;
 
 public interface DeTaiRepository extends JpaRepository<DeTai, Long> {
     Optional<DeTai> findById(Long id);
+    Optional<DeTai> findBySinhVien_IdAndDotBaoVe_Id(Long sinhVienId, Long dotBaoVeId);
 
     @Query("""
            select d.giangVienHuongDan.id as giangVienId, count(d) as soDeTai

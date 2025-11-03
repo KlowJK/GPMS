@@ -115,31 +115,59 @@ public class DeTaiService {
         return deTaiMapper.toDeTaiResponse(deTai);
     };
 
-    public DeTaiGiangVienHuongDanResponse addGiangVienHuongDan(DeTaiGiangVienHuongDanRequest request){
+    @Transactional
+    public DeTaiGiangVienHuongDanResponse addGiangVienHuongDan(DeTaiGiangVienHuongDanRequest request) {
+        // 1. Lấy sinh viên & giảng viên
         SinhVien sv = sinhVienRepository.findByMaSinhVien(request.getMaSV())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
-        GiangVien gv = giangVienRepository.findByMaGiangVien(request.getMaGV()).
-                orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+
+        GiangVien gv = giangVienRepository.findByMaGiangVien(request.getMaGV())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+
+        // 2. Lấy đợt bảo vệ hiện tại
         ThoiGianThucHien thoiGianDangKy = timeGatekeeper.validateThoiGianDangKy();
         DotBaoVe dotBaoVe = thoiGianDangKy.getDotBaoVe();
-        Optional<DeTai> deTai = deTaiRepository.findDeTaiBySinhVien_Id(sv.getId());
-        if(deTai.isPresent()) {
-            throw new ApplicationException(ErrorCode.SINH_VIEN_ALREADY_REGISTERED_DE_TAI);
+
+        // 3. Tìm đề tài hiện tại của sinh viên trong đợt này
+        Optional<DeTai> existingDeTai = deTaiRepository
+                .findBySinhVien_IdAndDotBaoVe_Id(sv.getId(), dotBaoVe.getId());
+
+        DeTai deTai;
+
+        if (existingDeTai.isPresent()) {
+            // CẬP NHẬT: Sinh viên đã có đề tài → cập nhật giảng viên hướng dẫn
+            deTai = existingDeTai.get();
+            if (deTai.getTrangThai() == TrangThaiDeTai.TU_CHOI) {
+                // Nếu bị từ chối → cho phép gán lại
+                deTai.setTrangThai(TrangThaiDeTai.DA_DUYET);
+            }
+            deTai.setGiangVienHuongDan(gv);
+            deTai.setBoMon(gv.getBoMon());
+            deTai.setUpdatedAt(LocalDateTime.now()); // nếu có field
+        } else {
+            // TẠO MỚI: Sinh viên chưa có đề tài trong đợt này
+            deTai = DeTai.builder()
+                    .tenDeTai("Chưa có đề tài")
+                    .sinhVien(sv)
+                    .giangVienHuongDan(gv)
+                    .boMon(gv.getBoMon())
+                    .dotBaoVe(dotBaoVe)
+                    .trangThai(TrangThaiDeTai.DA_DUYET)
+                    .build();
         }
-        DeTai newDeTai = DeTai.builder()
-                .tenDeTai("Chưa có đề tài")
-                .sinhVien(sv)
-                .giangVienHuongDan(gv)
-                .boMon(gv.getBoMon())
-                .dotBaoVe(dotBaoVe)
-                .trangThai(TrangThaiDeTai.DA_DUYET)
-                .build();
-        deTaiRepository.save(newDeTai);
+
+        // 4. Lưu (cập nhật hoặc tạo mới)
+        deTaiRepository.save(deTai);
+
         return DeTaiGiangVienHuongDanResponse.builder()
                 .success(true)
-                .message("Gán đề tài và giảng viên hướng dẫn thành công.")
+                .message(existingDeTai.isPresent()
+                        ? "Cập nhật giảng viên hướng dẫn thành công."
+                        : "Gán đề tài và giảng viên hướng dẫn thành công.")
                 .build();
-    };
+    }
+
+
 
     public Page<DeTaiResponse> getDeTaiByLecturerAndStatus(TrangThaiDeTai trangThai, Pageable pageable){
         String email = getCurrentUsername();
