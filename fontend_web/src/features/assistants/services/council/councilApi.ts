@@ -1,7 +1,6 @@
-import { axios, unwrap, toPage, type Id, type Page, type PageParams }
-  from '@features/assistants/services/base';
+import { axios, unwrap, type Id, type Page, type PageParams } from '@features/assistants/services/base';
 
-/* ===== Types cơ bản ===== */
+/* ===== Types ===== */
 export type Council = {
   id: Id;
   tenHoiDong: string;
@@ -12,8 +11,8 @@ export type Council = {
 
 export type CreateCouncilPayload = {
   tenHoiDong: string;
-  thoiGianBatDau: string;   // yyyy-MM-dd
-  thoiGianKetThuc: string;  // yyyy-MM-dd
+  thoiGianBatDau: string;
+  thoiGianKetThuc: string;
   chuTichId: Id;
   thuKyId: Id;
   dotBaoVeId: Id;
@@ -21,7 +20,6 @@ export type CreateCouncilPayload = {
   lecturers: { giangVienId: Id }[];
 };
 
-/* ===== Chi tiết hội đồng (GET /api/hoi-dong/{id}) ===== */
 export type CouncilDetail = {
   id: Id;
   tenHoiDong: string;
@@ -36,8 +34,6 @@ export type CouncilDetail = {
     idDeTai: string; tenDeTai: string; gvhd: string;
     idBoMon?: string; boMon?: string;
   }>;
-  /** Nếu BE trả kèm danh sách thành viên đã chọn khi tạo hội đồng (id + tên) */
-  members?: Array<{ id: Id; hoTen: string; email?: string }>;
 };
 
 export const listCouncils = (params?: PageParams) =>
@@ -65,41 +61,44 @@ export async function listCouncilsNormalized(params?: PageParams): Promise<Page<
 export const createCouncil = (body: CreateCouncilPayload) =>
   axios.post('/api/hoi-dong/them-hoi-dong', body);
 
-/* ===== GET chi tiết /api/hoi-dong/{id} (result wrapper) ===== */
+/* ===== GET /api/hoi-dong/{id} ===== */
 export async function getCouncilDetail(id: Id | string): Promise<CouncilDetail> {
-  const res = await axios.get(`/api/hoi-dong/${id}`);
-  const raw = unwrap<any>(res)?.result ?? {};
-  // cố gắng chuẩn hoá members nếu BE trả các key khác nhau
-  const rawMembers: any[] =
-    raw.members ?? raw.thanhVienList ?? raw.giangVienThamGia ?? [];
-  const members = Array.isArray(rawMembers)
-    ? rawMembers.map((m: any) => ({
-        id: m?.id ?? m?.giangVienId ?? m?.uid ?? m,
-        hoTen: m?.hoTen ?? m?.ten ?? (typeof m === 'string' ? m : ''),
-        email: m?.email,
-      })).filter((m: any) => m.id != null && m.hoTen)
-    : [];
-
+  const res  = await axios.get(`/api/hoi-dong/${id}`, { headers: { Accept: '*/*' } });
+  const data = unwrap<any>(res);
+  const raw  = (data?.result ?? data) || {};
   return {
     id: raw.id,
     tenHoiDong: raw.tenHoiDong ?? '',
-    thoiGianBatDau: raw.thoiGianBatDau,
-    thoiGianKetThuc: raw.thoiGianKetThuc,
+    thoiGianBatDau: raw.thoiGianBatDau ?? '',
+    thoiGianKetThuc: raw.thoiGianKetThuc ?? '',
     diaDiem: raw.diaDiem ?? raw.diaChi,
     chuTich: raw.chuTich,
     thuKy: raw.thuKy,
     giangVienPhanBien: Array.isArray(raw.giangVienPhanBien) ? raw.giangVienPhanBien : [],
     sinhVienList: Array.isArray(raw.sinhVienList) ? raw.sinhVienList : [],
-    members,
   };
 }
 
-/* ===== Gán giảng viên phản biện đề tài =====*/
+/* ===== Import SV từ Excel: POST /api/hoi-dong/{hoiDongId}/import-sinh-vien ===== */
+export async function importCouncilStudents(hoiDongId: Id | string, file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await axios.post(
+    `/api/hoi-dong/${hoiDongId}/import-sinh-vien`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data', Accept: '*/*' }, timeout: 60_000 }
+  );
+  return unwrap(res);
+}
+
+/* ===== Thêm GV phản biện đề tài: POST /api/hoi-dong/them-giang-vien-pb-de-tai ===== */
 export const addTopicReviewLecturers = (payload: {
   idDeTai: string;
   lecturers: { giangVienId: Id }[];
-}) => axios.post('/api/hoi-dong/them-giang-vien-pb-de-tai', payload);
-/* ===== Chi tiết SV/Đề tài trong hội đồng (GET /api/hoi-dong/sinh-vien/{deTaiId}/chi-tiet) ===== */
+}) =>
+  axios.post('/api/hoi-dong/them-giang-vien-pb-de-tai', payload, { headers: { Accept: '*/*' } });
+
+/* ===== Chi tiết SV/Đề tài trong hội đồng: GET /api/hoi-dong/sinh-vien/{deTaiId}/chi-tiet ===== */
 export type CouncilStudentDetail = {
   id: Id;
   tenHoiDong: string;
@@ -132,8 +131,10 @@ export type CouncilStudentDetail = {
 };
 
 export async function getCouncilStudentDetail(deTaiId: Id | string): Promise<CouncilStudentDetail> {
-  const res = await axios.get(`/api/hoi-dong/sinh-vien/${deTaiId}/chi-tiet`);
-  const raw = unwrap<any>(res)?.result ?? {};
+  const res  = await axios.get(`/api/hoi-dong/sinh-vien/${encodeURIComponent(String(deTaiId))}/chi-tiet`,
+    { headers: { Accept: '*/*' } });
+  const data = unwrap<any>(res);
+  const raw  = data?.result ?? data ?? {};
 
   return {
     id: raw.id ?? raw.hoiDongId ?? raw._id,

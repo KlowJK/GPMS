@@ -11,7 +11,7 @@ import {
   lockDefenseRound,
 } from '@/features/assistants/services/topic/topicApi';
 import DefenseRoundFormModal from '@/features/assistants/components/DefenseRoundFormModal';
-import { UploadCloud, Pencil, Trash2, Lock } from 'lucide-react';
+import { UploadCloud, Pencil, Trash2, Lock, FileUp } from 'lucide-react';
 import { useToast } from '@/features/admin/components/ToastProvider';
 
 type ModalState = { open: boolean; editing?: DefenseRoundUI | null };
@@ -236,8 +236,7 @@ export default function DefenseRoundsPage() {
                           disabled={!!busyThis}
                           title="Import sinh viên (Excel/CSV)"
                         >
-                          <UploadCloud size={16} />
-                          {busyThis ? 'Đang import…' : 'Import SV'}
+                          <FileUp size={16}/>
                         </button>
 
                         {/* Khóa/Mở đợt – toggle; icon đỏ khi đã khóa */}

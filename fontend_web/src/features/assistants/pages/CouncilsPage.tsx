@@ -1,14 +1,15 @@
 // src/features/assistants/pages/CouncilsPage.tsx
-import { useEffect, useMemo, useState } from 'react';
-import { Eye, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Eye, Plus, FileUp } from 'lucide-react';
 import { useToast } from '@/features/admin/components/ToastProvider';
-import { useNavigate } from 'react-router-dom'; // ✅ THÊM
+import { useNavigate } from 'react-router-dom';
 
 import {
   type Council,
   type CreateCouncilPayload,
   listCouncilsNormalized,
   createCouncil,
+  importCouncilStudents, // ✅ THÊM
 } from '@/features/assistants/services/council/councilApi';
 
 import CouncilFormModal from '@/features/assistants/components/CouncilFormModal';
@@ -21,7 +22,7 @@ function fmt(d?: string) {
 
 export default function CouncilsPage() {
   const { success, error } = useToast();
-  const navigate = useNavigate(); // ✅ THÊM
+  const navigate = useNavigate();
 
   const [rows, setRows] = useState<Council[]>([]);
   const [page, setPage] = useState(0);
@@ -29,6 +30,11 @@ export default function CouncilsPage() {
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // ✅ import
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [importTargetId, setImportTargetId] = useState<number | string | null>(null);
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
 
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -59,6 +65,29 @@ export default function CouncilsPage() {
   const from = page * size + 1;
   const to = Math.min(total, page * size + filtered.length);
 
+  // ✅ xử lý chọn file import
+  async function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // reset input để lần sau chọn lại cùng file vẫn nhận onChange
+    e.target.value = '';
+    if (!file || !importTargetId) return;
+
+    const key = String(importTargetId);
+    try {
+      setUploading(prev => ({ ...prev, [key]: true }));
+      await importCouncilStudents(importTargetId, file);
+      success('Import danh sách sinh viên thành công.');
+      // Điều hướng sang trang chi tiết hội đồng để xem danh sách
+      navigate(`/assistant/councils/${importTargetId}`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Import thất bại';
+      error(String(msg));
+    } finally {
+      setUploading(prev => ({ ...prev, [key]: false }));
+      setImportTargetId(null);
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-4">
       <h1 className="text-3xl font-semibold text-center">Danh sách hội đồng</h1>
@@ -88,7 +117,7 @@ export default function CouncilsPage() {
               <th className="px-4">Bắt đầu</th>
               <th className="px-4">Kết thúc</th>
               <th className="px-4">Địa điểm</th>
-              <th className="px-4 w-32">Hành động</th>
+              <th className="px-4 w-40">Hành động</th>{/* rộng hơn một chút */}
             </tr>
           </thead>
           <tbody>
@@ -96,26 +125,45 @@ export default function CouncilsPage() {
               <tr><td className="px-4 py-6 text-center" colSpan={6}>Đang tải…</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td className="px-4 py-6 text-center" colSpan={6}>Không có dữ liệu.</td></tr>
-            ) : filtered.map((r, idx) => (
-              <tr key={`${r.id}`} className="border-t">
-                <td className="px-4 py-3">{page * size + idx + 1}</td>
-                <td className="px-4 py-3">{r.tenHoiDong}</td>
-                <td className="px-4 py-3">{fmt(r.thoiGianBatDau)}</td>
-                <td className="px-4 py-3">{fmt(r.thoiGianKetThuc)}</td>
-                <td className="px-4 py-3">{r.diaDiem || '—'}</td>
-                <td className="px-4 py-3">
-                  {/* ✅ Điều hướng tới trang chi tiết hội đồng */}
-                  <button
-                    className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-slate-100"
-                    title="Xem chi tiết hội đồng"
-                    aria-label="Xem chi tiết hội đồng"
-                    onClick={() => navigate(`/assistant/councils/${r.id}`)}
-                  >
-                    <Eye size={16}/>
-                  </button>
-                </td>
-              </tr>
-            ))}
+            ) : filtered.map((r, idx) => {
+              const key = String(r.id);
+              const busy = !!uploading[key];
+              return (
+                <tr key={`${r.id}`} className="border-t">
+                  <td className="px-4 py-3">{page * size + idx + 1}</td>
+                  <td className="px-4 py-3">{r.tenHoiDong}</td>
+                  <td className="px-4 py-3">{fmt(r.thoiGianBatDau)}</td>
+                  <td className="px-4 py-3">{fmt(r.thoiGianKetThuc)}</td>
+                  <td className="px-4 py-3">{r.diaDiem || '—'}</td>
+                  <td className="px-4 py-3">
+                    {/* Xem chi tiết */}
+                    <button
+                      className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-slate-100 mr-1"
+                      title="Xem chi tiết hội đồng"
+                      aria-label="Xem chi tiết hội đồng"
+                      onClick={() => navigate(`/assistant/councils/${r.id}`)}
+                    >
+                      <Eye size={16}/>
+                    </button>
+
+                    {/* Import SV từ Excel */}
+                    <button
+                      className="inline-flex items-center justify-center h-9 px-2 rounded-md hover:bg-slate-100 disabled:opacity-50"
+                      title="Import sinh viên từ Excel"
+                      aria-label="Import sinh viên từ Excel"
+                      disabled={busy}
+                      onClick={() => {
+                        setImportTargetId(r.id);
+                        fileRef.current?.click();
+                      }}
+                    >
+                      <FileUp size={16}/>
+                      <span className="ml-1 text-sm hidden md:inline"></span>
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
@@ -129,6 +177,15 @@ export default function CouncilsPage() {
                   disabled={from + size > total}>Sau</button>
         </div>
       </div>
+
+      {/* input file ẩn dùng chung cho tất cả các dòng */}
+      <input
+        type="file"
+        ref={fileRef}
+        className="hidden"
+        accept=".xlsx,.xls"
+        onChange={handleImportFileChange}
+      />
 
       {modalOpen && (
         <CouncilFormModal

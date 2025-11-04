@@ -1,14 +1,15 @@
+// src/features/assistants/components/CouncilFormModal.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/features/admin/components/ToastProvider';
 
-import type { Id } from '@/features/assistants/services/base';
-import { toPage } from '@/features/assistants/services/base';
+import type { Id } from '@features/assistants/services/base';
+import { toPage } from '@features/assistants/services/base';
 
-import type { Lecturer } from '@/features/assistants/services/user/userApi';
-import { listLecturers } from '@/features/assistants/services/user/userApi';
+import type { Lecturer } from '@features/assistants/services/user/userApi';
+import { listLecturers } from '@features/assistants/services/user/userApi';
 
-import type { DefenseRoundUI } from '@/features/assistants/services/topic/topicApi';
-import { listDefenseRoundsNormalized } from '@/features/assistants/services/topic/topicApi';
+import type { DefenseRoundUI } from '@features/assistants/services/topic/topicApi';
+import { listDefenseRoundsNormalized } from '@features/assistants/services/topic/topicApi';
 
 type Props = {
   onClose: () => void;
@@ -37,12 +38,12 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
   const [dotBaoVeId, setDotBaoVeId] = useState<Id | ''>('');
 
   // options
-  const [gv, setGv] = useState<Lecturer[]>([]);
+  const [gvAll, setGvAll] = useState<Lecturer[]>([]);
   const [rounds, setRounds] = useState<DefenseRoundUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [qGV, setQGV] = useState('');
 
-  // thành viên hội đồng (ngoài CT/TK)
+  // multi-select thành viên hội đồng (độc lập với Chủ tịch/Thư ký)
   const [members, setMembers] = useState<Set<string>>(new Set());
   const toggleMember = (id: Id) =>
     setMembers(prev => {
@@ -52,7 +53,27 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
       return s;
     });
 
-  // load options
+  // helper: bỏ dấu + lowercase để tìm kiếm VN tốt hơn
+  const norm = (v?: string) =>
+    (v || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
+
+  // danh sách GV hiển thị theo tìm kiếm: theo TÊN hoặc EMAIL
+  const gv = useMemo(() => {
+    const k = norm(qGV.trim());
+    if (!k) return gvAll;
+    return gvAll.filter(x => {
+      const hay =
+        norm(x.hoTen) +
+        ' ' +
+        norm((x as any).email || (x as any).taiKhoan || '');
+      return hay.includes(k);
+    });
+  }, [gvAll, qGV]);
+
+  // load options (tải 1 lần, không lọc server; lọc client theo tên/email)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -61,9 +82,9 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
         const pgRound = await listDefenseRoundsNormalized({ page: 0, size: 999 });
         if (alive) setRounds(pgRound.content);
 
-        const resGV = await listLecturers({ page: 0, size: 999, q: qGV.trim() || undefined });
+        const resGV = await listLecturers({ page: 0, size: 999 });
         const pgGV = toPage<Lecturer>(resGV, { page: 0, size: 999 });
-        if (alive) setGv(pgGV.content);
+        if (alive) setGvAll(pgGV.content);
       } catch (e: any) {
         error(e?.response?.data?.message || 'Không tải được dữ liệu lựa chọn.');
       } finally {
@@ -71,46 +92,23 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
       }
     })();
     return () => { alive = false; };
-  }, [qGV, error]);
+  }, [error]);
 
   // mặc định auto chọn đợt đầu tiên
   useEffect(() => {
     if (!dotBaoVeId && rounds.length) setDotBaoVeId(rounds[0].id);
   }, [rounds, dotBaoVeId]);
 
-  const canPickRole = gv.length > 0;
-
-  // không cho chọn cùng 1 người làm cả CT & TK
-  const chairOptions = useMemo(
-    () => gv.filter(x => String(x.id) !== (thuKyId ? String(thuKyId) : '')),
-    [gv, thuKyId]
-  );
-  const secretaryOptions = useMemo(
-    () => gv.filter(x => String(x.id) !== (chuTichId ? String(chuTichId) : '')),
-    [gv, chuTichId]
-  );
-
   const canSave = useMemo(
-    () =>
-      !!(
-        ten.trim() &&
-        start &&
-        end &&
-        dotBaoVeId &&
-        chuTichId &&
-        thuKyId &&
-        String(chuTichId) !== String(thuKyId)
-      ),
+    () => !!(ten.trim() && start && end && dotBaoVeId && chuTichId && thuKyId),
     [ten, start, end, dotBaoVeId, chuTichId, thuKyId]
   );
 
   async function handleSave() {
     if (!canSave) return;
 
-    // chỉ gửi các thành viên đã tick, loại CT & TK để tránh trùng (BE tự thêm CT & TK)
-    const lecturers = Array.from(new Set(members))
-      .filter(id => id !== String(chuTichId) && id !== String(thuKyId))
-      .map(id => ({ giangVienId: Number(id) }));
+    // mảng giảng viên chỉ lấy từ danh sách đã tick (không auto add chủ tịch/thư ký)
+    const lecturers = Array.from(members).map(id => ({ giangVienId: Number(id) }));
 
     await onSubmit({
       tenHoiDong: ten.trim(),
@@ -137,16 +135,30 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm text-slate-600 mb-1">Tên hội đồng</label>
-                  <input className="w-full h-11 rounded border px-3" value={ten} onChange={(e) => setTen(e.target.value)} />
+                  <input
+                    className="w-full h-11 rounded border px-3"
+                    value={ten}
+                    onChange={(e) => setTen(e.target.value)}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm text-slate-600 mb-1">Bắt đầu</label>
-                  <input type="date" className="w-full h-11 rounded border px-3" value={start} onChange={(e) => setStart(e.target.value)} />
+                  <input
+                    type="date"
+                    className="w-full h-11 rounded border px-3"
+                    value={start}
+                    onChange={(e) => setStart(e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm text-slate-600 mb-1">Kết thúc</label>
-                  <input type="date" className="w-full h-11 rounded border px-3" value={end} onChange={(e) => setEnd(e.target.value)} />
+                  <input
+                    type="date"
+                    className="w-full h-11 rounded border px-3"
+                    value={end}
+                    onChange={(e) => setEnd(e.target.value)}
+                  />
                 </div>
 
                 <div>
@@ -174,42 +186,12 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                   />
                 </div>
 
-                {/* Vai trò – chọn độc lập, không phụ thuộc checkbox */}
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Chủ tịch hội đồng</label>
-                  <select
-                    className="w-full h-11 rounded border px-3 bg-white disabled:bg-slate-100"
-                    value={chuTichId === '' ? '' : String(chuTichId)}
-                    onChange={(e) => setChuTichId(e.target.value ? Number(e.target.value) : '')}
-                    disabled={!canPickRole || loading}
-                  >
-                    <option value="">{canPickRole ? '— Chọn —' : '— Chưa có dữ liệu giảng viên —'}</option>
-                    {chairOptions.map(x => (
-                      <option key={`${x.id}`} value={String(x.id)}>{x.hoTen}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-600 mb-1">Thư ký</label>
-                  <select
-                    className="w-full h-11 rounded border px-3 bg-white disabled:bg-slate-100"
-                    value={thuKyId === '' ? '' : String(thuKyId)}
-                    onChange={(e) => setThuKyId(e.target.value ? Number(e.target.value) : '')}
-                    disabled={!canPickRole || loading}
-                  >
-                    <option value="">{canPickRole ? '— Chọn —' : '— Chưa có dữ liệu giảng viên —'}</option>
-                    {secretaryOptions.map(x => (
-                      <option key={`${x.id}`} value={String(x.id)}>{x.hoTen}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Giảng viên tham gia (checkbox) */}
+                {/* Giảng viên tham gia (lọc theo tên/email) */}
                 <div className="col-span-2">
                   <label className="block text-sm text-slate-600 mb-1">Giảng viên tham gia</label>
                   <input
                     className="w-full h-10 rounded border px-3 mb-2"
-                    placeholder="Tìm giảng viên…"
+                    placeholder="Tìm theo tên hoặc email…"
                     value={qGV}
                     onChange={(e) => setQGV(e.target.value)}
                   />
@@ -228,16 +210,39 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                               onChange={() => toggleMember(x.id)}
                             />
                             <span className="text-sm">
-                              {x.hoTen}{x.boMonTen ? ` — ${x.boMonTen}` : ''}{x.email ? ` — ${x.email}` : ''}
+                              {x.hoTen}{x.boMonTen ? ` — ${x.boMonTen}` : ''}{(x as any).email ? ` — ${(x as any).email}` : ''}
                             </span>
                           </label>
                         );
                       })
                     )}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    * Chủ tịch và Thư ký chọn riêng ở phía trên; KHÔNG cần tick họ ở danh sách này.
-                  </div>
+                </div>
+
+                {/* Chủ tịch / Thư ký — chọn độc lập từ full list giảng viên */}
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Chủ tịch hội đồng</label>
+                  <select
+                    className="w-full h-11 rounded border px-3 bg-white"
+                    value={chuTichId === '' ? '' : String(chuTichId)}
+                    onChange={(e) => setChuTichId(e.target.value ? Number(e.target.value) : '')}
+                    disabled={loading}
+                  >
+                    <option value="">— Chọn —</option>
+                    {gvAll.map(x => <option key={`${x.id}`} value={String(x.id)}>{x.hoTen}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">Thư ký</label>
+                  <select
+                    className="w-full h-11 rounded border px-3 bg-white"
+                    value={thuKyId === '' ? '' : String(thuKyId)}
+                    onChange={(e) => setThuKyId(e.target.value ? Number(e.target.value) : '')}
+                    disabled={loading}
+                  >
+                    <option value="">— Chọn —</option>
+                    {gvAll.map(x => <option key={`${x.id}`} value={String(x.id)}>{x.hoTen}</option>)}
+                  </select>
                 </div>
               </div>
             </div>
