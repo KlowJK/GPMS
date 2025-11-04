@@ -95,7 +95,7 @@ public class DeCuongService {
             // GVPB: lấy từ prev nếu có, nếu chưa thì rơi về DeTai (nếu đã phân công)
             var gvpb = (prev != null && prev.getGiangVienPhanBien() != null)
                     ? prev.getGiangVienPhanBien()
-                    : null; // cần có field này ở DeTai
+                    : deTai.getGiangVienPBDeCuong(); // cần có field này ở DeTai
             n.setGiangVienPhanBien(gvpb);
 
             // TBM: lấy từ bộ môn của đề tài (null-safe)
@@ -174,15 +174,24 @@ public class DeCuongService {
         GiangVien gvPhanBien = giangVienRepository.findById(idGiangVienPhanBien)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
 
-        // 3. Lấy TẤT CẢ đề cương của đề tài (sắp xếp để dễ kiểm tra)
+        if (deTai.getTrangThai()!= TrangThaiDeTai.DA_DUYET) {
+            throw new ApplicationException(ErrorCode.DE_TAI_NOT_ACCEPTED);
+        }
+        // 3. Lấy tất cả đề cương (có thể rỗng)
         List<DeCuong> tatCaDeCuong = deCuongRepository
                 .findByDeTai_IdOrderByPhienBanDesc(idDeTai);
 
+        // GẮN LUÔN VÀO DE_TAI (luôn được phép)
+        deTai.setGiangVienPBDeCuong(gvPhanBien);
+        deTaiRepository.save(deTai);
+
+        // Nếu KHÔNG có đề cương → bỏ qua kiểm tra và gắn
         if (tatCaDeCuong.isEmpty()) {
-            throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
+            return "Đã gắn giảng viên phản biện cho đề tài : "
+                    + gvPhanBien.getHoTen();
         }
 
-        // 4. Kiểm tra: Không cho GVHD làm phản biện (ở bất kỳ phiên bản nào)
+        // 4. Kiểm tra: Không cho GVHD làm phản biện
         boolean laGVHD = tatCaDeCuong.stream()
                 .anyMatch(dc -> dc.getGiangVienHuongDan() != null &&
                         dc.getGiangVienHuongDan().getId().equals(idGiangVienPhanBien));
@@ -191,16 +200,24 @@ public class DeCuongService {
             throw new ApplicationException(ErrorCode.GVHD_CANNOT_BE_PBANBIEN);
         }
 
-        // 7. GẮN phản biện cho TẤT CẢ phiên bản
-        for (DeCuong dc : tatCaDeCuong) {
-            dc.setGiangVienPhanBien(gvPhanBien);
-            dc.setGvPhanBienDuyet(dc.getGvPhanBienDuyet()); // Mặc định chờ duyệt
+        // 5. Kiểm tra: Chưa có phản biện ở bất kỳ phiên bản nào
+        boolean daCoPhanBien = tatCaDeCuong.stream()
+                .anyMatch(dc -> dc.getGiangVienPhanBien() != null);
+
+        if (daCoPhanBien) {
+            throw new ApplicationException(ErrorCode.DE_CUONG_ALREADY_HAS_PBANBIEN);
         }
 
-        // 8. Lưu tất cả
+        // 6. Gắn phản biện cho tất cả đề cương
+        for (DeCuong dc : tatCaDeCuong) {
+            dc.setGiangVienPhanBien(gvPhanBien);
+            dc.setGvPhanBienDuyet(TrangThaiDuyetDon.CHO_DUYET); // Mặc định chờ duyệt
+        }
+
+        // 7. Lưu tất cả đề cương
         deCuongRepository.saveAll(tatCaDeCuong);
 
-        return "Đã gắn giảng viên phản biện thành công cho "
+        return "Đã gắn giảng viên phản biện thành công cho đề tài và "
                 + tatCaDeCuong.size() + " phiên bản đề cương: "
                 + gvPhanBien.getHoTen();
     }

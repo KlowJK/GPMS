@@ -24,4 +24,6 @@ public class ApprovalSinhVienResponse {
     String idBoMon;
     String idGiangVienHD;
     String hoTenGiangVienHD;
+    String idGiangVienPB;
+    String hoTenGiangVienPB;
 }
