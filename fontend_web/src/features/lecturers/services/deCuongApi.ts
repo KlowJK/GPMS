@@ -116,3 +116,15 @@ export async function exportDeCuongAcceptedExcelForTbm() {
   })
   return resp
 }
+
+/**
+ * Assign a reviewer (giảng viên phản biện) to a proposal (đề cương)
+ * POST /api/de-cuong/{idDeTai}/gan-gv-phan-bien?idGiangVienHuongDan={id}
+ */
+export async function assignReviewerToDeCuong(idDeTai: string | number, idGiangVienHuongDan: string) {
+  if (!idDeTai) throw new Error('idDeTai is required')
+  const url = `/api/de-cuong/${encodeURIComponent(String(idDeTai))}/gan-gv-phan-bien`
+  // send id as query param using axios `params` so headers/encoding handled by axios
+  const resp = await axios.post(url, null, { params: { idGiangVienHuongDan }, headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result ?? resp.data
+}

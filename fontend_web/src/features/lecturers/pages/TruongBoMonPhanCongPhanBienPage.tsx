@@ -22,8 +22,10 @@ export default function TruongBoMonPhanCongPhanBienPage() {
       try {
         // For reviewer assignment we want topics that are already approved
         const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
-        const items = Array.isArray(resp?.content) ? resp.content : []
-        setRows(items)
+  const items = Array.isArray(resp?.content) ? resp.content : []
+  // only show records that don't yet have a reviewer assigned
+  const unassigned = items.filter((it: any) => it?.idGiangVienPB == null)
+  setRows(unassigned)
       } catch (err) {
         setErrorDetails({
           message: (err as any)?.message ?? String(err),
@@ -153,7 +155,8 @@ export default function TruongBoMonPhanCongPhanBienPage() {
             try {
               const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
               const items = Array.isArray(resp?.content) ? resp.content : []
-              setRows(items)
+              const unassigned = items.filter((it: any) => it?.idGiangVienPB == null)
+              setRows(unassigned)
             } catch (e) {
               console.error('[TBM-phan-bien] refetch failed', e)
             }
