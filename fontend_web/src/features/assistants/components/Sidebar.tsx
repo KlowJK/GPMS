@@ -69,7 +69,7 @@ export default function Sidebar() {
         items={[
           { to: '/assistant/subjects', label: 'Quản lý bộ môn' },
           { to: '/assistant/majors',   label: 'Quản lý ngành' },
-          { to: '/assistant/classes',   label: 'Quản lý lớp' },
+          { to: '/assistant/classes',  label: 'Quản lý lớp'   },
         ]}
       />
 
@@ -78,6 +78,14 @@ export default function Sidebar() {
         items={[
           { to: '/assistant/defense-rounds', label: 'Quản lý đợt bảo vệ' },
           { to: '/assistant/round-schedule', label: 'Thời gian thực hiện' },
+        ]}
+      />
+
+      {/* ✅ Nhóm mới: Hội đồng */}
+      <Group
+        label="Hội đồng"
+        items={[
+          { to: '/assistant/councils', label: 'Quản lý hội đồng' },
         ]}
       />
     </aside>
