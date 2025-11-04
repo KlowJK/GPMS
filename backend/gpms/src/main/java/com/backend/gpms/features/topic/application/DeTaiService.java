@@ -115,7 +115,6 @@ public class DeTaiService {
         return deTaiMapper.toDeTaiResponse(deTai);
     };
 
-    @Transactional
     public DeTaiGiangVienHuongDanResponse addGiangVienHuongDan(DeTaiGiangVienHuongDanRequest request) {
         // 1. Lấy sinh viên & giảng viên
         SinhVien sv = sinhVienRepository.findByMaSinhVien(request.getMaSV())
