@@ -22,4 +22,6 @@ public class ApprovalSinhVienResponse {
     String tongQuanDeTaiUrl;
     String nhanXet;
     String idBoMon;
+    String idGiangVienHD;
+    String hoTenGiangVienHD;
 }

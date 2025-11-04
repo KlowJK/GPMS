@@ -61,6 +61,10 @@ public class BoMonService{
 
 
     public void deleteBoMon(Long boMonId) {
+        if(giangVienRepository.existsById(boMonId)) {
+            throw new ApplicationException(ErrorCode.BO_MON_HAS_GIANG_VIEN);
+        }
+
         boMonRepository.deleteById(boMonId);
     }
 

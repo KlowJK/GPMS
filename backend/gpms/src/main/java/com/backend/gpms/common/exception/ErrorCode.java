@@ -114,6 +114,13 @@ public enum ErrorCode {
     THOI_GIAN_THUC_HIEN_NOT_FOUND(3014, "Thoi gian thuc hien khong ton tai.", HttpStatus.NOT_FOUND),
     BAO_CAO_NOT_FOUND(3015, "Bao cao khong ton tai.", HttpStatus.NOT_FOUND),
     TRO_LY_KHOA_NOT_FOUND(1011, "Tro ly khoa khong ton tai.", HttpStatus.NOT_FOUND),
+    NGANH_HAS_LOP_CANNOT_DELETE(3003, "Nganh da co lop, khong the xoa.", HttpStatus.BAD_REQUEST),
+    BO_MON_HAS_GIANG_VIEN(3004, "Bo mon da co giang vien, khong the xoa.", HttpStatus.BAD_REQUEST),
+    LOP_HAS_STUDENTS(3005, "Lop da co sinh vien, khong the xoa.", HttpStatus.BAD_REQUEST),
+    KHOA_HAS_NGANHS(3006, "Khoa da co nganh, khong the xoa.", HttpStatus.BAD_REQUEST),
+    INVALID_QUOTA_VALUE(3007, "Gia tri chi tieu khong hop le.", HttpStatus.BAD_REQUEST),
+    NO_GIANGVIEN_FOUND(3008, "Khong tim thay giang vien nao.", HttpStatus.NOT_FOUND),
+    GVHD_CANNOT_BE_PBANBIEN(3009, "Giang vien huong dan khong the la giang vien phan bien.", HttpStatus.BAD_REQUEST),
 
     // Business Logic Errors
     DUPLICATED_KHOA(4001, "Ten khoa da ton tai.", HttpStatus.CONFLICT),
@@ -159,6 +166,7 @@ public enum ErrorCode {
     DE_CUONG_NOT_PENDING(4041, "De cuong khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
     DE_TAI_NOT_PENDING(4042, "De tai khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
     NOT_YOUR_DETAI(4043, "Khong phai de tai cua ban huong dan.", HttpStatus.FORBIDDEN),
+
 
     // Server Errors
     INTERNAL_SERVER_ERROR(5001, "Loi he thong.", HttpStatus.INTERNAL_SERVER_ERROR),
