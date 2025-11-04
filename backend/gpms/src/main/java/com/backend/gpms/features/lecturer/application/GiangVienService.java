@@ -177,6 +177,7 @@ public class GiangVienService {
         Page<SinhVien> page = sinhVienRepository.findAll(spec, pageable);
         return page.map(sinhVienMapper::toDeTaiSinhVienApprovalResponse);
     }
+
     public List<DeCuongNhanXetResponse> viewDeCuongLog(String maSinhVien) {
 
         List<DeCuong> deCuongs = deCuongRepository.findByDeTai_SinhVien_MaSinhVienOrderByPhienBanDesc(maSinhVien);
@@ -207,6 +208,45 @@ public class GiangVienService {
         return responses;
     }
 
+    public String capNhatSoLuongHuongDanChoTatCa(Integer soLuongMoi) {
+        // 1. Kiểm tra giá trị đầu vào
+        if (soLuongMoi == null || soLuongMoi < 0) {
+            throw new ApplicationException(ErrorCode.INVALID_QUOTA_VALUE);
+        }
+
+        // 2. Lấy tất cả giảng viên
+        List<GiangVien> danhSachGV = giangVienRepository.findAll();
+
+        // 3. Kiểm tra có dữ liệu không
+        if (danhSachGV.isEmpty()) {
+            throw new ApplicationException(ErrorCode.NO_GIANGVIEN_FOUND);
+        }
+
+        // 4. Cập nhật quota cho từng giảng viên
+        danhSachGV.forEach(gv -> gv.setQuotaInstruct(soLuongMoi));
+
+        // 5. Lưu tất cả (saveAll tối ưu hơn save từng cái)
+        giangVienRepository.saveAll(danhSachGV);
+
+        return "Cập nhật thành công số lượng hướng dẫn cho "
+                + danhSachGV.size() + " giảng viên.";
+    }
+
+    public List<GiangVienLiteResponse> getGiangVienPhanBien(Long idBoMon, Long idGiangVienHuongDan) {
+        // 1. Kiểm tra bộ môn tồn tại
+        BoMon boMon = boMonRepository.findById(idBoMon)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
+
+        // 2. Lấy danh sách giảng viên trong bộ môn, sắp xếp theo họ tên
+        List<GiangVien> danhSachGV = giangVienRepository
+                .findByBoMon_IdOrderByHoTenAsc(boMon.getId());
+
+        // 3. Loại bỏ giảng viên hướng dẫn (nếu có trong danh sách)
+        return danhSachGV.stream()
+                .filter(gv -> !gv.getId().equals(idGiangVienHuongDan)) // Loại bỏ GVHD
+                .map(giangVienMapper::toLite)
+                .toList();
+    }
 
     public List<SinhVienSupervisedResponse> getMySinhVienSupervisedAll(String q) {
         String email = currentEmail();

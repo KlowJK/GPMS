@@ -9,4 +9,5 @@ public interface NganhRepository extends JpaRepository<Nganh,Long> {
     Optional<Nganh> findById(Long id);
     boolean existsByMaNganhIgnoreCase(String maNganh);
     boolean existsByTenNganhIgnoreCase(String tenNganh);
+    boolean existsByKhoaId(Long khoaId);
 }

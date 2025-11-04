@@ -7,6 +7,7 @@ import com.backend.gpms.features.department.domain.Khoa;
 import com.backend.gpms.features.department.dto.request.KhoaRequest;
 import com.backend.gpms.features.department.dto.response.KhoaResponse;
 import com.backend.gpms.features.department.infra.KhoaRepository;
+import com.backend.gpms.features.department.infra.NganhRepository;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class KhoaService {
 
     KhoaRepository khoaRepository;
     KhoaMapper khoaMapper;
+    NganhRepository nganhRepository;
 
 
     public KhoaResponse createKhoa(KhoaRequest khoaRequest) {
@@ -47,6 +49,9 @@ public class KhoaService {
 
 
     public void deleteKhoa(Long khoaId) {
+        if(nganhRepository.existsByKhoaId(khoaId)) {
+            throw new ApplicationException(ErrorCode.KHOA_HAS_NGANHS);
+        }
         khoaRepository.deleteById(khoaId);
     }
 

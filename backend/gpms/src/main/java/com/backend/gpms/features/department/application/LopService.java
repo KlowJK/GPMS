@@ -9,6 +9,7 @@ import com.backend.gpms.features.department.dto.request.LopRequest;
 import com.backend.gpms.features.department.dto.response.LopResponse;
 import com.backend.gpms.features.department.infra.LopRepository;
 import com.backend.gpms.features.department.infra.NganhRepository;
+import com.backend.gpms.features.student.infra.SinhVienRepository;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class LopService {
     LopRepository lopRepository;
     LopMapper lopMapper;
     NganhRepository nganhRepository;
+    SinhVienRepository sinhVienRepository;
 
     public LopResponse createLop(LopRequest lopRequest) {
         if(lopRepository.existsByTenLopIgnoreCase(lopRequest.getTenLop())) {
@@ -50,6 +52,9 @@ public class LopService {
     }
 
     public void deleteLop(Long lopId) {
+        if(sinhVienRepository.existsByLopId(lopId)) {
+            throw new ApplicationException(ErrorCode.LOP_HAS_STUDENTS);
+        }
         lopRepository.deleteById(lopId);
     }
 

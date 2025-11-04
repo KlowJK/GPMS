@@ -6,8 +6,6 @@ import com.backend.gpms.features.outline.domain.TrangThaiDeCuong;
 import com.backend.gpms.features.outline.dto.request.DeCuongUploadRequest;
 import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
-import com.backend.gpms.features.outline.dto.response.NhanXetDeCuongResponse;
-import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -109,6 +107,18 @@ public class DeCuongController {
             @PageableDefault(page = 0, size = 10, sort = "deTai.sinhVien.hoTen", direction = Sort.Direction.ASC)
             Pageable pageable) {
         return ApiResponse.success(deCuongService.getAcceptedForTBM(pageable));
+    }
+
+    @Operation(summary = "Thêm giảng viên phản biện cho dề cương- Role trưởng bộ môn")
+    @PreAuthorize("hasAuthority('ROLE_TRUONG_BO_MON')")
+    @PostMapping("{idDeTai}/gan-gv-phan-bien")
+    public ApiResponse<String> themPhanBienTatCa(
+            @PathVariable Long idDeTai,
+            @RequestParam(name = "idGiangVienHuongDan") Long idGiangVienPhanBien) {
+
+        String msg = deCuongService.addGiangVienPhanBienChoTatCaPhienBan(
+                idDeTai, idGiangVienPhanBien);
+        return ApiResponse.success(msg);
     }
 
     @Operation(summary = "Xuất excel danh sách đề cương đã duyệt thuộc bộ môn của trưởng bộ môn - Role trưởng bộ môn")

@@ -28,6 +28,7 @@ public interface GiangVienMapper {
     GiangVienCreationResponse toGiangVienCreationResponse(GiangVien entity);
 
     @Mapping(source = "maGiangVien", target = "maGV")
+    @Mapping(source = "quotaInstruct" , target = "soLuongChoPhepHuongDan")
     GiangVienInfoResponse toGiangVienInfoResponse(GiangVien entity);
 
     @Mapping(source = "boMon.id",       target = "boMonId")

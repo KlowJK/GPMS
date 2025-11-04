@@ -165,7 +165,45 @@ public class DeCuongService {
         return mapper.toResponse(deCuongRepository.save(newVer));
     }
 
+    public String addGiangVienPhanBienChoTatCaPhienBan(Long idDeTai, Long idGiangVienPhanBien) {
+        // 1. Tìm đề tài
+        DeTai deTai = deTaiRepository.findById(idDeTai)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));
 
+        // 2. Tìm giảng viên phản biện
+        GiangVien gvPhanBien = giangVienRepository.findById(idGiangVienPhanBien)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+
+        // 3. Lấy TẤT CẢ đề cương của đề tài (sắp xếp để dễ kiểm tra)
+        List<DeCuong> tatCaDeCuong = deCuongRepository
+                .findByDeTai_IdOrderByPhienBanDesc(idDeTai);
+
+        if (tatCaDeCuong.isEmpty()) {
+            throw new ApplicationException(ErrorCode.DE_CUONG_NOT_FOUND);
+        }
+
+        // 4. Kiểm tra: Không cho GVHD làm phản biện (ở bất kỳ phiên bản nào)
+        boolean laGVHD = tatCaDeCuong.stream()
+                .anyMatch(dc -> dc.getGiangVienHuongDan() != null &&
+                        dc.getGiangVienHuongDan().getId().equals(idGiangVienPhanBien));
+
+        if (laGVHD) {
+            throw new ApplicationException(ErrorCode.GVHD_CANNOT_BE_PBANBIEN);
+        }
+
+        // 7. GẮN phản biện cho TẤT CẢ phiên bản
+        for (DeCuong dc : tatCaDeCuong) {
+            dc.setGiangVienPhanBien(gvPhanBien);
+            dc.setGvPhanBienDuyet(dc.getGvPhanBienDuyet()); // Mặc định chờ duyệt
+        }
+
+        // 8. Lưu tất cả
+        deCuongRepository.saveAll(tatCaDeCuong);
+
+        return "Đã gắn giảng viên phản biện thành công cho "
+                + tatCaDeCuong.size() + " phiên bản đề cương: "
+                + gvPhanBien.getHoTen();
+    }
 
 
     public List<DeCuongNhanXetResponse> viewDeCuongLog() {
@@ -377,8 +415,8 @@ public class DeCuongService {
 
         // 3) Dataset xuất file = đúng dataset của getAcceptedForTBM (không lọc updatedAt thủ công nữa)
         List<DeCuong> list = deCuongRepository
-                .findByTrangThaiDeCuongAndDeTai_BoMon_IdAndDeTai_DotBaoVe_IdIn(
-                        TrangThaiDeCuong.DA_DUYET, bmId, activeDotIds);
+                .findByTbmDuyetAndDeTai_BoMon_IdAndDeTai_DotBaoVe_IdIn(
+                        TrangThaiDuyetDon.DA_DUYET, bmId, activeDotIds);
 
         try (var wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
             var sheet = wb.createSheet("danh_sach_de_cuong_duoc_duyet");
