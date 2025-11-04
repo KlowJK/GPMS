@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchStudentsWithoutSupervisor } from '../services'
 import PhanCongModal from '../components/PhanCongModal'
+import PhanCongPhanBienModal from '../components/PhanCongPhanBienModal'
 
-export default function TruongBoMonPhanCongGiangVienPage() {
-  const navigate = useNavigate()
+export default function TruongBoMonPhanCongPhanBienPage() {
   const [rows, setRows] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
@@ -16,19 +16,15 @@ export default function TruongBoMonPhanCongGiangVienPage() {
   const [showAssignModal, setShowAssignModal] = useState(false)
 
   useEffect(() => {
-    // fetchData is intentionally defined here and used on mount and after assignments
     async function fetchData() {
       setIsLoading(true)
       setIsError(false)
       try {
-        // request a reasonably sized page so server filtering is used
-        const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'TU_CHOI' })
-        console.debug('[TBM] fetchStudentsWithoutSupervisor resp:', resp)
+        // For reviewer assignment we want topics that are already approved
+        const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
         const items = Array.isArray(resp?.content) ? resp.content : []
-        console.debug('[TBM] items length:', items.length)
         setRows(items)
       } catch (err) {
-        console.error('[TBM] load error:', err, (err as any)?.response?.status, (err as any)?.response?.data)
         setErrorDetails({
           message: (err as any)?.message ?? String(err),
           status: (err as any)?.response?.status ?? null,
@@ -41,13 +37,13 @@ export default function TruongBoMonPhanCongGiangVienPage() {
     }
 
     fetchData()
-    // expose fetchData to outer scope via a ref if needed by children; simpler: attach to window for quick debugging
-    // (we won't rely on window in production)
-    ;(window as any).__tbm_fetch = fetchData
-    return () => { delete (window as any).__tbm_fetch }
   }, [])
 
-  // reset to first page when data, pageSize or query changes
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isGuidance = location.pathname.startsWith('/lecturers/truong-bo-mon/phan-cong-giang-vien')
+  const isReviewer = location.pathname.startsWith('/lecturers/truong-bo-mon/phan-cong-phan-bien')
+
   useEffect(() => { setPage(0) }, [rows, pageSize, query])
 
   const q = (query || '').toLowerCase().trim()
@@ -56,14 +52,10 @@ export default function TruongBoMonPhanCongGiangVienPage() {
   const totalPages = Math.max(1, Math.ceil(totalElements / pageSize))
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
-  const location = useLocation()
-  const isGuidance = location.pathname.startsWith('/lecturers/truong-bo-mon/phan-cong-giang-vien')
-  const isReviewer = location.pathname.startsWith('/lecturers/truong-bo-mon/phan-cong-phan-bien')
-
   return (
     <div >
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Phân công giảng viên hướng dẫn </h1>
+        <h1 className="text-2xl font-semibold">Phân công giảng viên phản biện</h1>
         <div className="flex items-center gap-3">
         
           <div className="inline-flex items-center rounded-full bg-transparent p-1">
@@ -112,8 +104,7 @@ export default function TruongBoMonPhanCongGiangVienPage() {
                 <th className="text-left px-6 py-4">Họ và tên</th>
                 <th className="text-left px-6 py-4">Lớp</th>
                 <th className="text-left px-6 py-4">Tên đề tài</th>
-                 <th className="text-left px-6 py-4">Tổng quan</th>
-                {/* Trạng thái column removed */}
+                <th className="text-left px-6 py-4">Tổng quan</th>
                 <th className="text-left px-6 py-4">Hành động</th>
               </tr>
             </thead>
@@ -124,13 +115,13 @@ export default function TruongBoMonPhanCongGiangVienPage() {
                   <td className="px-6 py-4">{r.hoTen}</td>
                   <td className="px-6 py-4">{r.tenLop}</td>
                   <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
-                    <td className="px-6 py-4">
-                      {r.tongQuanDeTaiUrl ? (
-                        <a href={r.tongQuanDeTaiUrl} target="_blank" rel="noreferrer" className="text-sky-600 underline text-sm">Xem tổng quan</a>
-                      ) : (
-                        <span className="text-sm text-slate-500">—</span>
-                      )}
-                    </td>
+                  <td className="px-6 py-4">
+                    {r.tongQuanDeTaiUrl ? (
+                      <a href={r.tongQuanDeTaiUrl} target="_blank" rel="noreferrer" className="text-sky-600 underline text-sm">Xem tổng quan</a>
+                    ) : (
+                      <span className="text-sm text-slate-500">—</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <button
@@ -148,33 +139,26 @@ export default function TruongBoMonPhanCongGiangVienPage() {
           </table>
         )}
 
-        <PhanCongModal
+        {/** use a dedicated modal for reviewer assignment (static save for now) */}
+        <PhanCongPhanBienModal
           open={showAssignModal}
           onClose={() => { setShowAssignModal(false); setAssignRow(null) }}
           row={assignRow}
           onAssigned={async (payload) => {
-              // After successful assignment, re-fetch the server list so we reflect current state.
-              console.log('assigned', payload)
-              // close modal first for better UX
-              setShowAssignModal(false)
-              setAssignRow(null)
-              try {
-                // call the same fetch we used on mount; use the helper attached to window
-                const fn = (window as any).__tbm_fetch as (() => Promise<void>) | undefined
-                if (typeof fn === 'function') await fn()
-                else {
-                  // fallback: perform a manual fetch
-                  const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'TU_CHOI' })
-                  const items = Array.isArray(resp?.content) ? resp.content : []
-                  setRows(items)
-                }
-              } catch (e) {
-                console.error('[TBM] refetch after assign failed', e)
-              }
-            }}
+            // after assign, refetch same list
+            setShowAssignModal(false)
+            setAssignRow(null)
+            try {
+              const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
+              const items = Array.isArray(resp?.content) ? resp.content : []
+              setRows(items)
+            } catch (e) {
+              console.error('[TBM-phan-bien] refetch failed', e)
+            }
+          }}
         />
 
-        {/* Pagination controls */}
+        {/* Pagination controls (same as other page) */}
         {(() => {
           if (!totalPages || totalPages <= 1) return null
           const showPageButtons = totalPages <= 10

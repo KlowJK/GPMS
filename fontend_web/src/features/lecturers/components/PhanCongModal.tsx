@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchStudentsWithoutSupervisor, fetchStudentByCode } from '../services'
+import { fetchStudentsWithoutSupervisor, fetchStudentByCode, assignDeTai } from '../services'
 import { listLecturersNormalized } from '@/features/assistants/services/user/userApi'
 import { axios } from '@shared/libs/axios'
 import { loadLecturersForStudent } from '../viewmodels/TruongBoMonViewmodels'
@@ -17,6 +17,7 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
   const [loading, setLoading] = useState(false)
   const [student, setStudent] = useState<any | null>(null)
   const [lecturers, setLecturers] = useState<any[]>([])
+  // store selected lecturer code (maGiangVien / maGV) because backend expects maGV
   const [lecturerId, setLecturerId] = useState<string | null>(null)
   const [lecturersLoading, setLecturersLoading] = useState(false)
 
@@ -83,19 +84,40 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
   }
 
   async function handleSave() {
-    // For now, just call the callback and close. Assignment API can be added later.
+    // Call assignment API: POST /api/de-tai/gan-de-tai with { maSV, maGV }
     try {
       if (!lecturerId) {
         toast.error('Vui lòng chọn giảng viên')
         return
       }
+
+      const ma = String(student?.maSV ?? student?.maSinhVien ?? student?.ma ?? '')
+      if (!ma) {
+        toast.error('Không xác định được mã sinh viên')
+        return
+      }
+
+      setLoading(true)
+      const resp = await assignDeTai({ maSV: ma, maGV: String(lecturerId) })
+
+      // API returns result with success/message in various shapes
+      const success = resp?.success ?? resp?.result?.success ?? true
+      const message = resp?.message ?? resp?.result?.message ?? 'Phân công thành công'
+
+      if (!success) {
+        toast.error(message || 'Phân công thất bại')
+        return
+      }
+
       const bomon = extractBoMonId(student)
       onAssigned?.({ idDeTai: row?.idDeTai ?? row?.id ?? null, idGiangVien: lecturerId, idBoMon: bomon })
-      toast.success('Phân công thành công')
+      toast.success(String(message))
       handleClose()
     } catch (err) {
-      console.error(err)
+      console.error('[PhanCongModal] assign failed', err)
       toast.error('Lưu phân công thất bại')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -115,9 +137,12 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
                 <label className="block text-sm text-slate-600 mb-2">Giảng viên</label>
                 <select value={lecturerId ?? ''} onChange={e => setLecturerId(e.target.value || null)} className="w-full border rounded px-3 py-2">
                   <option value="">Chọn giảng viên</option>
-                  {lecturers.map((g: any) => (
-                    <option key={`${g.id}-${g.maGiangVien ?? ''}`} value={String(g.id)}>{g.hoTen} {g.maGiangVien ? `(${g.maGiangVien})` : ''}</option>
-                  ))}
+                  {lecturers.map((g: any) => {
+                    const code = g.maGiangVien ?? g.maGV ?? String(g.id ?? '')
+                    return (
+                      <option key={`${g.id}-${code}`} value={String(code)}>{g.hoTen} {code ? `(${code})` : ''}</option>
+                    )
+                  })}
                 </select>
                 {lecturersLoading && <div className="text-xs text-slate-500 mt-1">Đang tải giảng viên...</div>}
               </div>
