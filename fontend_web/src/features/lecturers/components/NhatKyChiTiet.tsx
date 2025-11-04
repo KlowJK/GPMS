@@ -72,7 +72,10 @@ export default function DiaryProgressModal({ open, onClose, data }: { open: bool
 
         <div>
           <div className="text-sm text-slate-700 mb-3">Tiến độ từng tuần:</div>
-          <div className="space-y-4">
+          {/* Make the week list scrollable when there are many weeks to avoid an overly tall modal */}
+          <div className={
+            `space-y-4 ${Array.isArray(data) && data.length > 3 ? 'max-h-[48vh] overflow-y-auto pr-2' : ''}`
+          }>
             {Array.isArray(data) && data.map((w: any) => {
               const info = getStatusInfo(w.trangThaiNhatKy ?? w.trangThai ?? w.trangthai)
               return (

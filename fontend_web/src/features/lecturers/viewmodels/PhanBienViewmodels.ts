@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchDeCuongPage } from '../services/api'
+import { fetchDeCuongPage } from '../services'
 
 export function usePhanBienViewModel(currentName?: string, initialPage = 0, initialSize = 1000) {
   // server-side paging (used in query)

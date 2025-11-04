@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchStudentProposals, approveDeCuong, rejectDeCuong } from '../services/api'
+import { fetchStudentProposals, approveDeCuong, rejectDeCuong } from '../services'
 import { formatDateTime } from '@shared/utils/format'
 
 type DeCuongItem = Record<string, any>
