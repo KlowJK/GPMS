@@ -6,6 +6,7 @@ export default function TruongBoMonPhanCongGiangVienPage() {
   const [rows, setRows] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
+  const [errorDetails, setErrorDetails] = useState<any | null>(null)
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(10)
   const [query, setQuery] = useState<string>('')
@@ -13,28 +14,35 @@ export default function TruongBoMonPhanCongGiangVienPage() {
   const [showAssignModal, setShowAssignModal] = useState(false)
 
   useEffect(() => {
-    let mounted = true
-    async function load() {
+    // fetchData is intentionally defined here and used on mount and after assignments
+    async function fetchData() {
       setIsLoading(true)
       setIsError(false)
       try {
-  // request a large page from server, UI will page client-side
-  const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 1000, sort: ['hoTen,ASC'] })
-  if (!mounted) return
-  // only show records with status TU_CHOI
-  const items = Array.isArray(resp?.content) ? resp.content : []
-  const onlyRejected = items.filter((r: any) => ((String(r.trangThai ?? r.trangthai ?? r.status ?? '')).toUpperCase() === 'TU_CHOI'))
-  setRows(onlyRejected)
+        // request a reasonably sized page so server filtering is used
+        const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'TU_CHOI' })
+        console.debug('[TBM] fetchStudentsWithoutSupervisor resp:', resp)
+        const items = Array.isArray(resp?.content) ? resp.content : []
+        console.debug('[TBM] items length:', items.length)
+        setRows(items)
       } catch (err) {
-        if (!mounted) return
+        console.error('[TBM] load error:', err, (err as any)?.response?.status, (err as any)?.response?.data)
+        setErrorDetails({
+          message: (err as any)?.message ?? String(err),
+          status: (err as any)?.response?.status ?? null,
+          data: (err as any)?.response?.data ?? null,
+        })
         setIsError(true)
       } finally {
-        if (!mounted) return
         setIsLoading(false)
       }
     }
-    load()
-    return () => { mounted = false }
+
+    fetchData()
+    // expose fetchData to outer scope via a ref if needed by children; simpler: attach to window for quick debugging
+    // (we won't rely on window in production)
+    ;(window as any).__tbm_fetch = fetchData
+    return () => { delete (window as any).__tbm_fetch }
   }, [])
 
   // reset to first page when data, pageSize or query changes
@@ -59,7 +67,16 @@ export default function TruongBoMonPhanCongGiangVienPage() {
         {isLoading ? (
           <div className="p-6 text-center">Đang tải...</div>
         ) : isError ? (
-          <div className="p-6 text-center text-red-600">Lỗi khi tải dữ liệu</div>
+          <div className="p-6 text-center text-red-600">
+            <div>Lỗi khi tải dữ liệu</div>
+            {errorDetails && (
+              <div className="mt-2 text-xs text-left text-red-500 max-w-3xl mx-auto break-words bg-white/5 p-3 rounded">
+                <div><strong>message:</strong> {String(errorDetails.message)}</div>
+                <div><strong>status:</strong> {String(errorDetails.status)}</div>
+                <div><strong>data:</strong> <pre className="whitespace-pre-wrap">{JSON.stringify(errorDetails.data, null, 2)}</pre></div>
+              </div>
+            )}
+          </div>
         ) : !rows || rows.length === 0 ? (
           <div className="p-6 text-center">Không có dữ liệu</div>
         ) : (
@@ -110,13 +127,26 @@ export default function TruongBoMonPhanCongGiangVienPage() {
           open={showAssignModal}
           onClose={() => { setShowAssignModal(false); setAssignRow(null) }}
           row={assignRow}
-          onAssigned={(payload) => {
-            // TODO: call assignment API. For now just log and refetch list (optimistic)
-            console.log('assigned', payload)
-            setRows(prev => prev.filter(x => String(x.idDeTai ?? x.id ?? x.maSV) !== String(payload.idDeTai)))
-            setShowAssignModal(false)
-            setAssignRow(null)
-          }}
+          onAssigned={async (payload) => {
+              // After successful assignment, re-fetch the server list so we reflect current state.
+              console.log('assigned', payload)
+              // close modal first for better UX
+              setShowAssignModal(false)
+              setAssignRow(null)
+              try {
+                // call the same fetch we used on mount; use the helper attached to window
+                const fn = (window as any).__tbm_fetch as (() => Promise<void>) | undefined
+                if (typeof fn === 'function') await fn()
+                else {
+                  // fallback: perform a manual fetch
+                  const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'TU_CHOI' })
+                  const items = Array.isArray(resp?.content) ? resp.content : []
+                  setRows(items)
+                }
+              } catch (e) {
+                console.error('[TBM] refetch after assign failed', e)
+              }
+            }}
         />
 
         {/* Pagination controls */}

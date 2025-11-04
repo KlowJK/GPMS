@@ -10,7 +10,8 @@ export async function fetchReviewList(params: { status?: string; page?: number; 
   if (params.sort) params.sort.forEach(s => searchParams.append('sort', s))
 
   const url = `/api/giang-vien/do-an/xet-duyet-de-tai?${searchParams.toString()}`
-  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  // This endpoint may take longer for large pages; allow longer timeout here.
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 30000 })
   // API returns JSON wrapped in `result`
   const result = resp.data.result as PageXetDuyet
 
@@ -41,14 +42,16 @@ export async function fetchReviewList(params: { status?: string; page?: number; 
  * Fetch students who don't have a supervisor yet
  * GET /api/giang-vien/sinh-vien-chua-co-gvhd
  */
-export async function fetchStudentsWithoutSupervisor(params: { page?: number; size?: number; sort?: string[] } = {}) {
+export async function fetchStudentsWithoutSupervisor(params: { page?: number; size?: number; sort?: string[]; status?: string } = {}) {
   const searchParams = new URLSearchParams()
   if (typeof params.page === 'number') searchParams.append('page', String(params.page))
   if (typeof params.size === 'number') searchParams.append('size', String(params.size))
   if (params.sort) params.sort.forEach(s => searchParams.append('sort', s))
+  if (params.status) searchParams.append('status', params.status)
 
   const url = `/api/giang-vien/sinh-vien-chua-co-gvhd?${searchParams.toString()}`
-  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  // This endpoint may return a large result set when page/size are large; allow longer timeout
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 30000 })
   return resp.data?.result ?? { content: [] }
 }
 
@@ -73,7 +76,8 @@ export async function fetchStudentProposals(maSinhVien: string) {
   const search = new URLSearchParams()
   search.append('maSinhVien', maSinhVien)
   const url = `/api/giang-vien/sinh-vien/log?${search.toString()}`
-  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  // Proposal history requests can take longer; increase timeout
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 30000 })
   const items = resp.data?.result ?? []
 
   function normalizeStatus(raw: any): string {
@@ -143,6 +147,6 @@ export async function rejectProposal(proposalId: string | number, nhanXet?: stri
 export async function getLecturersByBoMon(boMonId: string | number) {
   if (!boMonId) return []
   const url = `/api/giang-vien/${encodeURIComponent(String(boMonId))}`
-  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 30000 })
   return resp.data?.result ?? resp.data ?? []
 }
