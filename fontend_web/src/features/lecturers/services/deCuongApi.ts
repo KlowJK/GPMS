@@ -99,3 +99,18 @@ export async function fetchDeCuongPage(params: { page?: number; size?: number; s
 
   return result
 }
+
+/**
+ * Export accepted proposals (đề cương đã duyệt) for the current TBM as an Excel file.
+ * Endpoint: GET /api/de-cuong/truong-bo-mon/danh-sach/excel
+ * Returns a binary blob (xlsx). Caller should handle download.
+ */
+export async function exportDeCuongAcceptedExcelForTbm() {
+  const url = `/api/de-cuong/truong-bo-mon/danh-sach/excel`
+  const resp = await axios.get(url, {
+    headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    responseType: 'blob',
+    timeout: 30000,
+  })
+  return resp
+}

@@ -103,10 +103,12 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
               const path2 = '/lecturers/do-an/duyet'
               const path3 = '/lecturers/truong-bo-mon/duyet-de-cuong-cuoi'
               const path4 = '/lecturers/truong-bo-mon/phan-cong-giang-vien'
+              // also treat the reviewer assignment route as the same TBM "Phân công giảng viên" item
+              const path4Reviewer = '/lecturers/truong-bo-mon/phan-cong-phan-bien'
               const sel1 = selected === path1
               const sel2 = selected === path2
               const sel3 = selected === path3
-              const sel4 = selected === path4
+              const sel4 = selected === path4 || selected === path4Reviewer
               return (
                 <>
                   <NavLink to={path1} className={`block text-sm ${sel1 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path1) }}>
@@ -121,7 +123,7 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
                         Duyệt đề cương cuối
                       </NavLink>
                       <NavLink to={path4} className={`block text-sm ${sel4 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path4) }}>
-                        Phân công giảng viên hướng dẫn
+                        Phân công giảng viên 
                       </NavLink>
                     </>
                   )}

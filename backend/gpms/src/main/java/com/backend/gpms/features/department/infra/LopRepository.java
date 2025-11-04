@@ -12,5 +12,5 @@ public interface LopRepository extends JpaRepository<Lop, Long> {
     boolean existsByTenLopIgnoreCase(String tenLop);
 
     Optional<Lop> findByTenLop(String tenLop);
-
+    boolean existsByNganhId(Long nganhId);
 }

@@ -40,8 +40,8 @@ public interface DeCuongRepository extends JpaRepository<DeCuong,Long> {
     @EntityGraph(attributePaths = {
             "deTai","deTai.sinhVien","deTai.sinhVien.lop","deTai.giangVienHuongDan","deTai.boMon"
     })
-    List<DeCuong> findByTrangThaiDeCuongAndDeTai_BoMon_IdAndDeTai_DotBaoVe_IdIn(
-            TrangThaiDeCuong trangThai, Long boMonId, List<Long> dotIds);
+    List<DeCuong> findByTbmDuyetAndDeTai_BoMon_IdAndDeTai_DotBaoVe_IdIn(
+            TrangThaiDuyetDon trangThai, Long boMonId, List<Long> dotIds);
 
     Optional<DeCuong> findFirstByDeTai_SinhVien_User_EmailIgnoreCaseOrderByCreatedAtDesc(String email);
 
