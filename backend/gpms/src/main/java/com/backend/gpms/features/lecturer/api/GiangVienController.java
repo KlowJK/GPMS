@@ -51,6 +51,14 @@ public class GiangVienController {
 
     }
 
+    @Operation(summary = "Cập nhật số lượng đề tài giảng viên được hướng dẫn - Role trợ lý khoa, trưởng bộ môn, quản trị")
+    @PreAuthorize("hasAnyAuthority('ROLE_TRO_LY_KHOA', 'ROLE_TRUONG_BO_MON', 'ROLE_QUAN_TRI_VIEN')")
+    @PutMapping("/{id}/quota")
+    public ApiResponse<String> updateQuotaInstruct(
+            @RequestParam Integer quotaInstruct) {
+        return ApiResponse.success(giangVienService.capNhatSoLuongHuongDanChoTatCa(quotaInstruct));
+    }
+
     @Operation(summary = "Tạo tài khoản giảng viên - Role trợ lý khoa, trưởng bộ môn, quản trị")
     @PreAuthorize("hasAnyAuthority('ROLE_TRO_LY_KHOA', 'ROLE_TRUONG_BO_MON', 'ROLE_QUAN_TRI_VIEN')")
     @PostMapping
@@ -136,6 +144,17 @@ public class GiangVienController {
                 .result(giangVienService.getGiangVienByBoMonAndSoLuongDeTai(boMonId))
                 .build();
 
+    }
+
+    @Operation(summary = "Lấy giảng viên theo bộ môn")
+    @GetMapping("/giang-vien-phan-bien/{boMonId}")
+    public ApiResponse<List<GiangVienLiteResponse>> getGiangVienPhanBienByBoMon(
+            @PathVariable("boMonId") Long boMonId,
+            @RequestParam(name = "idGiangVienHuongDan", required = false) Long idGiangVienHuongDan) {
+
+        return ApiResponse.<List<GiangVienLiteResponse>>builder()
+                .result(giangVienService.getGiangVienPhanBien(boMonId, idGiangVienHuongDan))
+                .build();
     }
 
     @Operation(summary = "Lấy giảng viên theo bộ môn ")

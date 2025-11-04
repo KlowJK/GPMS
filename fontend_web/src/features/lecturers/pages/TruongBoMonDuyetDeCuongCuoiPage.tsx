@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import useTruongBoMonViewModel from '../viewmodels/TruongBoMonViewmodels'
+import { exportDeCuongAcceptedExcelForTbm } from '../services/deCuongApi'
 import { useAuth } from '@shared/hooks/useAuth'
-import { Eye } from 'lucide-react'
+import { Eye, FileSpreadsheet } from 'lucide-react'
 import DeCuongDetailModal from '../components/DeCuongPhanBien'
 
 export default function TruongBoMonDuyetDeCuongCuoiPage() {
@@ -30,6 +31,7 @@ function Inner() {
   const [pageSize, setPageSize] = useState<number>(10)
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<any | null>(null)
+  const [exportLoading, setExportLoading] = useState(false)
 
   // derive source rows from vm (already normalized)
   const { user } = useAuth()
@@ -73,7 +75,52 @@ function Inner() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold">Duyệt đề cương cuối (Trưởng bộ môn)</h2>
         <div className="flex items-center gap-3">
-          <div className="w-64">
+          <div>
+          <button
+            aria-label="Xuất danh sách đề cương (Excel)"
+            onClick={async () => {
+                setExportLoading(true)
+                try {
+                  const resp = await exportDeCuongAcceptedExcelForTbm()
+                  const blob = new Blob([resp.data], { type: resp.headers['content-type'] ?? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+                  // try to extract filename from content-disposition
+                  let filename = 'de-cuong-accepted.xlsx'
+                  const cd = resp.headers && (resp.headers['content-disposition'] || resp.headers['Content-Disposition'])
+                  if (cd) {
+                    const m = /filename\*=UTF-8''([^;\n\r]*)/.exec(cd) || /filename=(?:"?)([^";\n\r]*)/.exec(cd)
+                    if (m && m[1]) filename = decodeURIComponent(m[1].replace(/"/g, ''))
+                  }
+                    if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) {
+                      ;(window.navigator as any).msSaveOrOpenBlob(blob, filename)
+                    } else {
+                      const url = window.URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = filename
+                      document.body.appendChild(a)
+                      a.click()
+                      a.remove()
+                      window.URL.revokeObjectURL(url)
+                    }
+                } catch (err) {
+                  console.error('Export failed', err)
+                  // optionally surface error to user via toast - left minimal here
+                } finally {
+                  setExportLoading(false)
+                }
+                }}
+                disabled={exportLoading}
+                className={[
+                  'inline-flex items-center gap-2 px-4 py-2 border rounded-md shadow-sm',
+                  exportLoading ? 'bg-emerald-500 text-white border-emerald-500 cursor-wait' : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                ].join(' ')}
+              >
+                <FileSpreadsheet size={16} className={exportLoading ? 'animate-spin' : ''} />
+                <span className="whitespace-nowrap">{exportLoading ? 'Đang xuất...' : 'Xuất Excel'}</span>
+              </button>
+          </div>
+             <div className="w-64">
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã sinh viên" className="w-full border rounded px-3 py-2 text-sm" />
           </div>
         </div>

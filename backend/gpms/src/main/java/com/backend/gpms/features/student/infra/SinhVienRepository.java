@@ -64,24 +64,6 @@ public interface SinhVienRepository extends JpaRepository<SinhVien, Long>, JpaSp
     Page<SinhVien> findByDeTai_BoMon_IdAndDeTai_DotBaoVe(Long boMonId, DotBaoVe dotBaoVe, Pageable pageable);
     Page<SinhVien> findByDeTai_BoMon_IdAndDeTai_TrangThaiAndDeTai_DotBaoVe(Long boMonId, TrangThaiDeTai trangThai, DotBaoVe dotBaoVe, Pageable pageable);
 
-    @Query("""
-    SELECT DISTINCT sv FROM SinhVien sv
-    JOIN sv.lop l
-    JOIN l.nganh n
-    LEFT JOIN sv.deTai dt
-    WHERE n.boMon.id = :idBoMon
-      AND (dt.dotBaoVe = :dotBaoVe OR dt.id IS NULL)
-      AND (
-        :status IS NULL
-        OR (:status = 'TU_CHOI' AND (dt.trangThai = :status OR dt.id IS NULL))
-        OR (:status != 'TU_CHOI' AND dt.trangThai = :status)
-      )
-    """)
-    Page<SinhVien> findSinhVienForBoMonApproval(
-            @Param("idBoMon") Long idBoMon,
-            @Param("dotBaoVe") DotBaoVe dotBaoVe,
-            @Param("status") TrangThaiDeTai status,
-            Pageable pageable
-    );
+    boolean existsByLopId(Long lopId);
 
 }
