@@ -68,6 +68,8 @@ public interface SinhVienMapper {
     @Mapping(source = "lop.nganh.boMon.id", target = "idBoMon")
     @Mapping(source = "deTai.giangVienHuongDan.id", target = "idGiangVienHD")
     @Mapping(source = "deTai.giangVienHuongDan.hoTen", target = "hoTenGiangVienHD")
+    @Mapping(source = "deTai.giangVienPBDeCuong.id", target = "idGiangVienPB")
+    @Mapping(source = "deTai.giangVienPBDeCuong.hoTen", target = "hoTenGiangVienPB")
     ApprovalSinhVienResponse toDeTaiSinhVienApprovalResponse(SinhVien sv);
 
     @Mapping(source = "maSinhVien" , target = "maSV")

@@ -61,4 +61,8 @@ public class DeTai extends BaseEntity {
     @OneToMany(mappedBy = "deTai", cascade = CascadeType.ALL, orphanRemoval = true)
     List<NhatKyTienTrinh> nhatKyTienTrinhs;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name="id_giang_vien_pb_de_cuong", nullable=false)
+    GiangVien giangVienPBDeCuong;
+
 }
