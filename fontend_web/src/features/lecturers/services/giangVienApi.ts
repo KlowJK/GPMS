@@ -147,6 +147,6 @@ export async function rejectProposal(proposalId: string | number, nhanXet?: stri
 export async function getLecturersByBoMon(boMonId: string | number) {
   if (!boMonId) return []
   const url = `/api/giang-vien/${encodeURIComponent(String(boMonId))}`
-  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 30000 })
+  const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 50000 })
   return resp.data?.result ?? resp.data ?? []
 }
