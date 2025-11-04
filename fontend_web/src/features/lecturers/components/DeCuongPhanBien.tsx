@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchStudentProposals, approveDeCuong, rejectDeCuong } from '../services'
 import { formatDateTime } from '@shared/utils/format'
+import type { DeCuong } from '../models/DeCuong'
+import type { NhatKy } from '../models/NhatKy'
 
-type DeCuongItem = Record<string, any>
+type DeCuongItem = DeCuong
 
 interface DeCuongDetailModalProps {
   open: boolean
   onClose: () => void
-  item: DeCuongItem | null
+  item: DeCuong | null
   currentName: string
   useTbmStatus?: boolean
   showChoActions?: boolean
@@ -39,10 +41,14 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName, u
 
   const qc = useQueryClient()
 
+  // local UI state
   const [rejectOpenId, setRejectOpenId] = useState<string | number | null>(null)
   const [rejectReasonInput, setRejectReasonInput] = useState<string>('')
   const [approveOpenId, setApproveOpenId] = useState<string | number | null>(null)
   const [approveReasonInput, setApproveReasonInput] = useState<string>('')
+  // extracted comments across related proposals (typed as any for now, but NhanXet model exists)
+  const [comments, setComments] = useState<NhatKy[] | any[]>([])
+  const [fileUrl, setFileUrl] = useState<string | null>(null)
 
   const approveMut = useMutation<any, Error, { id: string | number; phienBan?: number | string; reason?: string }>({
     mutationFn: (payload) => approveDeCuong(payload.id, payload.phienBan, payload.reason),
@@ -88,6 +94,23 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName, u
     const pb = b?.phienBan != null ? Number(b.phienBan) : Number.NEGATIVE_INFINITY
     return pb - pa
   })
+
+  // derive simple comments and fileUrl from related proposals for easier consumption by the UI
+  useEffect(() => {
+    try {
+      const allComments: any[] = []
+      for (const r of related) {
+        if (Array.isArray(r.nhanXets)) allComments.push(...r.nhanXets)
+        else if (r.nhanXet) allComments.push(r.nhanXet)
+      }
+      setComments(allComments)
+      const firstUrl = related.find((r: any) => r.deCuongUrl || r.fileUrl)
+      setFileUrl(firstUrl ? (firstUrl.deCuongUrl ?? firstUrl.fileUrl ?? null) : null)
+    } catch (e) {
+      setComments([])
+      setFileUrl(null)
+    }
+  }, [related])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

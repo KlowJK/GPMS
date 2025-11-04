@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao, fetchStudentByCode } from '../services'
+import type { SinhVien } from '../models/SinhVien'
+import type { ReportVersion } from '../models/DanhSachBaoCaoModels'
+import type { PhanTrang } from '../models/PhanTrang'
 
 export default function useReportDetailViewModel(maSV?: string | null) {
   const qc = useQueryClient()
 
-  const studentQuery = useQuery<any, Error>({
+  const studentQuery = useQuery<SinhVien | null, Error>({
     queryKey: ['sinh-vien', maSV],
     queryFn: async () => {
       if (!maSV) return null
@@ -14,14 +17,14 @@ export default function useReportDetailViewModel(maSV?: string | null) {
     enabled: !!maSV,
   })
 
-  const reportsQuery = useQuery<any, Error>({
+  const reportsQuery = useQuery<PhanTrang<ReportVersion>, Error>({
     queryKey: ['bao-cao-page', { maSV }],
     queryFn: () => fetchReportsPage({ page: 0, size: 100, sort: ['createdAt,DESC'], maSinhVien: String(maSV) }),
     enabled: !!maSV,
   })
 
   const displayProposalsFromApi = (reportsQuery.data?.content) ?? []
-  const [displayProposals, setDisplayProposals] = useState<any[]>([])
+  const [displayProposals, setDisplayProposals] = useState<ReportVersion[]>([])
   useEffect(() => {
     // initialize empty until data arrives
     if (!displayProposalsFromApi || displayProposalsFromApi.length === 0) return

@@ -1,5 +1,7 @@
 import { axios } from '@shared/libs/axios'
 import type { AxiosError } from 'axios'
+import type { PhanTrang } from '../models/PhanTrang'
+import type { DeCuong } from '../models/DeCuong'
 
 /**
  * Reject a proposal (đề cương) by id (and optional version/phienBan).
@@ -66,7 +68,7 @@ export async function approveDeCuong(id: string | number, phienBan?: number | st
  * GET /api/de-cuong?page=0&size=10&sort=updatedAt,DESC&status=...
  * Returns resp.data.result (paged)
  */
-export async function fetchDeCuongPage(params: { page?: number; size?: number; sort?: string[]; status?: string; } = {}) {
+export async function fetchDeCuongPage(params: { page?: number; size?: number; sort?: string[]; status?: string; } = {}): Promise<PhanTrang<DeCuong>> {
   const search = new URLSearchParams()
   if (typeof params.page === 'number') search.append('page', String(params.page))
   if (typeof params.size === 'number') search.append('size', String(params.size))

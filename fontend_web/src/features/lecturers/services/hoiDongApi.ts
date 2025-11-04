@@ -1,6 +1,7 @@
 import { axios } from '@shared/libs/axios'
+import type { HoiDong } from '../models/HoiDong'
 
-export async function fetchHoiDongList(idGiangVien?: number) {
+export async function fetchHoiDongList(idGiangVien?: number): Promise<HoiDong[] | null> {
   const resp = await axios.get('/api/hoi-dong', {
     params: { idGiangVien, sort: 'thoiGianBatDau,DESC' },
     headers: { Accept: '*/*' },

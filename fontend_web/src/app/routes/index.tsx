@@ -130,7 +130,7 @@ export const router = createBrowserRouter([
                                         element: <RoleGuard allow={['TRUONG_BO_MON']} />,
                                         children: [
                                             { path: 'truong-bo-mon/duyet-de-cuong-cuoi', lazy: () => import('@/features/lecturers/pages/TruongBoMonDuyetDeCuongCuoiPage').then(m => ({ Component: m.default })) },
-                                            { path: 'truong-bo-mon/phan-cong-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongGiangVienPage').then(m => ({ Component: m.default })) },
+                                            { path: 'truong-bo-mon/phan-cong-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongHuongDanPage').then(m => ({ Component: m.default })) },
                                             { path: 'truong-bo-mon/phan-cong-phan-bien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongPhanBienPage').then(m => ({ Component: m.default })) },
                                         ],
                                     },

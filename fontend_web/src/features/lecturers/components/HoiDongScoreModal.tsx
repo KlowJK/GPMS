@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { fetchHoiDongStudentDetail, saveCommonScore } from '../services'
 import { toast } from 'sonner'
 import { useAuth } from '@shared/hooks/useAuth'
+import type { SinhVien } from '../models/SinhVien'
 
 export default function HoiDongScoreModal({
   open,
@@ -11,22 +12,23 @@ export default function HoiDongScoreModal({
 }: {
   open: boolean
   onClose: () => void
-  student?: any
+  student?: SinhVien | null
   members: string[]
 }) {
   const { user } = useAuth()
-  const [membersFromApi, setMembersFromApi] = useState<Array<{ idGiangVien?: number; hoTen?: string; vaiTro?: string; diem?: number | null }>>([])
+  type MemberRow = { idGiangVien?: number; hoTen?: string; vaiTro?: string; diem?: number | null }
+  const [membersFromApi, setMembersFromApi] = useState<MemberRow[]>([])
   const [scores, setScores] = useState<Record<string, number | null>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [summary, setSummary] = useState<{ diemBaoCao?: number | null; diemPhanBien?: number | null; diemHoiDong?: number | null } | null>(null)
 
   useEffect(() => {
-    if (!open || !student) return
+  if (!open || !student) return
 
     async function load() {
-      if (student.idDeTai) {
+      if (student && (student as any).idDeTai) {
         try {
-          const res = await fetchHoiDongStudentDetail(student.idDeTai)
+          const res = await fetchHoiDongStudentDetail((student as any).idDeTai)
           const g = Array.isArray(res?.giangVien) ? res.giangVien : []
           const mapped = g.map((it: any) => ({ idGiangVien: it.idGiangVien ?? it.maGiangVien, hoTen: it.hoTen, vaiTro: it.vaiTro, diem: typeof it.diem === 'number' ? it.diem : null }))
           setMembersFromApi(mapped)
@@ -202,7 +204,7 @@ export default function HoiDongScoreModal({
                   }
 
                   // call API to save
-                  const payload: any = { idDeTai: student.idDeTai ?? student.id, diem: val, nhanXet: '' }
+                  const payload: { idDeTai: string | number; diem: number; nhanXet?: string } = { idDeTai: student?.idDeTai ?? student?.id, diem: val as number, nhanXet: '' }
                   const resp = await saveCommonScore(payload)
                   // show success toast with green icon
                   toast.success('Chấm điểm thành công', {

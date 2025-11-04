@@ -1,8 +1,11 @@
 import { axios } from '@shared/libs/axios'
-import type { PageXetDuyet } from '../models/DanhSachDuyetModels'
+import type { PhanTrang } from '../models/PhanTrang'
+import type { XetDuyetItem } from '../models/DanhSachDuyetModels'
+import type { SinhVien } from '../models/SinhVien'
+import type { GiangVien } from '../models/GiangVien'
 import type { AxiosError } from 'axios'
 
-export async function fetchReviewList(params: { status?: string; page?: number; size?: number; sort?: string[] }) {
+export async function fetchReviewList(params: { status?: string; page?: number; size?: number; sort?: string[] }): Promise<PhanTrang<XetDuyetItem>> {
   const searchParams = new URLSearchParams()
   if (params.status) searchParams.append('status', params.status)
   if (typeof params.page === 'number') searchParams.append('page', String(params.page))
@@ -13,7 +16,7 @@ export async function fetchReviewList(params: { status?: string; page?: number; 
   // This endpoint may take longer for large pages; allow longer timeout here.
   const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 30000 })
   // API returns JSON wrapped in `result`
-  const result = resp.data.result as PageXetDuyet
+  const result = resp.data.result as PhanTrang<XetDuyetItem>
 
   // Normalize status field variations from backend to always provide `trangThai`
   function normalizeStatus(raw: any): string | null {
@@ -42,7 +45,7 @@ export async function fetchReviewList(params: { status?: string; page?: number; 
  * Fetch students who don't have a supervisor yet
  * GET /api/giang-vien/sinh-vien-chua-co-gvhd
  */
-export async function fetchStudentsWithoutSupervisor(params: { page?: number; size?: number; sort?: string[]; status?: string } = {}) {
+export async function fetchStudentsWithoutSupervisor(params: { page?: number; size?: number; sort?: string[]; status?: string } = {}): Promise<PhanTrang<SinhVien>> {
   const searchParams = new URLSearchParams()
   if (typeof params.page === 'number') searchParams.append('page', String(params.page))
   if (typeof params.size === 'number') searchParams.append('size', String(params.size))
@@ -144,7 +147,7 @@ export async function rejectProposal(proposalId: string | number, nhanXet?: stri
  * GET /api/giang-vien/{boMonId}
  * Returns array (resp.data.result)
  */
-export async function getLecturersByBoMon(boMonId: string | number) {
+export async function getLecturersByBoMon(boMonId: string | number): Promise<GiangVien[]> {
   if (!boMonId) return []
   const url = `/api/giang-vien/${encodeURIComponent(String(boMonId))}`
   const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 50000 })

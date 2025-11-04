@@ -5,7 +5,7 @@ import type { AxiosError } from 'axios'
  * Save a common score for a deTai (POST /api/diem/nhap-diem-chung)
  * Body: { idDeTai, diem, nhanXet }
  */
-export async function saveCommonScore(payload: { idDeTai: number | string; diem: number; nhanXet?: string }) {
+export async function saveCommonScore(payload: { idDeTai: number | string; diem: number; nhanXet?: string }): Promise<any> {
   const url = '/api/diem/nhap-diem-chung'
   try {
     const resp = await axios.post(url, payload, { headers: { Accept: '*/*', 'Content-Type': 'application/json' }, timeout: 10000 })
@@ -29,7 +29,7 @@ export async function saveCommonScore(payload: { idDeTai: number | string; diem:
 /**
  * Approve common scores for a deTai (POST /api/diem/{idDeTai}/phe-duyet-diem-chung)
  */
-export async function approveCommonScore(idDeTai: number | string) {
+export async function approveCommonScore(idDeTai: number | string): Promise<any> {
   const url = `/api/diem/${encodeURIComponent(String(idDeTai))}/phe-duyet-diem-chung`
   try {
     const resp = await axios.post(url, null, { headers: { Accept: '*/*' }, timeout: 10000 })

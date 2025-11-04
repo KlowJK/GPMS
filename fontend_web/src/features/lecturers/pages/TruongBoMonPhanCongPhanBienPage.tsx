@@ -102,6 +102,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
               <tr className="border-b">
                 <th className="text-left px-6 py-4">Mã sinh viên</th>
                 <th className="text-left px-6 py-4">Họ và tên</th>
+                <th className="text-left px-6 py-4">Giảng viên hướng dẫn</th>
                 <th className="text-left px-6 py-4">Lớp</th>
                 <th className="text-left px-6 py-4">Tên đề tài</th>
                 <th className="text-left px-6 py-4">Tổng quan</th>
@@ -113,6 +114,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
                 <tr key={r.idDeTai ?? r.id ?? r.maSV} className="border-b hover:bg-slate-50">
                   <td className="px-6 py-4 font-medium">{r.maSV}</td>
                   <td className="px-6 py-4">{r.hoTen}</td>
+                  <td className="px-6 py-4">{r.hoTenGiangVienHD ? r.hoTenGiangVienHD : <span className="text-sm text-slate-500">—</span>}</td>
                   <td className="px-6 py-4">{r.tenLop}</td>
                   <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
                   <td className="px-6 py-4">

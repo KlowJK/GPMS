@@ -1,12 +1,14 @@
 import { axios } from '@shared/libs/axios'
 import type { AxiosError } from 'axios'
+import type { PhanTrang } from '../models/PhanTrang'
+import type { ReportVersion } from '../models/DanhSachBaoCaoModels'
 
 /**
  * Fetch paged reports for the lecturer
  * GET /api/bao-cao/page-bao-cao-giang-vien?page=0&size=10&sort=createdAt,DESC
  * Returns the API wrapper response `result` (paged) and normalizes each item into a stable shape
  */
-export async function fetchReportsPage(params: { page?: number; size?: number; sort?: string[]; status?: string; maSinhVien?: string } = {}) {
+export async function fetchReportsPage(params: { page?: number; size?: number; sort?: string[]; status?: string; maSinhVien?: string } = {}): Promise<PhanTrang<ReportVersion>> {
   const search = new URLSearchParams()
   if (typeof params.page === 'number') search.append('page', String(params.page))
   if (typeof params.size === 'number') search.append('size', String(params.size))
