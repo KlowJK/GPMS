@@ -5,6 +5,30 @@ import type { SinhVien } from '../models/SinhVien'
 import type { GiangVien } from '../models/GiangVien'
 import type { AxiosError } from 'axios'
 
+/**
+ * Fetch lecturers for the current TBM's department
+ * GET /api/giang-vien/by-truong-bo-mon
+ */
+export async function fetchLecturersByTruongBoMon() {
+  const resp = await axios.get('/api/giang-vien/by-truong-bo-mon', { headers: { Accept: '*/*' }, timeout: 30000 })
+  return resp.data?.result ?? resp.data
+}
+
+export type GiangVienTb = {
+  id?: number
+  maGV?: string
+  hoTen?: string
+  hocVi?: string
+  hocHam?: string
+  email?: string
+  soDienThoai?: string
+  soLuongDeTai?: number
+  soLuongChoPhepHuongDan?: number
+  raw?: any
+}
+
+export default fetchLecturersByTruongBoMon
+
 export async function fetchReviewList(params: { status?: string; page?: number; size?: number; sort?: string[] }): Promise<PhanTrang<XetDuyetItem>> {
   const searchParams = new URLSearchParams()
   if (params.status) searchParams.append('status', params.status)

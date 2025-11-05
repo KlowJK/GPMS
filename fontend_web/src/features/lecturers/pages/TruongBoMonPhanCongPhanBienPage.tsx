@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchStudentsWithoutSupervisor } from '../services'
-import PhanCongModal from '../components/PhanCongModal'
+import PhanCongModal from '../components/PhanCongHuongDanModal'
 import PhanCongPhanBienModal from '../components/PhanCongPhanBienModal'
 
 export default function TruongBoMonPhanCongPhanBienPage() {
@@ -57,7 +57,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
   return (
     <div >
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Phân công giảng viên phản biện</h1>
+        <h2 className="text-2xl font-semibold">Phân công giảng viên phản biện</h2>
         <div className="flex items-center gap-3">
         
           <div className="inline-flex items-center rounded-full bg-transparent p-1">
@@ -131,7 +131,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
                       <button
                         title="Phân công"
                         onClick={() => { setAssignRow(r); setShowAssignModal(true) }}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border rounded text-emerald-700 hover:bg-emerald-100"
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-50 border rounded text-yellow-700 hover:bg-yellow-100"
                       >
                         Phân công
                       </button>

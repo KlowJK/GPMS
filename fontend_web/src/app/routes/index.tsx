@@ -132,6 +132,7 @@ export const router = createBrowserRouter([
                                             { path: 'truong-bo-mon/duyet-de-cuong-cuoi', lazy: () => import('@/features/lecturers/pages/TruongBoMonDuyetDeCuongCuoiPage').then(m => ({ Component: m.default })) },
                                             { path: 'truong-bo-mon/phan-cong-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongHuongDanPage').then(m => ({ Component: m.default })) },
                                             { path: 'truong-bo-mon/phan-cong-phan-bien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongPhanBienPage').then(m => ({ Component: m.default })) },
+                                            { path: 'truong-bo-mon/danh-sach-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonDanhSachGiangVienPage').then(m => ({ Component: m.default })) },
                                         ],
                                     },
                                     { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },

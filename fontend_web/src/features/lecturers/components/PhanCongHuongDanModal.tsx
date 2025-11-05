@@ -23,6 +23,7 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
   // store selected lecturer code (maGiangVien / maGV) because backend expects maGV
   const [lecturerId, setLecturerId] = useState<string | null>(null)
   const [lecturersLoading, setLecturersLoading] = useState<boolean>(false)
+  const [saving, setSaving] = useState<boolean>(false)
 
   function extractBoMonId(s: any) {
     if (!s) return null
@@ -61,7 +62,21 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
         try {
           setLecturersLoading(true)
           const list = await loadLecturersForStudent(found ?? studentRecord)
-          if (mounted) setLecturers(Array.isArray(list) ? (list as GiangVien[]) : [])
+          const rawList: GiangVien[] = Array.isArray(list) ? (list as GiangVien[]) : []
+          // only include supervisors who have capacity: soLuongDeTai < soLuongChoPhepHuongDan
+          const eligible = rawList.filter(g => {
+            try {
+              const used = Number(g.soLuongDeTai ?? g.raw?.soLuongDeTai ?? 0)
+              const allowed = Number(g.soLuongChoPhepHuongDan ?? g.raw?.soLuongChoPhepHuongDan ?? Number.MAX_SAFE_INTEGER)
+              return Number.isFinite(used) && Number.isFinite(allowed) ? used < allowed : true
+            } catch (err) {
+              return true
+            }
+          })
+          if (mounted) {
+            if (import.meta.env.DEV) console.debug('[PhanCongModal] lecturers eligible', eligible.length, '/', rawList.length)
+            setLecturers(eligible)
+          }
         } catch (e) {
           console.debug('loadLecturersForStudent failed', e)
         } finally {
@@ -100,8 +115,8 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
         return
       }
 
-      setLoading(true)
-      const resp = await assignDeTai({ maSV: ma, maGV: String(lecturerId) })
+  setSaving(true)
+  const resp = await assignDeTai({ maSV: ma, maGV: String(lecturerId) })
 
       // API returns result with success/message in various shapes
       const success = resp?.success ?? resp?.result?.success ?? true
@@ -120,7 +135,7 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
       console.error('[PhanCongModal] assign failed', err)
       toast.error('Lưu phân công thất bại')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -138,7 +153,13 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
             <div>
               <div className="mb-4">
                 <label className="block text-sm text-slate-600 mb-2">Giảng viên</label>
-                <select value={lecturerId ?? ''} onChange={e => setLecturerId(e.target.value || null)} className="w-full border rounded px-3 py-2">
+                <select
+                  value={lecturerId ?? ''}
+                  onChange={e => setLecturerId(e.target.value || null)}
+                  disabled={lecturersLoading || loading || saving}
+                  aria-disabled={lecturersLoading || loading || saving}
+                  className="w-full border rounded px-3 py-2"
+                >
                   <option value="">Chọn giảng viên</option>
                   {lecturers.map((g: GiangVien) => {
                       const code = (g.maGiangVien ?? (g as any).maGV ?? String(g.id ?? '')) as string
@@ -151,7 +172,13 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
               </div>
               <div className="mt-6 flex justify-end gap-3 col-span-2">
                 <button onClick={handleClose} className="px-4 py-2 rounded bg-gray-200">Hủy</button>
-                <button onClick={handleSave} className="px-4 py-2 rounded bg-sky-600 text-white">Lưu</button>
+                <button
+                  onClick={handleSave}
+                  disabled={lecturersLoading || loading || saving}
+                  aria-disabled={lecturersLoading || loading || saving}
+                  className={`px-4 py-2 rounded text-white ${lecturersLoading || loading || saving ? 'bg-sky-400 cursor-not-allowed opacity-70' : 'bg-sky-600'}`}>
+                  {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
               </div>
             </div>
           </div>
