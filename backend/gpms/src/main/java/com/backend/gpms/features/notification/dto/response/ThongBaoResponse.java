@@ -19,4 +19,5 @@ public class ThongBaoResponse {
     String fileUrl;
     LocalDateTime createdAt;
     String loaiThongBao;
+    String trangThai;
 }

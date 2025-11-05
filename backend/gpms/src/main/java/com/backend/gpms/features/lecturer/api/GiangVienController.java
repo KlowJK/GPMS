@@ -145,6 +145,15 @@ public class GiangVienController {
                 .build();
 
     }
+    @Operation(summary = "Lấy giảng viên theo bộ môn - Role truỏng bộ môn")
+    @GetMapping("/by-truong-bo-mon")
+    public ApiResponse<Set<GiangVienInfoResponse>> getGgetGiangVienByBoMon() {
+
+        return ApiResponse.<Set<GiangVienInfoResponse>>builder()
+                .result(giangVienService.getGiangVienByBoMon())
+                .build();
+
+    }
 
     @Operation(summary = "Lấy giảng viên theo bộ môn")
     @GetMapping("/giang-vien-phan-bien/{boMonId}")

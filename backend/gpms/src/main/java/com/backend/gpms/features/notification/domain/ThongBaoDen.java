@@ -2,8 +2,11 @@ package com.backend.gpms.features.notification.domain;
 
 import com.backend.gpms.common.util.BaseEntity;
 import com.backend.gpms.features.auth.domain.User;
+import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 @Getter @Setter
@@ -21,4 +24,9 @@ public class ThongBaoDen extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_nguoi_dung", nullable = false)
     User user;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name="trang_thai")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    TrangThaiThongBao trangThai ;
 }
