@@ -121,6 +121,7 @@ public enum ErrorCode {
     INVALID_QUOTA_VALUE(3007, "Gia tri chi tieu khong hop le.", HttpStatus.BAD_REQUEST),
     NO_GIANGVIEN_FOUND(3008, "Khong tim thay giang vien nao.", HttpStatus.NOT_FOUND),
     GVHD_CANNOT_BE_PBANBIEN(3009, "Giang vien huong dan khong the la giang vien phan bien.", HttpStatus.BAD_REQUEST),
+    DE_CUONG_ALREADY_HAS_PBANBIEN(3010, "De cuong da co giang vien phan bien.", HttpStatus.BAD_REQUEST),
 
     // Business Logic Errors
     DUPLICATED_KHOA(4001, "Ten khoa da ton tai.", HttpStatus.CONFLICT),
@@ -166,6 +167,7 @@ public enum ErrorCode {
     DE_CUONG_NOT_PENDING(4041, "De cuong khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
     DE_TAI_NOT_PENDING(4042, "De tai khong o trang thai cho phe duyet.", HttpStatus.BAD_REQUEST),
     NOT_YOUR_DETAI(4043, "Khong phai de tai cua ban huong dan.", HttpStatus.FORBIDDEN),
+    LECTURER_ID_REQUIRED(4044, "ID giang vien la bat buoc.", HttpStatus.BAD_REQUEST),
 
 
     // Server Errors
