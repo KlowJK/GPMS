@@ -124,7 +124,7 @@ export const router = createBrowserRouter([
                                 element: <LecturerLayout />,
                                 children: [
                                     { index: true, lazy: () => import('@/features/lecturers/pages/TrangChuPage').then(m => ({ Component: m.default })) },
-                                    { path: 'do-an/list', lazy: () => import('@/features/lecturers/pages/DoAnListPage').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/list', lazy: () => import('@/features/lecturers/pages/DanhSachSinhVienHuongDanPage').then(m => ({ Component: m.default })) },
                                     { path: 'do-an/duyet', lazy: () => import('@/features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
                                     {
                                         element: <RoleGuard allow={['TRUONG_BO_MON']} />,

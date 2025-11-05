@@ -128,3 +128,35 @@ export async function assignReviewerToDeCuong(idDeTai: string | number, idGiangV
   const resp = await axios.post(url, null, { params: { idGiangVienHuongDan }, headers: { Accept: '*/*' }, timeout: 10000 })
   return resp.data?.result ?? resp.data
 }
+
+/**
+ * Update topic name (and optional overview file) for a student
+ * Endpoint: PUT /api/de-tai/cap-nhat-ten-de-tai (multipart/form-data)
+ * Body fields: maSinhVien (string, required), tenDeTai (string), fileTongQuan (file)
+ */
+export async function updateTenDeTai(maSinhVien: string, tenDeTai?: string | null, file?: File | null) {
+  if (!maSinhVien) throw new Error('maSinhVien is required')
+  const url = `/api/de-tai/cap-nhat-ten-de-tai`
+  const fd = new FormData()
+  fd.append('maSinhVien', String(maSinhVien))
+  if (tenDeTai !== undefined && tenDeTai !== null) fd.append('tenDeTai', String(tenDeTai))
+  if (file) fd.append('fileTongQuan', file, (file as File).name)
+
+  try {
+    const resp = await axios.put(url, fd, { headers: { Accept: '*/*', 'Content-Type': 'multipart/form-data' }, timeout: 60000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
+}

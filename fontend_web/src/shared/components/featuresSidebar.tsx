@@ -114,7 +114,7 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
               return (
                 <>
                   <NavLink to={path1} className={`block text-sm ${sel1 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path1) }}>
-                    Duyệt đề cương hướng dẫn
+                    Danh sách sinh viên hướng dẫn
                   </NavLink>
                   <NavLink to={path2} className={`block text-sm ${sel2 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path2) }}>
                     Duyệt Đăng ký đề tài
