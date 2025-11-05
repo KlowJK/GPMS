@@ -4,6 +4,9 @@ import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.mapper.NhatKyTienTrinhMapper;
 import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.notification.application.ThongBaoService;
+import com.backend.gpms.features.notification.domain.KieuThongBao;
+import com.backend.gpms.features.notification.domain.LoaiThongBao;
 import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
 import com.backend.gpms.features.progress.domain.TrangThaiNhatKy;
 import com.backend.gpms.features.progress.dto.request.DuyetNhatKyRequest;
@@ -36,6 +39,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,13 +51,15 @@ public class NhatKyTienTrinhService {
     private static final Logger log = LoggerFactory.getLogger(NhatKyTienTrinhService.class);
      NhatKyTienTrinhRepository nhatKyRepository;
 
-   DeTaiRepository deTaiRepository;
+     DeTaiRepository deTaiRepository;
 
      NhatKyTienTrinhMapper nhatKyTienTrinhMapper;
 
-   CloudinaryStorageService cloudinaryService;
+    CloudinaryStorageService cloudinaryService;
 
      final GiangVienRepository giangVienRepository;
+
+     ThongBaoService thongBaoService;
 
     LocalDateTime currentDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
@@ -334,7 +340,16 @@ public class NhatKyTienTrinhService {
             String url = upload(request.getDuongDanFile());
             entity.setDuongDanFile(url);
         }
-        return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse(nhatKyRepository.save(entity));
+        nhatKyRepository.save(entity);
+
+        thongBaoService.guiThongBaoCaNhan(
+                KieuThongBao.NOP_NHAT_KY,
+                entity.getGiangVienHuongDan().getUser(),
+                Map.of("sinhVien", entity.getDeTai().getSinhVien().getHoTen()),
+                LoaiThongBao.KHAC
+        );
+
+        return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse(entity);
     }
 
     public NhatKyTienTrinhResponse duyetNhatKy(DuyetNhatKyRequest request) {
@@ -348,7 +363,14 @@ public class NhatKyTienTrinhService {
 
         entity.setTrangThaiNhatKy(TrangThaiNhatKy.HOAN_THANH);
         entity.setNhanXet(request.getNhanXet());
-        return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse( nhatKyRepository.save(entity));
+        nhatKyRepository.save(entity);
+        thongBaoService.guiThongBaoCaNhan(
+                KieuThongBao.DUYET_NHAT_KY,
+                entity.getDeTai().getSinhVien().getUser(),
+                Map.of("nhanXet", request.getNhanXet()),
+                LoaiThongBao.KHAC
+        );
+        return nhatKyTienTrinhMapper.toNhatKyTienTrinhResponse(entity);
     }
 
 

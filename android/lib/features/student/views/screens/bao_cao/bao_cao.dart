@@ -2,10 +2,11 @@ import 'package:GPMS/features/student/views/screens/bao_cao/nop_bao_cao.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../models/report_item.dart';
-import '../../../viewmodels/bao_cao_viewmodel.dart';
-import '../../../services/bao_cao_service.dart';
-import '../../../../auth/services/auth_service.dart';
+import 'package:GPMS/features/student/models/report_item.dart';
+import 'package:GPMS/features/student/viewmodels/bao_cao_viewmodel.dart';
+import 'package:GPMS/features/student/services/bao_cao_service.dart';
+import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
 
 class BaoCao extends StatelessWidget {
   const BaoCao({super.key});
@@ -59,62 +60,7 @@ class _BaoCaoBody extends StatelessWidget {
     final double gap = w >= 900 ? 16 : 12;
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF2563EB),
-        elevation: 1,
-        centerTitle: false,
-        titleSpacing: 12,
-        title: Row(
-          children: [
-            Container(
-              width: 55,
-              height: 55,
-              child: Image.asset("assets/images/logo.png"),
-            ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-
-                children: [
-                  Text(
-                    'TRƯỜNG ĐẠI HỌC THỦY LỢI',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    'THUY LOI UNIVERSITY',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            tooltip: 'Thông báo',
-            icon: const Icon(Icons.notifications_outlined),
-            color: Colors.white,
-          ),
-          const SizedBox(width: 4),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: const Icon(Icons.person, size: 18),
-            ),
-          ),
-        ],
-      ),
+      appBar: CustomAppBar(),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

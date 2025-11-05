@@ -5,6 +5,9 @@ import com.backend.gpms.common.mapper.BaoCaoMapper;
 import com.backend.gpms.common.util.TimeGatekeeper;
 import com.backend.gpms.features.defense.domain.ThoiGianThucHien;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.notification.application.ThongBaoService;
+import com.backend.gpms.features.notification.domain.KieuThongBao;
+import com.backend.gpms.features.notification.domain.LoaiThongBao;
 import com.backend.gpms.features.outline.domain.DeCuong;
 import com.backend.gpms.features.outline.domain.TrangThaiDuyetDon;
 import com.backend.gpms.features.outline.infra.DeCuongRepository;
@@ -36,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.*;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -56,6 +60,8 @@ public class BaoCaoService {
     CloudinaryStorageService cloudinaryService;
 
     final GiangVienRepository giangVienRepository;
+
+    ThongBaoService thongBaoService;
 
     LocalDateTime currentDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
@@ -137,6 +143,13 @@ public class BaoCaoService {
 
         // Lưu báo cáo
         baoCaoRepository.save(baoCao);
+
+        thongBaoService.guiThongBaoCaNhan(
+                KieuThongBao.NOP_BAO_CAO,
+                baoCao.getGiangVienHuongDan().getUser(),
+                Map.of("sinhVien", baoCao.getDeTai().getSinhVien().getHoTen()),
+                LoaiThongBao.KHAC
+        );
 
         // Trả về response
         return baoCaoMapper.toBaoCaoResponse(baoCao);
@@ -268,6 +281,23 @@ public class BaoCaoService {
         // Update report status
         baoCao.setTrangThai(trangThai);
         baoCaoRepository.save(baoCao);
+
+        if (baoCao.getTrangThai() == TrangThaiDuyetDon.DA_DUYET) {
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.DUYET_BAO_CAO,
+                    baoCao.getDeTai().getSinhVien().getUser(),
+                    Map.of("nhanXet", request.getNhanXet()),
+                    LoaiThongBao.KHAC
+            );
+        }
+        if (baoCao.getTrangThai() == TrangThaiDuyetDon.TU_CHOI) {
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.TU_CHOI_BAO_CAO,
+                    baoCao.getDeTai().getSinhVien().getUser(),
+                    Map.of("lyDo", request.getNhanXet()),
+                    LoaiThongBao.KHAC
+            );
+        }
 
         log.info("Report ID {} updated with status {}", request.getIdBaoCao(), trangThai);
         return baoCaoMapper.toBaoCaoResponse(baoCao);

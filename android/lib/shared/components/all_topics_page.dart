@@ -1,8 +1,7 @@
-// all_topics_page.dart
 import 'package:flutter/material.dart';
 import 'package:GPMS/core/services/main_service.dart';
 import 'package:GPMS/shared/models/de_tai.dart';
-import 'package:GPMS/shared/components/topic_detail_page.dart'; // Tạo sau
+import 'package:GPMS/shared/components/topic_detail_page.dart';
 
 class AllTopicsPage extends StatefulWidget {
   const AllTopicsPage({super.key});

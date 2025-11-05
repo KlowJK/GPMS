@@ -15,42 +15,9 @@ class AuthViewModel extends ChangeNotifier {
   bool get isStudent => _user?.role == 'SINH_VIEN';
 
   Future<void> login(String email, String password) async {
-    try {
-      final u = await AuthService.login(email, password);
-      _user = u;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', u.token);
-      await prefs.setString('typeToken', u.typeToken);
-      await prefs.setString('expiresAt', u.expiresAt);
-      await prefs.setInt('id', u.id);
-      if (u.fullName != null) {
-        await prefs.setString('fullName', u.fullName!);
-      } else {
-        await prefs.remove('fullName');
-      }
-      await prefs.setString('email', u.email);
-      await prefs.setString('role', u.role);
-      if (u.duongDanAvt != null) {
-        await prefs.setString('duongDanAvt', u.duongDanAvt!);
-      } else {
-        await prefs.remove('duongDanAvt');
-      }
-      if (u.teacherId != null) {
-        await prefs.setInt('teacherId', u.teacherId!);
-      } else {
-        await prefs.remove('teacherId');
-      }
-      if (u.studentId != null) {
-        await prefs.setInt('studentId', u.studentId!);
-      } else {
-        await prefs.remove('studentId');
-      }
-
-      notifyListeners();
-    } catch (e) {
-      rethrow;
-    }
+    final user = await AuthService.login(email, password);
+    _user = user;
+    notifyListeners();
   }
 
   Future<void> loadUserFromStorage() async {
