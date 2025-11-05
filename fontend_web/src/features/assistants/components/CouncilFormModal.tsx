@@ -41,9 +41,13 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
   const [gvAll, setGvAll] = useState<Lecturer[]>([]);
   const [rounds, setRounds] = useState<DefenseRoundUI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [qGV, setQGV] = useState('');
 
-  // multi-select thành viên hội đồng (độc lập với Chủ tịch/Thư ký)
+  // tìm kiếm
+  const [qGV, setQGV] = useState('');       // lọc danh sách tick thành viên
+  const [qChair, setQChair] = useState(''); // lọc dropdown Chủ tịch
+  const [qSec, setQSec] = useState('');     // lọc dropdown Thư ký
+
+  // multi-select thành viên hội đồng
   const [members, setMembers] = useState<Set<string>>(new Set());
   const toggleMember = (id: Id) =>
     setMembers(prev => {
@@ -60,20 +64,21 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
       .normalize('NFD')
       .replace(/\p{Diacritic}/gu, '');
 
-  // danh sách GV hiển thị theo tìm kiếm: theo TÊN hoặc EMAIL
-  const gv = useMemo(() => {
-    const k = norm(qGV.trim());
-    if (!k) return gvAll;
-    return gvAll.filter(x => {
-      const hay =
-        norm(x.hoTen) +
-        ' ' +
-        norm((x as any).email || (x as any).taiKhoan || '');
-      return hay.includes(k);
+  // lọc danh sách hiển thị theo tên/email
+  const filterByNameEmail = (arr: Lecturer[], q: string) => {
+    const k = norm(q.trim());
+    if (!k) return arr;
+    return arr.filter(x => {
+      const email = (x as any).email || (x as any).taiKhoan || '';
+      return (norm(x.hoTen) + ' ' + norm(email)).includes(k);
     });
-  }, [gvAll, qGV]);
+  };
 
-  // load options (tải 1 lần, không lọc server; lọc client theo tên/email)
+  const gvMembers = useMemo(() => filterByNameEmail(gvAll, qGV), [gvAll, qGV]);
+  const gvChair   = useMemo(() => filterByNameEmail(gvAll, qChair), [gvAll, qChair]);
+  const gvSecOpt  = useMemo(() => filterByNameEmail(gvAll, qSec), [gvAll, qSec]);
+
+  // load options
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -106,10 +111,7 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
 
   async function handleSave() {
     if (!canSave) return;
-
-    // mảng giảng viên chỉ lấy từ danh sách đã tick (không auto add chủ tịch/thư ký)
     const lecturers = Array.from(members).map(id => ({ giangVienId: Number(id) }));
-
     await onSubmit({
       tenHoiDong: ten.trim(),
       thoiGianBatDau: start,
@@ -176,6 +178,7 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     ))}
                   </select>
                 </div>
+
                 <div className="col-span-2">
                   <label className="block text-sm text-slate-600 mb-1">Địa điểm (tuỳ chọn)</label>
                   <input
@@ -196,10 +199,10 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     onChange={(e) => setQGV(e.target.value)}
                   />
                   <div className="max-h-64 overflow-y-auto overscroll-contain rounded border p-2">
-                    {gv.length === 0 ? (
+                    {gvMembers.length === 0 ? (
                       <div className="text-sm text-slate-500 px-1">Không có dữ liệu.</div>
                     ) : (
-                      gv.map(x => {
+                      gvMembers.map(x => {
                         const checked = members.has(String(x.id));
                         return (
                           <label key={`${x.id}`} className="flex items-center gap-2 py-1 px-1">
@@ -210,7 +213,9 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                               onChange={() => toggleMember(x.id)}
                             />
                             <span className="text-sm">
-                              {x.hoTen}{x.boMonTen ? ` — ${x.boMonTen}` : ''}{(x as any).email ? ` — ${(x as any).email}` : ''}
+                              {x.hoTen}
+                              {x.boMonTen ? ` — ${x.boMonTen}` : ''}
+                              {(x as any).email ? ` — ${(x as any).email}` : ''}
                             </span>
                           </label>
                         );
@@ -219,9 +224,15 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                   </div>
                 </div>
 
-                {/* Chủ tịch / Thư ký — chọn độc lập từ full list giảng viên */}
+                {/* Chủ tịch — có ô search theo tên/email */}
                 <div>
                   <label className="block text-sm text-slate-600 mb-1">Chủ tịch hội đồng</label>
+                  <input
+                    className="w-full h-10 rounded border px-3 mb-2"
+                    placeholder="Tìm theo tên hoặc email…"
+                    value={qChair}
+                    onChange={(e) => setQChair(e.target.value)}
+                  />
                   <select
                     className="w-full h-11 rounded border px-3 bg-white"
                     value={chuTichId === '' ? '' : String(chuTichId)}
@@ -229,11 +240,24 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     disabled={loading}
                   >
                     <option value="">— Chọn —</option>
-                    {gvAll.map(x => <option key={`${x.id}`} value={String(x.id)}>{x.hoTen}</option>)}
+                    {gvChair.map(x => (
+                      <option key={`${x.id}`} value={String(x.id)}>
+                        {x.hoTen}
+                        {(x as any).email ? ` — ${(x as any).email}` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
+
+                {/* Thư ký — có ô search theo tên/email */}
                 <div>
                   <label className="block text-sm text-slate-600 mb-1">Thư ký</label>
+                  <input
+                    className="w-full h-10 rounded border px-3 mb-2"
+                    placeholder="Tìm theo tên hoặc email…"
+                    value={qSec}
+                    onChange={(e) => setQSec(e.target.value)}
+                  />
                   <select
                     className="w-full h-11 rounded border px-3 bg-white"
                     value={thuKyId === '' ? '' : String(thuKyId)}
@@ -241,7 +265,12 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     disabled={loading}
                   >
                     <option value="">— Chọn —</option>
-                    {gvAll.map(x => <option key={`${x.id}`} value={String(x.id)}>{x.hoTen}</option>)}
+                    {gvSecOpt.map(x => (
+                      <option key={`${x.id}`} value={String(x.id)}>
+                        {x.hoTen}
+                        {(x as any).email ? ` — ${(x as any).email}` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

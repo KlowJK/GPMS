@@ -1,5 +1,5 @@
 // src/features/assistants/pages/DefenseRoundsPage.tsx
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   type DefenseRoundUI,
   type CreateUpdateDefenseRound,
@@ -11,7 +11,7 @@ import {
   lockDefenseRound,
 } from '@/features/assistants/services/topic/topicApi';
 import DefenseRoundFormModal from '@/features/assistants/components/DefenseRoundFormModal';
-import { UploadCloud, Pencil, Trash2, Lock, FileUp } from 'lucide-react';
+import { Pencil, Trash2, Lock, FileUp } from 'lucide-react';
 import { useToast } from '@/features/admin/components/ToastProvider';
 
 type ModalState = { open: boolean; editing?: DefenseRoundUI | null };
@@ -28,17 +28,59 @@ function getLockedFlag(row: any): boolean {
 }
 
 type ConfirmState = { open: boolean; round?: DefenseRoundUI | null; intent?: 'lock' | 'unlock' };
-// Modal xác nhận xoá
-type DeleteState = { open: boolean; row?: DefenseRoundUI | null; busy?: boolean };
+type DeleteState  = { open: boolean; row?: DefenseRoundUI | null; busy?: boolean };
+
+/* ================= Pagination (first/prev/numbered/next/last) ================= */
+function PageNav({
+  page, total, size, onChange,
+}: { page: number; total: number; size: number; onChange: (p: number) => void; }) {
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  if (totalPages <= 1) return null;
+
+  const p1 = page + 1;
+  const WIN = 5;
+
+  let start = Math.max(1, p1 - Math.floor(WIN / 2));
+  let end   = Math.min(totalPages, start + WIN - 1);
+  if (end - start + 1 < WIN) start = Math.max(1, end - WIN + 1);
+
+  const go  = (p: number) => onChange(Math.min(Math.max(0, p), totalPages - 1));
+  const btn = (label: string | number, active = false, disabled = false, to?: number): ReactNode => (
+    <button
+      key={`p-${label}`}
+      className={
+        'min-w-8 h-9 px-3 rounded border text-sm ' +
+        (active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50') +
+        (disabled ? ' opacity-40 cursor-not-allowed' : '')
+      }
+      onClick={() => (to != null ? go(to) : undefined)}
+      disabled={disabled}
+      aria-current={active ? 'page' : undefined}
+    >
+      {label}
+    </button>
+  );
+
+  const nodes: ReactNode[] = [];
+  nodes.push(btn('«', false, page === 0, 0));
+  nodes.push(btn('‹', false, page === 0, page - 1));
+  for (let i = start; i <= end; i++) nodes.push(btn(i, i === p1, false, i - 1));
+  if (totalPages > end) nodes.push(<span key="ellipsis" className="px-1 select-none">…</span>);
+  nodes.push(btn('›', false, page >= totalPages - 1, page + 1));
+  nodes.push(btn('»', false, page >= totalPages - 1, totalPages - 1));
+
+  return <div className="flex items-center justify-center gap-2">{nodes}</div>;
+}
+/* ============================================================================ */
 
 export default function DefenseRoundsPage() {
   const { success, error } = useToast();
 
   const [items, setItems] = useState<DefenseRoundUI[]>([]);
-  const [page, setPage] = useState(0);
-  const [size] = useState(1000);
+  const [page, setPage]   = useState(0);
+  const [size]            = useState(10);            // 👈 hiển thị 10 dòng / trang
   const [total, setTotal] = useState(0);
-  const [q, setQ] = useState('');
+  const [q, setQ]         = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ open: false });
@@ -62,9 +104,10 @@ export default function DefenseRoundsPage() {
     setLoading(true);
     setErr(null);
     try {
+      // ✅ truyền q để server lọc và trả totalElements đúng
       const pg = await listDefenseRoundsNormalized({ page, size, q: keyword || undefined });
       setItems(pg.content);
-      setTotal(pg.totalElements);
+      setTotal(pg.totalElements ?? pg.content.length ?? 0);
     } catch (e: any) {
       setItems([]);
       setTotal(0);
@@ -73,23 +116,19 @@ export default function DefenseRoundsPage() {
       setLoading(false);
     }
   }
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, size, keyword]);
+  useEffect(() => { load(); }, [page, size, keyword]); // eslint-disable-line
 
   // import SV
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !importingFor) return;
-
     try {
       setImportBusy(true);
       await importStudentsToRound(
         { id: importingFor.id, hocKi: importingFor.hocKi, namHoc: importingFor.namHoc },
         file
-      ); // gửi đủ hocKi & namHoc
+      );
       success('Import sinh viên thành công.');
       await load();
     } catch (ex: any) {
@@ -113,7 +152,6 @@ export default function DefenseRoundsPage() {
     try {
       setConfirmBusy(true);
       await lockDefenseRound(confirmBox.round.id);
-      // cập nhật lạc quan
       setItems(prev =>
         prev.map(it =>
           String(it.id) === String(confirmBox.round!.id)
@@ -130,11 +168,8 @@ export default function DefenseRoundsPage() {
     }
   }
 
-  // mở modal xác nhận xoá
-  function askDelete(row: DefenseRoundUI) {
-    setDelBox({ open: true, row, busy: false });
-  }
-  // thực hiện xoá
+  // xoá đợt
+  function askDelete(row: DefenseRoundUI) { setDelBox({ open: true, row, busy: false }); }
   async function doDelete() {
     if (!delBox.row) return;
     try {
@@ -150,7 +185,7 @@ export default function DefenseRoundsPage() {
   }
 
   const from = page * size + 1;
-  const to = Math.min(total, page * size + items.length);
+  const to   = Math.min(total, page * size + items.length);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
@@ -168,10 +203,7 @@ export default function DefenseRoundsPage() {
           className="h-10 w-72 rounded border px-3"
           placeholder="Tìm theo tên…"
           value={q}
-          onChange={(e) => {
-            setPage(0);
-            setQ(e.target.value);
-          }}
+          onChange={(e) => { setPage(0); setQ(e.target.value); }}
         />
 
         <div className="ml-auto text-sm text-slate-600">
@@ -193,53 +225,34 @@ export default function DefenseRoundsPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td className="px-4 py-6 text-center" colSpan={6}>
-                  Đang tải…
-                </td>
-              </tr>
+              <tr><td className="px-4 py-6 text-center" colSpan={6}>Đang tải…</td></tr>
             ) : items.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-center" colSpan={6}>
-                  Chưa có đợt bảo vệ.
-                </td>
-              </tr>
+              <tr><td className="px-4 py-6 text-center" colSpan={6}>Chưa có đợt bảo vệ.</td></tr>
             ) : (
               items.map((r) => {
-                const isLocked = getLockedFlag(r); // true = đã khóa → Kết thúc
-                const busyThis = importBusy && importingFor && String(importingFor.id) === String(r.id);
-                const statusText = isLocked ? 'Kết thúc' : 'Đang diễn ra';
+                const isLocked  = getLockedFlag(r);
+                const busyThis  = importBusy && importingFor && String(importingFor.id) === String(r.id);
+                const statusTxt = isLocked ? 'Kết thúc' : 'Đang diễn ra';
                 return (
                   <tr key={`${r.id}`} className="border-t">
                     <td className="px-4 py-3">{r.tenDotBaoVe}</td>
                     <td className="px-4 py-3">{r.hocKi}</td>
                     <td className="px-4 py-3">{r.namHoc}</td>
+                    <td className="px-4 py-3">{r.thoiGianBatDau || '—'} → {r.thoiGianKetThuc || '—'}</td>
                     <td className="px-4 py-3">
-                      {r.thoiGianBatDau || '—'} → {r.thoiGianKetThuc || '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {isLocked ? (
-                        <span className="text-red-600">{statusText}</span>
-                      ) : (
-                        <span className="text-green-600">{statusText}</span>
-                      )}
+                      {isLocked ? <span className="text-red-600">{statusTxt}</span>
+                                : <span className="text-green-600">{statusTxt}</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {/* Import SV */}
                         <button
-                          onClick={() => {
-                            setImportingFor(r);
-                            fileRef.current?.click();
-                          }}
+                          onClick={() => { setImportingFor(r); fileRef.current?.click(); }}
                           className="rounded border px-3 py-1 inline-flex items-center gap-1 disabled:opacity-50"
                           disabled={!!busyThis}
                           title="Import sinh viên (Excel/CSV)"
                         >
                           <FileUp size={16}/>
                         </button>
-
-                        {/* Khóa/Mở đợt – toggle; icon đỏ khi đã khóa */}
                         <button
                           onClick={() => openConfirm(r)}
                           className="h-9 w-9 rounded border inline-grid place-items-center"
@@ -247,8 +260,6 @@ export default function DefenseRoundsPage() {
                         >
                           <Lock size={16} className={isLocked ? 'text-red-600' : 'text-slate-600'} />
                         </button>
-
-                        {/* Sửa */}
                         <button
                           onClick={() => setModal({ open: true, editing: r })}
                           className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
@@ -256,8 +267,6 @@ export default function DefenseRoundsPage() {
                         >
                           <Pencil size={16} />
                         </button>
-
-                        {/* Xóa (mở modal xác nhận) */}
                         <button
                           onClick={() => askDelete(r)}
                           className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50"
@@ -274,22 +283,9 @@ export default function DefenseRoundsPage() {
           </tbody>
         </table>
 
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button
-            className="rounded border px-3 py-1 disabled:opacity-40"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-          >
-            Trước
-          </button>
-          <span className="text-sm">{page + 1}</span>
-          <button
-            className="rounded border px-3 py-1 disabled:opacity-40"
-            onClick={() => setPage((p) => (page * size + size < total ? p + 1 : p))}
-            disabled={page * size + size >= total}
-          >
-            Sau
-          </button>
+        {/* ✅ pager mới – căn giữa */}
+        <div className="p-3 flex justify-center">
+          <PageNav page={page} total={total} size={size} onChange={(p) => setPage(p)} />
         </div>
       </div>
 
@@ -305,28 +301,18 @@ export default function DefenseRoundsPage() {
             </h3>
             <p className="mt-2 text-sm text-slate-600">
               {confirmBox.round.tenDotBaoVe} — {confirmBox.round.hocKi} / {confirmBox.round.namHoc}
-              <br />
-              Thời gian: {confirmBox.round.thoiGianBatDau} → {confirmBox.round.thoiGianKetThuc}
+              <br/>Thời gian: {confirmBox.round.thoiGianBatDau} → {confirmBox.round.thoiGianKetThuc}
             </p>
 
             {confirmBox.intent === 'lock' && (
               <label className="mt-4 flex items-start gap-2 select-none">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4"
-                  checked={agree}
-                  onChange={(e) => setAgree(e.target.checked)}
-                />
-                <span className="text-sm">
-                  Tôi xác nhận khóa đợt này. Thao tác có thể chặn/cố định một số quy trình (nộp bài, chỉnh sửa…).
-                </span>
+                <input type="checkbox" className="mt-1 h-4 w-4" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                <span className="text-sm">Tôi xác nhận khóa đợt này. Thao tác có thể chặn/cố định một số quy trình.</span>
               </label>
             )}
 
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => setConfirmBox({ open: false })} className="px-4 h-10 rounded border" disabled={confirmBusy}>
-                Hủy
-              </button>
+              <button onClick={() => setConfirmBox({ open: false })} className="px-4 h-10 rounded border" disabled={confirmBusy}>Hủy</button>
               <button
                 onClick={doConfirm}
                 className={`px-4 h-10 rounded text-white ${confirmBox.intent === 'lock' ? 'bg-red-600' : 'bg-blue-600'} disabled:opacity-50`}
@@ -339,7 +325,7 @@ export default function DefenseRoundsPage() {
         </div>
       )}
 
-      {/* Modal xác nhận xoá đợt */}
+      {/* Modal xác nhận xoá */}
       {delBox.open && delBox.row && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
           <div className="w-[480px] rounded-2xl bg-white p-6 shadow-xl">
@@ -348,19 +334,8 @@ export default function DefenseRoundsPage() {
               Bạn có chắc muốn xóa đợt <span className="font-medium">{delBox.row.tenDotBaoVe}</span>?
             </p>
             <div className="mt-5 flex justify-end gap-3">
-              <button
-                className="h-10 rounded bg-slate-200 px-4"
-                onClick={() => setDelBox({ open: false, row: null, busy: false })}
-                disabled={!!delBox.busy}
-              >
-                Hủy
-              </button>
-              <button
-                className="inline-flex items-center gap-2 h-10 rounded bg-red-600 px-4 text-white disabled:opacity-50"
-                onClick={doDelete}
-                disabled={!!delBox.busy}
-                title="Xóa đợt"
-              >
+              <button className="h-10 rounded bg-slate-200 px-4" onClick={() => setDelBox({ open: false, row: null, busy: false })} disabled={!!delBox.busy}>Hủy</button>
+              <button className="inline-flex items-center gap-2 h-10 rounded bg-red-600 px-4 text-white disabled:opacity-50" onClick={doDelete} disabled={!!delBox.busy} title="Xóa đợt">
                 <Trash2 size={16} /> {delBox.busy ? 'Đang xóa…' : 'Xóa'}
               </button>
             </div>

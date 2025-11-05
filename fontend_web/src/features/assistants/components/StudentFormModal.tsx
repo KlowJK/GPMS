@@ -1,6 +1,7 @@
 // src/features/assistants/components/StudentFormModal.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@features/admin/components/ToastProvider';
 
 import type { Id } from '@features/assistants/services/base';
 import { unwrap } from '@features/assistants/services/base';
@@ -23,53 +24,54 @@ type Props = {
 
 export default function StudentFormModal({ initial, classes = [], onClose, onSubmit }: Props) {
   const isEdit = !!initial;
+  const { success } = useToast(); // ✅ dùng toast
 
   const [maSinhVien, setMaSinhVien] = useState(initial?.maSinhVien ?? '');
   const [hoTen, setHoTen] = useState(initial?.hoTen ?? '');
   const [email, setEmail] = useState(initial?.email ?? '');
   const [soDienThoai, setSoDienThoai] = useState(initial?.soDienThoai ?? '');
   const [matKhau, setMatKhau] = useState('');
-  const [idLop, setIdLop] = useState<Id | ''>('');
+  const [idLop, setIdLop] = useState<Id | ''>(''); // chọn mới; '' = giữ nguyên
   const [lopHienTai, setLopHienTai] = useState<string>(initial?.lopTen ?? '');
   const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Prefill đầy đủ khi mở modal
+  const initialClassId = useMemo<number | undefined>(() => {
+    const v =
+      (initial as any)?.idLop ??
+      (initial as any)?.lopId ??
+      (initial as any)?.lop?.id;
+    return v != null ? Number(v) : undefined;
+  }, [initial]);
+
+  const [currentClassId, setCurrentClassId] = useState<number | undefined>(initialClassId);
+
   useEffect(() => {
-    // đặt lại các field văn bản
     setMaSinhVien(initial?.maSinhVien ?? '');
     setHoTen(initial?.hoTen ?? '');
     setEmail(initial?.email ?? '');
     setSoDienThoai(initial?.soDienThoai ?? '');
     setMatKhau('');
+    setIdLop('');
+    setCurrentClassId(initialClassId);
 
-    // 1) ưu tiên lấy idLop từ initial (đã normalize ở FE)
-    const initId =
-      (initial as any)?.idLop ?? (initial as any)?.lopId ?? (initial as any)?.lop?.id ?? '';
     const initTenLop =
       initial?.lopTen ?? (initial as any)?.tenLop ?? (initial as any)?.lop?.tenLop ?? '';
-
-    if (initId !== '') setIdLop(Number(initId));
-    else setIdLop('');
-
     if (initTenLop) setLopHienTai(initTenLop);
 
-    // 2) nếu vẫn chưa có idLop thì gọi chi tiết theo MSV để lấy đúng id lớp
-    async function fetchDetail() {
-      if (!initial?.maSinhVien || initId) return;
+    async function ensureCurrentClass() {
+      if (!isEdit || initialClassId || !initial?.maSinhVien) return;
       try {
         const res = await getStudentByMSV(initial.maSinhVien);
         const data = unwrap<any>(res);
         const gotId = data?.idLop ?? data?.lopId ?? data?.lop?.id;
         const gotTen = data?.tenLop ?? data?.lop?.tenLop;
-        if (gotId != null) setIdLop(Number(gotId));
+        if (gotId != null) setCurrentClassId(Number(gotId));
         if (gotTen && !initTenLop) setLopHienTai(gotTen);
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
     }
-    if (isEdit) fetchDetail();
-  }, [initial, isEdit]);
+    ensureCurrentClass();
+  }, [initial, isEdit, initialClassId]); // eslint-disable-line
 
   function pickMessageFromBE(e: any): string {
     const raw = e?.response?.data;
@@ -85,31 +87,15 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
   async function handleSubmit() {
     setErr(null);
 
-    const idLopValid = idLop !== '' && idLop !== null && idLop !== undefined;
+    const hasBasic = hoTen.trim() && email.trim() && soDienThoai.trim();
 
     if (!isEdit) {
-      if (!maSinhVien.trim() || !hoTen.trim() || !email.trim() || !soDienThoai.trim() || !idLopValid || !matKhau.trim()) {
+      // THÊM MỚI – bắt buộc chọn lớp
+      if (!maSinhVien.trim() || !hasBasic || idLop === '' || !matKhau.trim()) {
         setErr('Vui lòng nhập đủ thông tin bắt buộc.');
         return;
       }
-    } else {
-      if (!hoTen.trim() || !email.trim() || !soDienThoai.trim() || !idLopValid) {
-        setErr('Vui lòng nhập đủ thông tin bắt buộc.');
-        return;
-      }
-    }
-
-    try {
-      if (isEdit) {
-        const payload: UpdateStudentBody = {
-          hoTen: hoTen.trim(),
-          soDienThoai: soDienThoai.trim(),
-          email: email.trim(),
-          idLop: Number(idLop as Id),
-        };
-        if (matKhau.trim()) payload.matKhau = matKhau.trim();
-        await onSubmit(payload);
-      } else {
+      try {
         const payload: CreateStudentBody = {
           maSinhVien: maSinhVien.trim(),
           hoTen: hoTen.trim(),
@@ -119,7 +105,51 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
           idLop: Number(idLop as Id),
         };
         await onSubmit(payload);
+        success('Thêm sinh viên thành công.'); // ✅ toast thành công
+      } catch (e: any) {
+        setErr(pickMessageFromBE(e));
       }
+      return;
+    }
+
+    // SỬA – không bắt buộc chọn lại lớp
+    if (!hasBasic) {
+      setErr('Vui lòng nhập đủ thông tin bắt buộc.');
+      return;
+    }
+
+    let resolvedIdLop: number | undefined = idLop !== '' ? Number(idLop) : undefined;
+    if (!resolvedIdLop && currentClassId) resolvedIdLop = currentClassId;
+
+    if (!resolvedIdLop && lopHienTai) {
+      const found = classes.find(c => String(c.tenLop).trim() === String(lopHienTai).trim());
+      if (found?.id != null) resolvedIdLop = Number(found.id);
+    }
+
+    if (!resolvedIdLop && initial?.maSinhVien) {
+      try {
+        const res = await getStudentByMSV(initial.maSinhVien);
+        const data = unwrap<any>(res);
+        const gotId = data?.idLop ?? data?.lopId ?? data?.lop?.id;
+        if (gotId != null) resolvedIdLop = Number(gotId);
+      } catch { /* ignore */ }
+    }
+
+    if (!resolvedIdLop) {
+      setErr('Không xác định được lớp hiện tại. Vui lòng chọn lớp.');
+      return;
+    }
+
+    try {
+      const payload: UpdateStudentBody = {
+        hoTen: hoTen.trim(),
+        soDienThoai: soDienThoai.trim(),
+        email: email.trim(),
+        idLop: resolvedIdLop,
+      };
+      if (matKhau.trim()) payload.matKhau = matKhau.trim();
+      await onSubmit(payload);
+      success('Cập nhật sinh viên thành công.'); // ✅ toast thành công
     } catch (e: any) {
       setErr(pickMessageFromBE(e));
     }
@@ -133,7 +163,6 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
         {err && <div className="mb-3 text-sm text-red-600">{err}</div>}
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Mã sinh viên: ẩn khi sửa */}
           {!isEdit && (
             <div>
               <label className="block text-sm text-slate-600 mb-1">Mã sinh viên</label>
@@ -203,7 +232,6 @@ export default function StudentFormModal({ initial, classes = [], onClose, onSub
               value={idLop === '' ? '' : String(idLop)}
               onChange={(e) => setIdLop(e.target.value ? Number(e.target.value) as Id : '')}
             >
-              {/* Khi sửa: nếu đã có idLop thì option đầu chỉ là placeholder, không bị chọn */}
               <option value="">
                 {isEdit ? (lopHienTai ? `Giữ nguyên: ${lopHienTai}` : '— Chọn lớp —') : '— Chọn lớp —'}
               </option>
