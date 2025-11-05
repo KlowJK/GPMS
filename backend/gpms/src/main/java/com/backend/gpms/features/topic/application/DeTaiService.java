@@ -7,6 +7,9 @@ import com.backend.gpms.features.defense.domain.DotBaoVe;
 import com.backend.gpms.features.defense.domain.ThoiGianThucHien;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.notification.application.ThongBaoService;
+import com.backend.gpms.features.notification.domain.KieuThongBao;
+import com.backend.gpms.features.notification.domain.LoaiThongBao;
 import com.backend.gpms.features.progress.application.NhatKyTienTrinhService;
 import com.backend.gpms.features.progress.domain.NhatKyTienTrinh;
 import com.backend.gpms.features.progress.domain.TrangThaiNhatKy;
@@ -19,6 +22,7 @@ import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.dto.request.DeTaiApprovalRequest;
 import com.backend.gpms.features.topic.dto.request.DeTaiGiangVienHuongDanRequest;
 import com.backend.gpms.features.topic.dto.request.DeTaiRequest;
+import com.backend.gpms.features.topic.dto.request.DeTaiUpdateRequest;
 import com.backend.gpms.features.topic.dto.response.DeTaiResponse;
 import com.backend.gpms.features.topic.dto.response.DeTaiGiangVienHuongDanResponse;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -41,6 +45,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -56,6 +61,7 @@ public class DeTaiService {
     DeTaiMapper deTaiMapper;
     TimeGatekeeper timeGatekeeper;
     NhatKyTienTrinhService nhatKyTienTrinhService;
+    ThongBaoService thongBaoService;
 
     private NhatKyTienTrinhRepository nhatKyRepository;
 
@@ -101,6 +107,17 @@ public class DeTaiService {
 
         deTai.setDotBaoVe(dotBaoVe);
         DeTai saved = deTaiRepository.save(deTai);
+
+        Map<String, String> thamSo = Map.of(
+                "sinhVien", sv.getHoTen(),
+                "tenDeTai", saved.getTenDeTai()
+        );
+        thongBaoService.guiThongBaoCaNhan(
+                KieuThongBao.DANG_KY_DE_TAI,
+                gv.getUser(),
+                thamSo,
+                LoaiThongBao.KHAC
+        );
         return deTaiMapper.toDeTaiResponse(saved);
     };
 
@@ -124,8 +141,7 @@ public class DeTaiService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
 
         // 2. Lấy đợt bảo vệ hiện tại
-        ThoiGianThucHien thoiGianDangKy = timeGatekeeper.validateThoiGianDangKy();
-        DotBaoVe dotBaoVe = thoiGianDangKy.getDotBaoVe();
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
 
         // 3. Tìm đề tài hiện tại của sinh viên trong đợt này
         Optional<DeTai> existingDeTai = deTaiRepository
@@ -158,6 +174,16 @@ public class DeTaiService {
         // 4. Lưu (cập nhật hoặc tạo mới)
         deTaiRepository.save(deTai);
 
+        Map<String, String> thamSo = Map.of(
+                "sinhVien", deTai.getSinhVien().getHoTen()
+        );
+        thongBaoService.guiThongBaoCaNhan(
+                KieuThongBao.GAN_GV_HUONG_DAN_DE_TAI,
+                deTai.getGiangVienHuongDan().getUser(),
+                thamSo,
+                LoaiThongBao.KHAC
+        );
+
         return DeTaiGiangVienHuongDanResponse.builder()
                 .success(true)
                 .message(existingDeTai.isPresent()
@@ -166,6 +192,47 @@ public class DeTaiService {
                 .build();
     }
 
+    public String updateDeTai(DeTaiUpdateRequest request) {
+        String accountEmail = getCurrentUsername();
+        // 1. Lấy sinh viên & giảng viên
+        SinhVien sv = sinhVienRepository.findByMaSinhVien(request.getMaSinhVien())
+                .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
+
+        GiangVien gv = giangVienRepository.findByUser_Email(accountEmail)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+
+        // 2. Lấy đợt bảo vệ hiện tại
+        DotBaoVe dotBaoVe = timeGatekeeper.getCurrentDotBaoVe();
+
+        // 3. Tìm đề tài hiện tại của sinh viên trong đợt này
+        DeTai deTai = deTaiRepository
+                .findBySinhVien_IdAndDotBaoVe_Id(sv.getId(), dotBaoVe.getId()).orElseThrow(()  -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND)) ;
+
+        if(gv.getId()!= deTai.getGiangVienHuongDan().getId()){
+            throw new ApplicationException(ErrorCode.NOT_GVHD_OF_DE_TAI);
+        }
+
+        if(request.getTenDeTai()!=null && !request.getTenDeTai().isEmpty()){
+            deTai.setTenDeTai(request.getTenDeTai());
+        }
+        if(request.getFileTongQuan()!=null && !request.getFileTongQuan().isEmpty()){
+            String url = upload(request.getFileTongQuan());
+            deTai.setNoiDungDeTaiUrl(url);
+        }
+
+        deTaiRepository.save(deTai);
+        Map<String, String> thamSo = Map.of(
+                "tenDeTai", deTai.getTenDeTai()
+        );
+        thongBaoService.guiThongBaoCaNhan(
+                KieuThongBao.CAP_NHAT_DE_TAI,
+                sv.getUser(),
+                thamSo,
+                LoaiThongBao.KHAC
+        );
+        return "Cập nhật giảng viên hướng dẫn thành công.";
+
+    }
 
 
     public Page<DeTaiResponse> getDeTaiByLecturerAndStatus(TrangThaiDeTai trangThai, Pageable pageable){
@@ -210,6 +277,30 @@ public class DeTaiService {
 
         // Lưu đề tài trước để cập nhật updatedAt
         detai = deTaiRepository.save(detai);
+
+        if (Boolean.TRUE.equals(request.getApproved())) {
+            Map<String, String> thamSo = Map.of(
+                    "tenDeTai", detai.getTenDeTai()
+            );
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.DUYET_DE_TAI,
+                    detai.getSinhVien().getUser(),
+                    thamSo,
+                    LoaiThongBao.KHAC
+            );
+
+        } else if (Boolean.FALSE.equals(request.getApproved())) {
+            Map<String, String> thamSo = Map.of(
+                    "tenDeTai", detai.getTenDeTai(),
+                    "lyDo", detai.getNhanXet()
+            );
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.TU_CHOI_DE_TAI,
+                    detai.getSinhVien().getUser(),
+                    thamSo,
+                    LoaiThongBao.KHAC
+            );
+        }
 
         detai = deTaiRepository.findById(deTaiId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.DE_TAI_NOT_FOUND));

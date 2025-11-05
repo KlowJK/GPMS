@@ -3,11 +3,15 @@ package com.backend.gpms.features.outline.application;
 import com.backend.gpms.common.exception.ApplicationException;
 import com.backend.gpms.common.exception.ErrorCode;
 import com.backend.gpms.common.mapper.DeCuongMapper;
+import com.backend.gpms.features.auth.domain.User;
 import com.backend.gpms.features.defense.domain.CongViec;
 import com.backend.gpms.features.defense.domain.ThoiGianThucHien;
 import com.backend.gpms.features.defense.infra.ThoiGianThucHienRepository;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
+import com.backend.gpms.features.notification.application.ThongBaoService;
+import com.backend.gpms.features.notification.domain.KieuThongBao;
+import com.backend.gpms.features.notification.domain.LoaiThongBao;
 import com.backend.gpms.features.outline.domain.DeCuong;
 import com.backend.gpms.features.outline.domain.NhanXetDeCuong;
 import com.backend.gpms.features.outline.domain.TrangThaiDeCuong;
@@ -17,6 +21,7 @@ import com.backend.gpms.features.outline.dto.response.DeCuongNhanXetResponse;
 import com.backend.gpms.features.outline.dto.response.DeCuongResponse;
 import com.backend.gpms.features.outline.infra.DeCuongRepository;
 import com.backend.gpms.features.outline.infra.NhanXetDeCuongRepository;
+import com.backend.gpms.features.student.domain.SinhVien;
 import com.backend.gpms.features.topic.domain.DeTai;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
 import com.backend.gpms.features.topic.infra.DeTaiRepository;
@@ -55,6 +60,7 @@ public class DeCuongService {
     NhanXetDeCuongRepository deCuongLogRepository;
     ThoiGianThucHienRepository thoiGianThucHienRepository;
     TimeGatekeeper timeGatekeeper;
+    ThongBaoService thongBaoService;
 
     private static final ZoneId ZONE_BKK = ZoneId.of("Asia/Bangkok");
 
@@ -161,8 +167,45 @@ public class DeCuongService {
                 newVer.setTbmDuyet(null);
             }
         }
+        DeCuong deCuong = deCuongRepository.save(newVer);
+        if(deCuong.getTrangThaiDeCuong() == TrangThaiDeCuong.CHO_DUYET) {
+            Map<String, String> thamSo = Map.of(
+                    "sinhVien", deTai.getSinhVien().getHoTen(),
+                    "tenDeTai", deTai.getTenDeTai()
+            );
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.NOP_DE_CUONG,
+                    deCuong.getGiangVienHuongDan().getUser(),
+                    thamSo,
+                    LoaiThongBao.KHAC
+            );
+        }
+        if(deCuong.getGvPhanBienDuyet() == TrangThaiDuyetDon.CHO_DUYET) {
+            Map<String, String> thamSo = Map.of(
+                    "sinhVien", deTai.getSinhVien().getHoTen(),
+                    "tenDeTai", deTai.getTenDeTai()
+            );
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.NOP_DE_CUONG,
+                    deCuong.getGiangVienPhanBien().getUser(),
+                    thamSo,
+                    LoaiThongBao.KHAC
+            );
+        }
+        if (deCuong.getTbmDuyet() == TrangThaiDuyetDon.CHO_DUYET) {
+            Map<String, String> thamSo = Map.of(
+                    "sinhVien", deTai.getSinhVien().getHoTen(),
+                    "tenDeTai", deTai.getTenDeTai()
+            );
+            thongBaoService.guiThongBaoCaNhan(
+                    KieuThongBao.NOP_DE_CUONG,
+                    deCuong.getTruongBoMon().getUser(),
+                    thamSo,
+                    LoaiThongBao.KHAC
+            );
+        }
 
-        return mapper.toResponse(deCuongRepository.save(newVer));
+        return mapper.toResponse(deCuong);
     }
 
     public String addGiangVienPhanBienChoTatCaPhienBan(Long idDeTai, Long idGiangVienPhanBien) {
@@ -278,6 +321,8 @@ public class DeCuongService {
         final Long gvpbId = dc.getGiangVienPhanBien() != null ? dc.getGiangVienPhanBien().getId() : null;
         final Long tbmId  = dc.getTruongBoMon() != null ? dc.getTruongBoMon().getId() : null;
 
+        User sinhVienUser = deTai.getSinhVien().getUser();
+
         boolean acted = false;
 
         // 1) GVHD duyệt trạng thái đề cương
@@ -292,12 +337,30 @@ public class DeCuongService {
             if (approve) {
                 dc.setTrangThaiDeCuong(TrangThaiDeCuong.DA_DUYET);
                 dc.setGvPhanBienDuyet(TrangThaiDuyetDon.CHO_DUYET);
+
+                thongBaoService.guiThongBaoCaNhan(
+                        KieuThongBao.GVHD_DUYET_DE_CUONG,
+                        sinhVienUser,
+                        Map.of(),
+                        LoaiThongBao.KHAC
+                );
+
                 logApprove.run();
             } else {
                 if (normalizedReason.isBlank())
                     throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
                 logApprove.run();
+
                 dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
+
+                thongBaoService.guiThongBaoCaNhan(
+                        KieuThongBao.GVHD_TU_CHOI_DE_CUONG,
+                        sinhVienUser,
+                        Map.of(
+                                "lyDo", normalizedReason
+                        ),
+                        LoaiThongBao.KHAC
+                );
             }
             acted = true;
         }
@@ -313,12 +376,27 @@ public class DeCuongService {
             if (approve) {
                 dc.setGvPhanBienDuyet(TrangThaiDuyetDon.DA_DUYET);
                 dc.setTbmDuyet(TrangThaiDuyetDon.CHO_DUYET);
+                thongBaoService.guiThongBaoCaNhan(
+                        KieuThongBao.GVPB_DUYET_DE_CUONG,
+                        sinhVienUser,
+                        Map.of(),
+                        LoaiThongBao.KHAC
+                );
                 logApprove.run();
             } else {
                 if (normalizedReason.isBlank())
                     throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
                 logApprove.run();
                 dc.setGvPhanBienDuyet(TrangThaiDuyetDon.TU_CHOI);
+
+                thongBaoService.guiThongBaoCaNhan(
+                        KieuThongBao.GVPB_TU_CHOI_DE_CUONG,
+                        sinhVienUser,
+                        Map.of(
+                                "lyDo", normalizedReason
+                        ),
+                        LoaiThongBao.KHAC
+                );
 
                 // Nếu nghiệp vụ muốn tổng thể bị từ chối, mở comment dòng sau:
                 // dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
@@ -337,12 +415,27 @@ public class DeCuongService {
 
             if (approve) {
                 dc.setTbmDuyet(TrangThaiDuyetDon.DA_DUYET);
+                thongBaoService.guiThongBaoCaNhan(
+                        KieuThongBao.TBM_DUYET_DE_CUONG,
+                        sinhVienUser,
+                        Map.of(),
+                        LoaiThongBao.KHAC
+                );
                 logApprove.run();
             } else {
                 if (normalizedReason.isBlank())
                     throw new ApplicationException(ErrorCode.DE_CUONG_REASON_REQUIRED);
                 logApprove.run();
                 dc.setTbmDuyet(TrangThaiDuyetDon.TU_CHOI);
+
+                thongBaoService.guiThongBaoCaNhan(
+                        KieuThongBao.TBM_TU_CHOI_DE_CUONG,
+                        sinhVienUser,
+                        Map.of(
+                                "lyDo", normalizedReason
+                        ),
+                        LoaiThongBao.KHAC
+                );
 
                 // Nếu muốn tổng thể bị từ chối:
                 // dc.setTrangThaiDeCuong(TrangThaiDeCuong.TU_CHOI);
@@ -358,8 +451,6 @@ public class DeCuongService {
         DeCuong saved = deCuongRepository.save(dc);
         return mapper.toResponse(saved);
     }
-
-
 
 
     public Page<DeCuongResponse> getAllDeCuong(TrangThaiDeCuong status ,Pageable pageable) {
