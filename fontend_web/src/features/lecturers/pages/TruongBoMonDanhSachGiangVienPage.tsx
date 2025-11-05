@@ -51,18 +51,12 @@ export default function TruongBoMonDanhSachGiangVienPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Danh sách giảng viên theo bộ môn</h1>
+         <div className="w-64">
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/email" className="w-full border rounded px-3 py-2 text-sm" />
+          </div>
       </div>
 
       <div className="bg-white shadow rounded">
-        <div className="p-4 flex items-center justify-between">
-          {/* left side: reserved for controls or title if needed */}
-          <div />
-          {/* search on the right */}
-          <div className="w-64">
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/email" className="w-full border rounded px-3 py-2 text-sm" />
-          </div>
-        </div>
-
         {loading ? (
           <div className="p-6 text-center">Đang tải...</div>
         ) : error ? (

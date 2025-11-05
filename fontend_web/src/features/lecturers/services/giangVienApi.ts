@@ -14,18 +14,7 @@ export async function fetchLecturersByTruongBoMon() {
   return resp.data?.result ?? resp.data
 }
 
-export type GiangVienTb = {
-  id?: number
-  maGV?: string
-  hoTen?: string
-  hocVi?: string
-  hocHam?: string
-  email?: string
-  soDienThoai?: string
-  soLuongDeTai?: number
-  soLuongChoPhepHuongDan?: number
-  raw?: any
-}
+export type { GiangVienTb } from '../models/GiangVien'
 
 export default fetchLecturersByTruongBoMon
 
