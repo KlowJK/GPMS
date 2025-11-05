@@ -17,6 +17,7 @@ export default function AdminSidebar({ overlay = false, onClose }: Props) {
       { to: '/admin', label: 'Trang chủ', exact: true },
       { to: '/admin/departments', label: 'Quản lý Khoa' },
       { to: '/admin/assistants', label: 'Quản lý Trợ lý khoa' },
+      { to: '/admin/notifications', label: 'Quản lý Thông báo' },
     ],
     []
   );

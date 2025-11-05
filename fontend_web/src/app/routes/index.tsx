@@ -63,6 +63,7 @@ export const router = createBrowserRouter([
                                     { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
                                     { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
                                     { path: 'assistants', lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
+                                    { path: 'notifications', lazy: () => import('@features/admin/pages/NotificationsPage').then(m => ({ Component: m.default })) },
                                 ]
                             },
                             {
