@@ -208,28 +208,74 @@ public class GiangVienService {
         return responses;
     }
 
+    public Set<GiangVienInfoResponse> getGiangVienByBoMon() {
+        String email = getCurrentUsername();
+        GiangVien gv = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+        Long boMonId = gv.getBoMon().getId();
+        BoMon boMon = boMonRepository.findById(boMonId)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
+        Set<GiangVien> giangVienSet = giangVienRepository.findAvailableGiangVienByBoMon(boMonId);
+        Set<GiangVienInfoResponse> responses = giangVienSet.stream()
+                .map(giangVienMapper::toGiangVienInfoResponse)
+                .collect(Collectors.toSet());
+        responses.forEach(response -> {
+            int soLuongDeTai = giangVienRepository.countDeTaiByGiangVienAndSinhVienActive(response.getMaGV());
+            response.setSoLuongDeTai(soLuongDeTai);
+        });
+        return responses;
+    }
+
+
     public String capNhatSoLuongHuongDanChoTatCa(Integer soLuongMoi) {
-        // 1. Kiểm tra giá trị đầu vào
+        // 1. Lấy user đang đăng nhập
+        String email = getCurrentUsername();
+        GiangVien currentUser = giangVienRepository.findByUser_Email(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.GIANG_VIEN_NOT_FOUND));
+
+        // 2. Kiểm tra giá trị đầu vào
         if (soLuongMoi == null || soLuongMoi < 0) {
             throw new ApplicationException(ErrorCode.INVALID_QUOTA_VALUE);
         }
 
-        // 2. Lấy tất cả giảng viên
-        List<GiangVien> danhSachGV = giangVienRepository.findAll();
+        List<GiangVien> danhSachCapNhat;
 
-        // 3. Kiểm tra có dữ liệu không
-        if (danhSachGV.isEmpty()) {
+        // 3. Xác định phạm vi cập nhật
+        if (isTruongBoMon(currentUser)) {
+            // Là trưởng bộ môn → chỉ cập nhật trong bộ môn
+            BoMon boMon = currentUser.getBoMon();
+            if (boMon == null) {
+                throw new ApplicationException(ErrorCode.BO_MON_NOT_FOUND);
+            }
+            danhSachCapNhat = giangVienRepository.findByBoMon_Id(boMon.getId());
+        } else {
+            // Không phải trưởng bộ môn → cập nhật toàn hệ thống
+            danhSachCapNhat = giangVienRepository.findAll();
+        }
+
+        // 4. Kiểm tra có dữ liệu để cập nhật
+        if (danhSachCapNhat.isEmpty()) {
             throw new ApplicationException(ErrorCode.NO_GIANGVIEN_FOUND);
         }
 
-        // 4. Cập nhật quota cho từng giảng viên
-        danhSachGV.forEach(gv -> gv.setQuotaInstruct(soLuongMoi));
+        // 5. Cập nhật quota
+        danhSachCapNhat.forEach(gv -> gv.setQuotaInstruct(soLuongMoi));
 
-        // 5. Lưu tất cả (saveAll tối ưu hơn save từng cái)
-        giangVienRepository.saveAll(danhSachGV);
+        // 6. Lưu
+        giangVienRepository.saveAll(danhSachCapNhat);
+
+        // 7. Trả về thông báo phù hợp
+        String scope = isTruongBoMon(currentUser)
+                ? "bộ môn " + currentUser.getBoMon().getTenBoMon()
+                : "toàn hệ thống";
 
         return "Cập nhật thành công số lượng hướng dẫn cho "
-                + danhSachGV.size() + " giảng viên.";
+                + danhSachCapNhat.size() + " giảng viên (" + scope + ").";
+    }
+    private boolean isTruongBoMon(GiangVien gv) {
+        return gv.getBoMon() != null
+                && gv.getBoMon().getTruongBoMon() != null
+                && gv.getBoMon().getTruongBoMon().getId().equals(gv.getId());
     }
 
     public List<GiangVienLiteResponse> getGiangVienPhanBien(Long idBoMon, Long idGiangVienHuongDan) {

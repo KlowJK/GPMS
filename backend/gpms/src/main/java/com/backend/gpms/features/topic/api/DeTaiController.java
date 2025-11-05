@@ -4,10 +4,7 @@ import com.backend.gpms.common.util.ApiResponse;
 import com.backend.gpms.features.topic.application.DeTaiService;
 import com.backend.gpms.features.topic.application.DonHoanDoAnService;
 import com.backend.gpms.features.topic.domain.TrangThaiDeTai;
-import com.backend.gpms.features.topic.dto.request.DeTaiApprovalRequest;
-import com.backend.gpms.features.topic.dto.request.DeTaiGiangVienHuongDanRequest;
-import com.backend.gpms.features.topic.dto.request.DeTaiRequest;
-import com.backend.gpms.features.topic.dto.request.DonHoanDoAnRequest;
+import com.backend.gpms.features.topic.dto.request.*;
 import com.backend.gpms.features.topic.dto.response.DeTaiGiangVienHuongDanResponse;
 import com.backend.gpms.features.topic.dto.response.DeTaiResponse;
 
@@ -92,4 +89,13 @@ public class DeTaiController {
             Pageable pageable) {
         return ApiResponse.success(donHoanDoAnService.getMyPostponeRequests(pageable));
     }
+
+    @Operation(summary = "Cập nhật tên đề tài cho sinh viên - Role giảng viên")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRUONG_BO_MON')")
+    @PutMapping(value = "/cap-nhat-ten-de-tai",  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<String> updateDeTaiName(
+            @ModelAttribute @Valid DeTaiUpdateRequest request) {
+        return ApiResponse.success(deTaiService.updateDeTai(request));
+    }
+
 }
