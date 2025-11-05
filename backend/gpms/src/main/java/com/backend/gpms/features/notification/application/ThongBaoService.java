@@ -12,9 +12,7 @@ import com.backend.gpms.features.council.infra.HoiDongRepository;
 import com.backend.gpms.features.defense.domain.ThoiGianThucHien;
 import com.backend.gpms.features.defense.infra.DotBaoVeRepository;
 import com.backend.gpms.features.defense.infra.ThoiGianThucHienRepository;
-import com.backend.gpms.features.notification.domain.LoaiThongBao;
-import com.backend.gpms.features.notification.domain.ThongBao;
-import com.backend.gpms.features.notification.domain.ThongBaoDen;
+import com.backend.gpms.features.notification.domain.*;
 import com.backend.gpms.features.notification.dto.request.ThongBaoRequest;
 import com.backend.gpms.features.notification.dto.response.ThongBaoResponse;
 import com.backend.gpms.features.notification.infra.ThongBaoDenRepository;
@@ -34,9 +32,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -99,6 +95,7 @@ public class ThongBaoService{
                         ThongBaoDen thongBaoDen = new ThongBaoDen();
                         thongBaoDen.setThongBao(savedThongBao);
                         thongBaoDen.setUser(user);
+                        thongBaoDen.setTrangThai(TrangThaiThongBao.CHUA_XEM);
                         return thongBaoDen;
                     })
                     .collect(Collectors.toList());
@@ -306,6 +303,73 @@ public class ThongBaoService{
 
     }
 
+    /**
+     * Gửi thông báo cá nhân đến một người dùng
+     *
+     * @param kieu          Kiểu thông báo (xác định tiêu đề + nội dung mẫu)
+     * @param nguoiNhan     Người nhận thông báo
+     * @param thamSo        Map chứa các tham số thay thế: {tenDeTai}, {sinhVien}, {lyDo}, ...
+     * @param loaiThongBao  Loại thông báo (HE_THONG, TRUONG, KHOA, ...)
+     * @param nguoiGui      (Tùy chọn) Người gửi, dùng để hiển thị
+     */
+    public ThongBaoDen guiThongBaoCaNhan(
+            KieuThongBao kieu,
+            User nguoiNhan,
+            Map<String, String> thamSo,
+            LoaiThongBao loaiThongBao,
+            User nguoiGui
+    ) {
+        // 1. Tạo nội dung từ mẫu
+        String noiDung = kieu.getNoiDungMau();
+        for (Map.Entry<String, String> entry : thamSo.entrySet()) {
+            noiDung = noiDung.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+
+        // 2. Tạo ThongBao (gốc)
+        ThongBao thongBao = new ThongBao();
+        thongBao.setTieuDe(kieu.getTieuDe());
+        thongBao.setNoiDung(noiDung);
+        thongBao.setLoaiThongBao(loaiThongBao);
+        thongBao.setThoiGianGui(OffsetDateTime.now());
+
+        // Nếu có file đính kèm (tùy chọn)
+        // thongBao.setFile(...);
+
+        thongBao = thongBaoRepository.save(thongBao);
+
+        // 3. Tạo ThongBaoDen (gửi đến người nhận)
+        ThongBaoDen thongBaoDen = new ThongBaoDen();
+        thongBaoDen.setThongBao(thongBao);
+        thongBaoDen.setUser(nguoiNhan);
+        thongBaoDen.setTrangThai(TrangThaiThongBao.CHUA_XEM);
+
+        return thongBaoDenRepository.save(thongBaoDen);
+    }
+
+    // === Overload: không cần người gửi ===
+    public ThongBaoDen guiThongBaoCaNhan(
+            KieuThongBao kieu,
+            User nguoiNhan,
+            Map<String, String> thamSo,
+            LoaiThongBao loaiThongBao
+    ) {
+        return guiThongBaoCaNhan(kieu, nguoiNhan, thamSo, loaiThongBao, null);
+    }
+
+    // === Overload: gửi nhanh với ít tham số ===
+    public ThongBaoDen guiThongBaoCaNhan(
+            KieuThongBao kieu,
+            User nguoiNhan,
+            String... keyValuePairs
+    ) {
+        Map<String, String> thamSo = new HashMap<>();
+        for (int i = 0; i < keyValuePairs.length; i += 2) {
+            if (i + 1 < keyValuePairs.length) {
+                thamSo.put(keyValuePairs[i], keyValuePairs[i + 1]);
+            }
+        }
+        return guiThongBaoCaNhan(kieu, nguoiNhan, thamSo, LoaiThongBao.HE_THONG);
+    }
 
 
 
