@@ -94,7 +94,10 @@ export const router = createBrowserRouter([
         { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
         { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundTimesPage').then(m => ({ Component: m.default })) },
         { path: 'councils', lazy: () => import('@features/assistants/pages/CouncilsPage').then(m => ({ Component: m.default })) },
-{ path: 'councils/:id', lazy: () => import('@features/assistants/pages/CouncilDetailPage').then(m => ({ Component: m.default })) },     ],
+        { path: 'councils/:id', lazy: () => import('@features/assistants/pages/CouncilDetailPage').then(m => ({ Component: m.default })) },    
+        { path: 'notifications', lazy: () => import('@features/assistants/pages/NotificationsPage').then(m => ({ Component: m.default })) },
+],
+        
     },
   ],
 },

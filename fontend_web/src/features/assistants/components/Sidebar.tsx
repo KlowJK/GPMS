@@ -81,13 +81,19 @@ export default function Sidebar() {
         ]}
       />
 
-      {/* ✅ Nhóm mới: Hội đồng */}
       <Group
         label="Hội đồng"
         items={[
           { to: '/assistant/councils', label: 'Quản lý hội đồng' },
         ]}
       />
+
+      <Group
+  label="Thông báo"
+  items={[
+    { to: '/assistant/notifications', label: 'Quản lý thông báo' },
+  ]}
+/>
     </aside>
   );
 }
