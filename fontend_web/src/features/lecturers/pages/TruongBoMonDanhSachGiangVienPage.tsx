@@ -55,10 +55,12 @@ export default function TruongBoMonDanhSachGiangVienPage() {
 
       <div className="bg-white shadow rounded">
         <div className="p-4 flex items-center justify-between">
+          {/* left side: reserved for controls or title if needed */}
+          <div />
+          {/* search on the right */}
           <div className="w-64">
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/email" className="w-full border rounded px-3 py-2 text-sm" />
           </div>
-          <div className="text-sm text-slate-600">Hiển thị {totalElements} kết quả</div>
         </div>
 
         {loading ? (
