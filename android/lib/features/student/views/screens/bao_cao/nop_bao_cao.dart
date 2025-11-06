@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../viewmodels/bao_cao_viewmodel.dart';
+import 'package:GPMS/features/student/viewmodels/bao_cao_viewmodel.dart';
 
 class SubmitReportPage extends StatefulWidget {
   const SubmitReportPage({super.key});
@@ -85,18 +85,28 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     setState(() => _sending = true);
 
     final vm = context.read<BaoCaoViewModel>();
-    final maxVersion = vm.items.isEmpty ? 0 : vm.items.map((r) => r.version).reduce(math.max);
+    final maxVersion = vm.items.isEmpty
+        ? 0
+        : vm.items.map((r) => r.version).reduce(math.max);
     final newVersion = maxVersion + 1;
 
     try {
       print(
-          '[SubmitReportPage] Starting submitReport, version: $newVersion, filePath: $_pickedPath, fileName: $name');
+        '[SubmitReportPage] Starting submitReport, version: $newVersion, filePath: $_pickedPath, fileName: $name',
+      );
       await vm
-          .submitReport(version: newVersion, filePath: _pickedPath, fileName: name)
-          .timeout(const Duration(seconds: 40), onTimeout: () {
-        print('[SubmitReportPage] submitReport timed out');
-        throw TimeoutException('Yêu cầu nộp báo cáo quá thời gian chờ.');
-      });
+          .submitReport(
+            version: newVersion,
+            filePath: _pickedPath,
+            fileName: name,
+          )
+          .timeout(
+            const Duration(seconds: 40),
+            onTimeout: () {
+              print('[SubmitReportPage] submitReport timed out');
+              throw TimeoutException('Yêu cầu nộp báo cáo quá thời gian chờ.');
+            },
+          );
       print('[SubmitReportPage] submitReport completed');
 
       if (vm.error != null) {
@@ -127,10 +137,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     final double maxW = w >= 1200
         ? 800
         : w >= 900
-            ? 700
-            : w >= 600
-                ? 540
-                : w;
+        ? 700
+        : w >= 600
+        ? 540
+        : w;
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
@@ -155,10 +165,13 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
               children: [
                 if (uploading) ...[
                   LinearProgressIndicator(
-                      value: vm.bytesTotal > 0 ? progress : null),
+                    value: vm.bytesTotal > 0 ? progress : null,
+                  ),
                   const SizedBox(height: 8),
                   if (vm.bytesTotal > 0)
-                    Text('Đang tải lên: ${(progress * 100).toStringAsFixed(0)}%'),
+                    Text(
+                      'Đang tải lên: ${(progress * 100).toStringAsFixed(0)}%',
+                    ),
                   const SizedBox(height: 12),
                 ],
                 Card(
@@ -179,10 +192,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                           onClear: _fileCtrl.text.trim().isEmpty
                               ? null
                               : () => setState(() {
-                                    if (uploading) return;
-                                    _fileCtrl.clear();
-                                    _pickedPath = null;
-                                  }),
+                                  if (uploading) return;
+                                  _fileCtrl.clear();
+                                  _pickedPath = null;
+                                }),
                         ),
                         const SizedBox(height: 12),
                         Align(
@@ -219,8 +232,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Chấp nhận tệp PDF. Sau khi nộp, trạng thái là “Chờ duyệt”. '
-                            ,
+                            'Chấp nhận tệp PDF. Sau khi nộp, trạng thái là “Chờ duyệt”. ',
                           ),
                         ),
                       ],

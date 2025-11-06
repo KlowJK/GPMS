@@ -70,9 +70,8 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
         (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) as remaining
     from GiangVien gv
         join gv.boMon bm
-        join bm.khoa k
         left join DeTai d on d.giangVienHuongDan = gv
-    where k.id = :khoaId
+    where bm.id = :boMonId
     group by gv.id, gv.hocHam, gv.hocVi, gv.hoTen, bm.id, gv.quotaInstruct
     having (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) > 0
     order by
@@ -83,8 +82,8 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
             gv.hoTen
         ) asc
     """)
-    List<GiangVienLiteProjection> findAdvisorsWithRemainingByKhoaId(
-            @Param("khoaId") Long khoaId,
+    List<GiangVienLiteProjection> findAdvisorsWithRemainingByBoMonId(
+            @Param("boMonId") Long boMonId,
             @Param("approved") TrangThaiDeTai approved
     );
 
