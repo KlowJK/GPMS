@@ -3,20 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:GPMS/features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
 import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
-import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
-import 'package:GPMS/core/services/main_service.dart';
+import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/features/home/services/home_service.dart';
+import 'package:GPMS/features/home/viewmodels/home_viewmodel.dart';
 import 'package:intl/intl.dart';
 import 'package:GPMS/shared/components/news_detail_page.dart';
 import 'package:GPMS/shared/components/all_news_page.dart';
-import 'package:GPMS/shared/models/de_tai.dart';
+import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
 import 'package:GPMS/shared/components/all_topics_page.dart';
 import 'package:GPMS/features/auth/views/screens/forgot_password.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthViewModel()..loadUserFromStorage(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthViewModel()..loadUserFromStorage(),
+        ),
+        // Provider cho HomeViewModel
+        ChangeNotifierProvider(create: (_) => HomeViewModel(MainService())),
+      ],
       child: const GPMSApp(),
     ),
   );
@@ -53,14 +60,6 @@ class HomeGuestResponsive extends StatefulWidget {
 }
 
 class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
-  // Cache dữ liệu
-  List<ThongBaoVaTinTuc>? _cachedNotifications;
-  List<DeTai>? _cachedDeTai;
-
-  bool _isInitialLoading = true;
-  bool _isRefreshing = false;
-  String? _errorMessage;
-
   late DateFormat _dateFormat;
   bool _didInitDeps = false;
 
@@ -68,7 +67,11 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
   void initState() {
     super.initState();
     _dateFormat = DateFormat('dd/MM/yy');
-    _loadInitialData();
+
+    // Load dữ liệu lần đầu
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeViewModel>().loadInitialData();
+    });
   }
 
   @override
@@ -81,82 +84,13 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
       _didInitDeps = true;
     }
 
+    // Refresh khi đăng nhập
     final auth = context.watch<AuthViewModel>();
-    if (auth.isLoggedIn && _cachedNotifications != null) {
-      _refreshData();
-    }
-  }
-
-  // Load dữ liệu lần đầu (song song)
-  Future<void> _loadInitialData() async {
-    setState(() {
-      _isInitialLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // Load song song cả 2 API
-      final results = await Future.wait([
-        MainService.listThongBao(),
-        MainService.listDeTai(),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _cachedNotifications = results[0] as List<ThongBaoVaTinTuc>;
-          _cachedDeTai = results[1] as List<DeTai>;
-          _isInitialLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isInitialLoading = false;
-          _errorMessage = 'Không thể tải dữ liệu: $e';
-        });
-      }
-    }
-  }
-
-  // Làm mới dữ liệu (kéo xuống)
-  Future<void> _refreshData() async {
-    if (_isRefreshing) return;
-
-    setState(() {
-      _isRefreshing = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // Load song song cả 2 API
-      final results = await Future.wait([
-        MainService.listThongBao(),
-        MainService.listDeTai(),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _cachedNotifications = results[0] as List<ThongBaoVaTinTuc>;
-          _cachedDeTai = results[1] as List<DeTai>;
-          _isRefreshing = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-          _errorMessage = 'Không thể làm mới dữ liệu';
-        });
-
-        // Hiển thị snackbar khi refresh failed
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể làm mới dữ liệu: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+    final homeVM = context.read<HomeViewModel>();
+    if (auth.isLoggedIn && homeVM.hasData) {
+      homeVM.refreshData().catchError((_) {
+        // Error handled in ViewModel
+      });
     }
   }
 
@@ -165,125 +99,144 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
     return Scaffold(
       appBar: _HeaderBar(),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final w = constraints.maxWidth;
-            final double maxContentWidth = w >= 1200
-                ? 1100
-                : w >= 900
-                ? 900
-                : w >= 600
-                ? 600
-                : w;
-            final double pad = w >= 900 ? 24 : 16;
-            final double gap = w >= 900 ? 16 : 12;
+        child: Consumer<HomeViewModel>(
+          builder: (context, viewModel, child) {
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final w = constraints.maxWidth;
+                final double maxContentWidth = w >= 1200
+                    ? 1100
+                    : w >= 900
+                    ? 900
+                    : w >= 600
+                    ? 600
+                    : w;
+                final double pad = w >= 900 ? 24 : 16;
+                final double gap = w >= 900 ? 16 : 12;
 
-            // Hiển thị loading skeleton lần đầu
-            if (_isInitialLoading) {
-              return Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxContentWidth),
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
-                    children: [
-                      _buildSkeletonSection(gap),
-                      SizedBox(height: gap),
-                      _buildSkeletonSection(gap),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Hiển thị lỗi nếu load failed
-            if (_errorMessage != null && _cachedNotifications == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _loadInitialData,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            // Hiển thị dữ liệu đã cache
-            final content = Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxContentWidth),
-                child: RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
-                    children: [
-                      // Tin tức
-                      SectionHeader(
-                        title: 'Tin tức',
-                        trailing: TextButton(
-                          onPressed:
-                              _cachedNotifications == null ||
-                                  _cachedNotifications!.isEmpty
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => AllNewsPage(
-                                        notifications: _cachedNotifications!,
-                                      ),
-                                    ),
-                                  );
-                                },
-                          child: const Text('Xem thêm'),
-                        ),
+                // Hiển thị loading skeleton lần đầu
+                if (viewModel.isLoading) {
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxContentWidth),
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+                        children: [
+                          _buildSkeletonSection(gap),
+                          SizedBox(height: gap),
+                          _buildSkeletonSection(gap),
+                        ],
                       ),
-                      _buildNewsList(gap),
+                    ),
+                  );
+                }
 
-                      SizedBox(height: gap),
+                // Hiển thị lỗi nếu load failed và chưa có data
+                if (viewModel.hasError && !viewModel.hasData) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          viewModel.errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => viewModel.retry(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-                      // Đề tài nổi bật
-                      SectionHeader(
-                        title: 'Đề tài nổi bật',
-                        trailing: TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const AllTopicsPage(),
+                // Hiển thị dữ liệu
+                final content = Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxContentWidth),
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        try {
+                          await viewModel.refreshData();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Không thể làm mới dữ liệu: $e'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 2),
                               ),
                             );
-                          },
-                          child: const Text('Xem thêm'),
-                        ),
-                      ),
-                      _buildTopicsList(gap),
-                    ],
-                  ),
-                ),
-              ),
-            );
+                          }
+                        }
+                      },
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+                        children: [
+                          // Tin tức
+                          SectionHeader(
+                            title: 'Tin tức',
+                            trailing: TextButton(
+                              onPressed:
+                                  viewModel.notifications == null ||
+                                      viewModel.notifications!.isEmpty
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => AllNewsPage(
+                                            notifications:
+                                                viewModel.notifications!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Xem thêm'),
+                            ),
+                          ),
+                          _buildNewsList(viewModel, gap),
 
-            if (w >= 1000) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Expanded(child: content)],
-              );
-            }
-            return content;
+                          SizedBox(height: gap),
+
+                          // Đề tài nổi bật
+                          SectionHeader(
+                            title: 'Đề tài nổi bật',
+                            trailing: TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const AllTopicsPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text('Xem thêm'),
+                            ),
+                          ),
+                          _buildTopicsList(viewModel, gap),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+
+                if (w >= 1000) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [Expanded(child: content)],
+                  );
+                }
+                return content;
+              },
+            );
           },
         ),
       ),
@@ -348,9 +301,9 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
     );
   }
 
-  // Build danh sách tin tức từ cache
-  Widget _buildNewsList(double gap) {
-    if (_cachedNotifications == null || _cachedNotifications!.isEmpty) {
+  // Build danh sách tin tức từ ViewModel
+  Widget _buildNewsList(HomeViewModel viewModel, double gap) {
+    if (viewModel.notifications == null || viewModel.notifications!.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -370,7 +323,7 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
       );
     }
 
-    final displayItems = _cachedNotifications!.take(3).toList();
+    final displayItems = viewModel.notifications!.take(3).toList();
 
     return Card(
       child: ListView.separated(
@@ -423,9 +376,9 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
     );
   }
 
-  // Build danh sách đề tài từ cache
-  Widget _buildTopicsList(double gap) {
-    if (_cachedDeTai == null || _cachedDeTai!.isEmpty) {
+  // Build danh sách đề tài từ ViewModel
+  Widget _buildTopicsList(HomeViewModel viewModel, double gap) {
+    if (viewModel.topics == null || viewModel.topics!.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -445,7 +398,7 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
       );
     }
 
-    final displayItems = _cachedDeTai!.take(4).toList();
+    final displayItems = viewModel.topics!.take(4).toList();
 
     return Card(
       child: ListView.separated(

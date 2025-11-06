@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:GPMS/core/services/main_service.dart';
-import 'package:GPMS/shared/models/de_tai.dart';
+import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
+import 'package:provider/provider.dart';
+import 'package:GPMS/features/home/viewmodels/home_viewmodel.dart';
 
 class AllTopicsPage extends StatefulWidget {
   const AllTopicsPage({super.key});
@@ -11,7 +12,6 @@ class AllTopicsPage extends StatefulWidget {
 }
 
 class _AllTopicsPageState extends State<AllTopicsPage> {
-  late Future<List<DeTai>> _deTaiFuture;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedDot;
@@ -20,9 +20,16 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
   @override
   void initState() {
     super.initState();
-    _deTaiFuture = MainService.listDeTai();
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text);
+    });
+
+    // Load topics từ ViewModel nếu chưa có
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<HomeViewModel>();
+      if (viewModel.topics == null && !viewModel.isLoading) {
+        viewModel.loadInitialData();
+      }
     });
   }
 
@@ -64,20 +71,44 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
         ),
         backgroundColor: const Color(0xFF2563EB),
       ),
-      body: FutureBuilder<List<DeTai>>(
-        future: _deTaiFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<HomeViewModel>(
+        builder: (context, viewModel, child) {
+          // Loading state
+          if (viewModel.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Lỗi: ${snapshot.error}'));
+
+          // Error state
+          if (viewModel.hasError && viewModel.topics == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    viewModel.errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => viewModel.retry(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
           }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+
+          // Empty state
+          if (viewModel.topics == null || viewModel.topics!.isEmpty) {
             return const Center(child: Text('Không có đề tài'));
           }
 
-          final allDeTai = snapshot.data!;
+          // Data available
+          final allDeTai = viewModel.topics!;
           final filtered = _filter(allDeTai);
           final dots = _getUniqueDots(allDeTai);
           final namHocs = _getUniqueNamHoc(allDeTai);
@@ -126,43 +157,89 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
                               .toList(),
                           onChanged: (v) => setState(() => _selectedNamHoc = v),
                         ),
+                        if (_selectedDot != null || _selectedNamHoc != null)
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _selectedDot = null;
+                                _selectedNamHoc = null;
+                              });
+                            },
+                            icon: const Icon(Icons.clear, size: 16),
+                            label: const Text('Xóa bộ lọc'),
+                          ),
                       ],
                     ),
                   ],
                 ),
               ),
               Expanded(
-                child: ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (context, i) {
-                    final dt = filtered[i];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer,
-                        child: const Icon(Icons.description, size: 18),
-                      ),
-                      title: Text(
-                        dt.deTai,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text('${dt.hocKy} - ${dt.namHoc}'),
-                      trailing: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TopicDetailPage(deTai: dt),
+                child: filtered.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color: Colors.grey[400],
                             ),
-                          );
+                            const SizedBox(height: 16),
+                            Text(
+                              'Không tìm thấy đề tài phù hợp',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          try {
+                            await viewModel.refreshData();
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Không thể làm mới: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         },
-                        child: const Text('Xem'),
+                        child: ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, i) {
+                            final dt = filtered[i];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                child: const Icon(Icons.description, size: 18),
+                              ),
+                              title: Text(
+                                dt.deTai,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text('${dt.hocKy} - ${dt.namHoc}'),
+                              trailing: TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          TopicDetailPage(deTai: dt),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Xem'),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           );

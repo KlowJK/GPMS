@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 import 'package:intl/intl.dart';
 import 'package:GPMS/shared/components/news_detail_page.dart';
 

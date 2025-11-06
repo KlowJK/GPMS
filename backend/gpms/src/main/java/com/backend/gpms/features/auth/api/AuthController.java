@@ -10,10 +10,12 @@ import com.backend.gpms.features.auth.dto.request.ForgotPasswordRequest;
 import com.backend.gpms.features.auth.dto.request.LoginRequest;
 import com.backend.gpms.features.auth.dto.request.ResetPasswordRequest;
 import com.backend.gpms.features.auth.dto.response.AuthResponse;
+import com.backend.gpms.features.auth.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -67,5 +69,10 @@ public class AuthController {
         return ApiResponse.success(authService.uploadAnhDaiDien( file));
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<UserResponse> fetchMe() {
+        return ApiResponse.success(authService.fetchMe());
+    }
 
 }

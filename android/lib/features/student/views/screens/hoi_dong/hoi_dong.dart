@@ -3,27 +3,77 @@ import 'package:provider/provider.dart';
 import 'package:GPMS/features/student/models/hoi_dong_item.dart';
 import 'package:GPMS/features/student/viewmodels/hoi_dong_viewmodel.dart';
 import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
 
-/* ================== COUNCIL LIST PAGE (MVVM) ================== */
-
-class HoiDong extends StatelessWidget {
+/// Màn hình Hội đồng bảo vệ
+///
+/// Refactored để:
+/// - Consume ViewModel từ parent provider
+/// - Handle errors với ErrorCode
+/// - Better state management
+class HoiDong extends StatefulWidget {
   const HoiDong({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) =>
-          HoiDongViewModel()..fetchForCurrentStudent(fallbackToAll: true),
-      child: const _HoiDongBody(),
-    );
-  }
+  State<HoiDong> createState() => _HoiDongState();
 }
 
-class _HoiDongBody extends StatelessWidget {
-  const _HoiDongBody();
+class _HoiDongState extends State<HoiDong> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch data when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HoiDongViewModel>().fetchForCurrentStudent(
+        fallbackToAll: true,
+      );
+    });
+  }
+
+  Future<void> _handleRefresh(HoiDongViewModel vm) async {
+    try {
+      await vm.fetchForCurrentStudent(fallbackToAll: true);
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = 'Không thể làm mới dữ liệu';
+
+      if (e is CustomException) {
+        switch (e.errorCode) {
+          case ErrorCode.unauthenticated:
+            message = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            break;
+          case ErrorCode.timeout:
+            message = 'Kết nối hết thời gian chờ. Vui lòng thử lại.';
+            break;
+          case ErrorCode.deTaiNotFound:
+            message = 'Bạn chưa đăng ký đề tài.';
+            break;
+          default:
+            message = e.errorCode.message;
+        }
+      } else {
+        message = 'Lỗi kết nối: $e';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     return Scaffold(
       appBar: CustomAppBar(),
       body: SafeArea(
@@ -45,47 +95,43 @@ class _HoiDongBody extends StatelessWidget {
                 constraints: BoxConstraints(maxWidth: maxW),
                 child: Consumer<HoiDongViewModel>(
                   builder: (context, vm, _) {
-                    // show error once via SnackBar
-                    if (vm.error != null) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (vm.error != null) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text(vm.error!)));
-                          vm.clearError();
-                        }
-                      });
+                    // Handle errors with ErrorCode
+                    if (vm.hasError) {
+                      return _buildErrorView(vm, pad);
                     }
 
-                    return ListView(
-                      padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
-                      children: [
-                        Text(
-                          'Danh sách hội đồng bảo vệ',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        SizedBox(height: gap),
-
-                        if (vm.isLoading)
-                          const Center(child: CircularProgressIndicator())
-                        else if (vm.items.isEmpty)
-                          const _EmptyState(
-                            icon: Icons.apartment,
-                            title: 'Chưa có hội đồng nào.',
-                            subtitle: 'Vui lòng quay lại sau.',
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: vm.items.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (_, i) =>
-                                _CouncilCardHoiDong(item: vm.items[i]),
+                    return RefreshIndicator(
+                      onRefresh: () => _handleRefresh(vm),
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
+                        children: [
+                          Text(
+                            'Danh sách hội đồng bảo vệ',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                      ],
+                          SizedBox(height: gap),
+
+                          if (vm.isLoading && vm.items.isEmpty)
+                            const Center(child: CircularProgressIndicator())
+                          else if (vm.items.isEmpty)
+                            const _EmptyState(
+                              icon: Icons.apartment,
+                              title: 'Chưa có hội đồng nào.',
+                              subtitle: 'Vui lòng quay lại sau.',
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: vm.items.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (_, i) =>
+                                  _CouncilCard(item: vm.items[i]),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -96,12 +142,63 @@ class _HoiDongBody extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildErrorView(HoiDongViewModel vm, double pad) {
+    String message = vm.error!;
+    IconData icon = Icons.error_outline;
+    VoidCallback? onAction;
+
+    // Handle specific errors
+    if (vm.errorCode == ErrorCode.unauthenticated) {
+      message = 'Phiên đăng nhập hết hạn';
+      icon = Icons.lock_outline;
+      onAction = () {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
+      };
+    } else if (vm.errorCode == ErrorCode.timeout) {
+      message = 'Kết nối hết thời gian chờ';
+      icon = Icons.signal_wifi_off;
+      onAction = () => vm.fetchForCurrentStudent(fallbackToAll: true);
+    } else if (vm.errorCode == ErrorCode.deTaiNotFound) {
+      message = 'Bạn chưa đăng ký đề tài';
+      icon = Icons.topic_outlined;
+    } else {
+      onAction = () => vm.fetchForCurrentStudent(fallbackToAll: true);
+    }
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (onAction != null) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-/* ================== CARD HIỂN THỊ HỘI ĐỒNG (từ HoiDongItem) ================== */
-
-class _CouncilCardHoiDong extends StatelessWidget {
-  const _CouncilCardHoiDong({required this.item});
+/// Card hiển thị thông tin hội đồng
+class _CouncilCard extends StatelessWidget {
+  const _CouncilCard({required this.item});
   final HoiDongItem item;
 
   String _fmt(DateTime? d) {
@@ -129,7 +226,7 @@ class _CouncilCardHoiDong extends StatelessWidget {
     final startUtc = toUtcSafe(start);
     DateTime? endUtc = toUtcSafe(end);
 
-    // If endUtc is present and looks like a date-only (midnight UTC), treat it as end of day to be inclusive
+    // Make end time inclusive (end of day)
     if (endUtc != null &&
         endUtc.hour == 0 &&
         endUtc.minute == 0 &&
@@ -141,27 +238,23 @@ class _CouncilCardHoiDong extends StatelessWidget {
           .subtract(const Duration(milliseconds: 1));
     }
 
-    // Defensive: if backend returned start after end, swap them and log
+    // Handle swapped dates
     if (startUtc != null && endUtc != null && startUtc.isAfter(endUtc)) {
       debugPrint(
-        '[HoiDong] Warning: startUtc > endUtc for id=${item.id}; swapping values startUtc=$startUtc endUtc=$endUtc',
+        '[HoiDong] Warning: startUtc > endUtc for id=${item.id}; swapping',
       );
       final tmp = startUtc;
       final newStartUtc = endUtc;
       final newEndUtc = tmp;
-      final isBefore = nowUtc.isBefore(newStartUtc!);
-      final isAfter = nowUtc.isAfter(newEndUtc);
-      debugPrint(
-        '[HoiDong] id=${item.id} corrected startUtc=$newStartUtc endUtc=$newEndUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter',
-      );
-      if (isBefore) {
+
+      if (nowUtc.isBefore(newStartUtc!)) {
         return (
           const Color(0xFFDBEAFE),
           const Color(0xFF1E3A8A),
           'Sắp diễn ra',
         );
       }
-      if (isAfter) {
+      if (nowUtc.isAfter(newEndUtc)) {
         return (
           const Color(0xFFD1FAE5),
           const Color(0xFF065F46),
@@ -171,36 +264,29 @@ class _CouncilCardHoiDong extends StatelessWidget {
       return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
     }
 
-    // If both start and end exist, determine status from times (inclusive end)
+    // Normal date comparison
     if (startUtc != null && endUtc != null) {
-      final isBefore = nowUtc.isBefore(startUtc);
-      final isAfter = nowUtc.isAfter(endUtc);
-      debugPrint(
-        '[HoiDong] id=${item.id} startUtc=$startUtc endUtc=$endUtc nowUtc=$nowUtc isBefore=$isBefore isAfter=$isAfter',
-      );
-      if (isBefore) {
+      if (nowUtc.isBefore(startUtc)) {
         return (
           const Color(0xFFDBEAFE),
           const Color(0xFF1E3A8A),
           'Sắp diễn ra',
         );
       }
-      if (isAfter) {
+      if (nowUtc.isAfter(endUtc)) {
         return (
           const Color(0xFFD1FAE5),
           const Color(0xFF065F46),
           'Đã kết thúc',
         );
       }
-      // now is between start and end (inclusive)
       return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
     }
 
-    // Fallback to textual status if dates are not present
+    // Fallback to status string
     final status = (item.trangThai ?? '').toLowerCase();
     if (status.contains('upcoming') ||
         status.contains('sap') ||
-        status.contains('sapdienra') ||
         status.contains('sắp')) {
       return (const Color(0xFFDBEAFE), const Color(0xFF1E3A8A), 'Sắp diễn ra');
     }
@@ -243,11 +329,10 @@ class _CouncilCardHoiDong extends StatelessWidget {
                           TextSpan(
                             children: [
                               TextSpan(
-                                text: 'Tên hội đồng: ',
+                                text: item.tenHoiDong,
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
-                              TextSpan(text: item.tenHoiDong),
                             ],
                           ),
                         ),
@@ -255,7 +340,21 @@ class _CouncilCardHoiDong extends StatelessWidget {
                       _Badge(text: label, bg: bg, fg: fg),
                     ],
                   ),
+
                   const SizedBox(height: 6),
+                  if (item.diaDiem?.isNotEmpty == true)
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: item.diaDiem ?? '',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 4),
                   Text.rich(
                     TextSpan(
                       children: [
@@ -280,8 +379,6 @@ class _CouncilCardHoiDong extends StatelessWidget {
     );
   }
 }
-
-/* ================== COMMON ================== */
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
@@ -335,13 +432,10 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const ShapeDecoration(shape: StadiumBorder()),
-      child: Container(
-        decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
-      ),
+    return Container(
+      decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
     );
   }
 }
