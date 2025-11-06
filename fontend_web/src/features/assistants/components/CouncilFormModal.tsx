@@ -3,10 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/features/admin/components/ToastProvider';
 
 import type { Id } from '@features/assistants/services/base';
-import { toPage } from '@features/assistants/services/base';
 
 import type { Lecturer } from '@features/assistants/services/user/userApi';
-import { listLecturers } from '@features/assistants/services/user/userApi';
+import { listLecturersAny } from '@features/assistants/services/user/userApi';
 
 import type { DefenseRoundUI } from '@features/assistants/services/topic/topicApi';
 import { listDefenseRoundsNormalized } from '@features/assistants/services/topic/topicApi';
@@ -43,9 +42,9 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
   const [loading, setLoading] = useState(true);
 
   // tìm kiếm
-  const [qGV, setQGV] = useState('');       // lọc danh sách tick thành viên
-  const [qChair, setQChair] = useState(''); // lọc dropdown Chủ tịch
-  const [qSec, setQSec] = useState('');     // lọc dropdown Thư ký
+  const [qGV, setQGV] = useState('');
+  const [qChair, setQChair] = useState('');
+  const [qSec, setQSec] = useState('');
 
   // multi-select thành viên hội đồng
   const [members, setMembers] = useState<Set<string>>(new Set());
@@ -59,17 +58,14 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
 
   // helper: bỏ dấu + lowercase để tìm kiếm VN tốt hơn
   const norm = (v?: string) =>
-    (v || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '');
+    (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
   // lọc danh sách hiển thị theo tên/email
   const filterByNameEmail = (arr: Lecturer[], q: string) => {
     const k = norm(q.trim());
     if (!k) return arr;
     return arr.filter(x => {
-      const email = (x as any).email || (x as any).taiKhoan || '';
+      const email = x.email || (x as any).taiKhoan || '';
       return (norm(x.hoTen) + ' ' + norm(email)).includes(k);
     });
   };
@@ -78,18 +74,19 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
   const gvChair   = useMemo(() => filterByNameEmail(gvAll, qChair), [gvAll, qChair]);
   const gvSecOpt  = useMemo(() => filterByNameEmail(gvAll, qSec), [gvAll, qSec]);
 
-  // load options
+  // load options (đợt + toàn bộ giảng viên)
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         setLoading(true);
-        const pgRound = await listDefenseRoundsNormalized({ page: 0, size: 999 });
-        if (alive) setRounds(pgRound.content);
-
-        const resGV = await listLecturers({ page: 0, size: 999 });
-        const pgGV = toPage<Lecturer>(resGV, { page: 0, size: 999 });
-        if (alive) setGvAll(pgGV.content);
+        const [pgRound, lecturers] = await Promise.all([
+          listDefenseRoundsNormalized({ page: 0, size: 999 }),
+          listLecturersAny(),
+        ]);
+        if (!alive) return;
+        setRounds(pgRound.content);
+        setGvAll(lecturers);
       } catch (e: any) {
         error(e?.response?.data?.message || 'Không tải được dữ liệu lựa chọn.');
       } finally {
@@ -199,7 +196,9 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     onChange={(e) => setQGV(e.target.value)}
                   />
                   <div className="max-h-64 overflow-y-auto overscroll-contain rounded border p-2">
-                    {gvMembers.length === 0 ? (
+                    {loading ? (
+                      <div className="text-sm text-slate-500 px-1">Đang tải…</div>
+                    ) : gvMembers.length === 0 ? (
                       <div className="text-sm text-slate-500 px-1">Không có dữ liệu.</div>
                     ) : (
                       gvMembers.map(x => {
@@ -215,7 +214,7 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                             <span className="text-sm">
                               {x.hoTen}
                               {x.boMonTen ? ` — ${x.boMonTen}` : ''}
-                              {(x as any).email ? ` — ${(x as any).email}` : ''}
+                              {x.email ? ` — ${x.email}` : ''}
                             </span>
                           </label>
                         );
@@ -224,7 +223,7 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                   </div>
                 </div>
 
-                {/* Chủ tịch — có ô search theo tên/email */}
+                {/* Chủ tịch */}
                 <div>
                   <label className="block text-sm text-slate-600 mb-1">Chủ tịch hội đồng</label>
                   <input
@@ -242,14 +241,13 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     <option value="">— Chọn —</option>
                     {gvChair.map(x => (
                       <option key={`${x.id}`} value={String(x.id)}>
-                        {x.hoTen}
-                        {(x as any).email ? ` — ${(x as any).email}` : ''}
+                        {x.hoTen}{x.email ? ` — ${x.email}` : ''}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Thư ký — có ô search theo tên/email */}
+                {/* Thư ký */}
                 <div>
                   <label className="block text-sm text-slate-600 mb-1">Thư ký</label>
                   <input
@@ -267,8 +265,7 @@ export default function CouncilFormModal({ onClose, onSubmit }: Props) {
                     <option value="">— Chọn —</option>
                     {gvSecOpt.map(x => (
                       <option key={`${x.id}`} value={String(x.id)}>
-                        {x.hoTen}
-                        {(x as any).email ? ` — ${(x as any).email}` : ''}
+                        {x.hoTen}{x.email ? ` — ${x.email}` : ''}
                       </option>
                     ))}
                   </select>

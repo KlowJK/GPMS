@@ -8,6 +8,9 @@ import AssistantFormModal, {
 import { useToast } from '@features/admin/components/ToastProvider';
 import ConfirmDialog from '@features/admin/components/ConfirmDialog';
 
+// 👇 dùng chung pager của trợ lý
+import Pagination from '@/features/assistants/components/Pagination';
+
 type ModalState = { open: boolean; editing?: KhoaAssistant | null };
 
 export default function AssistantsPage() {
@@ -63,6 +66,7 @@ export default function AssistantsPage() {
 
   const from = page * size + 1;
   const to = Math.min(total, page * size + rows.length);
+  const totalPages = Math.max(1, Math.ceil(total / size)); // 👈 thêm để dùng Pagination
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
@@ -115,7 +119,7 @@ export default function AssistantsPage() {
                   </button>
 
                   <button
-                    onClick={() => askDelete(r)}   // ✅ dùng askDelete
+                    onClick={() => askDelete(r)}
                     aria-label="Xóa trợ lý"
                     title="Xóa"
                     className="ml-1 inline-flex items-center justify-center h-9 w-9 rounded-md text-red-600 hover:bg-red-50"
@@ -129,15 +133,15 @@ export default function AssistantsPage() {
           </tbody>
         </table>
 
-        {/* Pagination (cố định 10/trang) */}
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button className="px-3 py-1 border rounded disabled:opacity-40"
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}>Trước</button>
-          <span className="text-sm">{page + 1}</span>
-          <button className="px-3 py-1 border rounded disabled:opacity-40"
-                  onClick={() => setPage(p => (from + size <= total ? p + 1 : p))}
-                  disabled={from + size > total}>Sau</button>
+        {/* ✅ Pagination dùng chung */}
+        <div className="p-3 flex justify-center">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            showCounter={false}
+            disabled={loading}
+          />
         </div>
       </div>
 
@@ -163,7 +167,6 @@ export default function AssistantsPage() {
               await load();
             } catch (e: any) {
               const status = e?.response?.status;
-              // Hiển thị lỗi ngay dưới ô email
               if (status === 409) { setEmailErr('Email đã tồn tại'); return; }
               if (status === 400) { setEmailErr('Email không hợp lệ'); return; }
               error('Lưu trợ lý khoa thất bại.');
@@ -174,7 +177,7 @@ export default function AssistantsPage() {
 
       <ConfirmDialog
         open={confirm.open}
-        title={confirm.title ?? ''}     // ✅ ép thành string
+        title={confirm.title ?? ''}
         description={confirm.description}
         confirmText="Xóa"
         cancelText="Hủy"
