@@ -96,6 +96,10 @@ public enum ErrorCode {
     HOI_DONG_CHUA_SANSANG_PHE_DUYET(2069, "Chua tat ca thanh vien hoi dong san sang de phe duyet.", HttpStatus.BAD_REQUEST),
     DIEM_PHAN_BIEN_KHONG_DAT(2070, "Diem phan bien khong dat de duoc phe duyet.", HttpStatus.BAD_REQUEST),
     DIEM_HOI_DONG_KHONG_DAT(2071, "Diem hoi dong khong dat de duoc phe duyet.", HttpStatus.BAD_REQUEST),
+    DON_HOAN_DO_AN_ID_REQUIRED(2072, "ID don hoan do an la bat buoc.", HttpStatus.BAD_REQUEST),
+    DON_NOT_FOUND(2073, "Don hoan do an khong ton tai.", HttpStatus.NOT_FOUND),
+    DON_DA_XU_LY(2074, "Don hoan do an da duoc xu ly.", HttpStatus.BAD_REQUEST),
+    KHONG_CO_QUYEN_PHE_DUYET(2075, "Ban khong co quyen de phe duyet don hoan do an nay.", HttpStatus.FORBIDDEN),
 
     // Resource Not Found Errors
     KHOA_NOT_FOUND(3001, "Khoa khong ton tai.", HttpStatus.NOT_FOUND),

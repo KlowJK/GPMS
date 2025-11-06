@@ -90,12 +90,30 @@ public class DeTaiController {
         return ApiResponse.success(donHoanDoAnService.getMyPostponeRequests(pageable));
     }
 
+    @Operation(summary = "CNkhoa xem danh sách đơn hoãn của sinh viên trong khoa mình")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_CHU_NHIEM_KHOA')")
+    @GetMapping("/danh-sach-sinh-vien/hoan-do-an-by-cn-khoa")
+    public ApiResponse<Page<DonHoanDoAnResponse>> getMyPostponeRequestsByCNKHOA(
+            @ParameterObject
+            @PageableDefault(page = 0, size = 10, sort = "updatedAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return ApiResponse.success(donHoanDoAnService.getMyPostponeRequestsByCNKHOA(pageable));
+    }
+
     @Operation(summary = "Cập nhật tên đề tài cho sinh viên - Role giảng viên")
     @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN', 'ROLE_TRUONG_BO_MON')")
     @PutMapping(value = "/cap-nhat-ten-de-tai",  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<String> updateDeTaiName(
             @ModelAttribute @Valid DeTaiUpdateRequest request) {
         return ApiResponse.success(deTaiService.updateDeTai(request));
+    }
+
+    @Operation(summary = "Chủ nhiệm khoa duyệt đơn hoãn đồ án")
+    @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_CHU_NHIEM_KHOA')")
+    @PutMapping(value = "/duyet-don-hoan-do-an/duyet",  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<String> approvePostponeRequest(
+            @RequestBody @Valid DonHoanDoAnDuyetRequest request) {
+        return ApiResponse.success(donHoanDoAnService.duyetDonHoanDoAn(request));
     }
 
 }
