@@ -69,7 +69,7 @@ export default function Sidebar() {
         items={[
           { to: '/assistant/subjects', label: 'Quản lý bộ môn' },
           { to: '/assistant/majors',   label: 'Quản lý ngành' },
-          { to: '/assistant/classes',   label: 'Quản lý lớp' },
+          { to: '/assistant/classes',  label: 'Quản lý lớp'   },
         ]}
       />
 
@@ -80,6 +80,20 @@ export default function Sidebar() {
           { to: '/assistant/round-schedule', label: 'Thời gian thực hiện' },
         ]}
       />
+
+      <Group
+        label="Hội đồng"
+        items={[
+          { to: '/assistant/councils', label: 'Quản lý hội đồng' },
+        ]}
+      />
+
+      <Group
+  label="Thông báo"
+  items={[
+    { to: '/assistant/notifications', label: 'Quản lý thông báo' },
+  ]}
+/>
     </aside>
   );
 }

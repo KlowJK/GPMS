@@ -81,21 +81,20 @@ public class GiangVienService {
     public List<GiangVienLiteResponse> giangVienLiteResponseList() {
         final String email = getCurrentUsername();
 
+        // Lấy thông tin sinh viên
         SinhVien sv = sinhVienRepository.findByUser_Email(email)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.SINH_VIEN_NOT_FOUND));
 
         if (sv.getLop() == null) return List.of();
 
-        Long khoaId = nganhRepository.findById(sv.getLop().getNganh().getId())
-                .orElseThrow(() -> new ApplicationException(ErrorCode.NGANH_NOT_FOUND))
-                .getKhoa()
-                .getId();
+        // Lấy ID bộ môn từ ngành của sinh viên
+        Long boMonId = sv.getLop().getNganh().getBoMon().getId();
 
-        // 1 query ra đúng dữ liệu đã tính toán + sắp xếp
+        // Query giảng viên theo bộ môn, có tính toán remaining và sắp xếp
         List<GiangVienLiteProjection> rows = giangVienRepository
-                .findAdvisorsWithRemainingByKhoaId(khoaId, TrangThaiDeTai.DA_DUYET);
+                .findAdvisorsWithRemainingByBoMonId(boMonId, TrangThaiDeTai.DA_DUYET);
 
-        // Nếu muốn trả đúng class response (không phải projection), map nhẹ:
+        // Map sang response DTO
         return rows.stream()
                 .map(r -> GiangVienLiteResponse.builder()
                         .id(r.getId())

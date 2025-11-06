@@ -11,7 +11,7 @@ public enum KieuThongBao {
     ),
     TU_CHOI_DE_TAI(
             "Đề tài bị từ chối",
-            "Đề tài \"{tenDeTai}\" của bạn đã bị từ chối. Lý do: {lyDo}"
+            "Đề tài \"{tenDeTai}\" của bạn đã bị từ chối. Nhận xét: {lyDo}"
     ),
     CAP_NHAT_DE_TAI(
             "Đề tài được cập nhật",
@@ -58,7 +58,7 @@ public enum KieuThongBao {
     ),
     TU_CHOI_BAO_CAO(
             "Báo cáo bị từ chối",
-            "Báo cáo tiến độ của bạn đã bị từ chối. Lý do: {lyDo}"
+            "Báo cáo tiến độ của bạn đã bị từ chối. Nhận xét: {lyDo}"
     ),
 
     NOP_NHAT_KY(

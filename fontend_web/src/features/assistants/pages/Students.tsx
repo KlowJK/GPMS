@@ -1,6 +1,6 @@
 // src/features/assistants/pages/Students.tsx
-import { useEffect, useMemo, useState } from 'react';
-import {Plus} from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Plus, Search, CheckCircle2, AlertTriangle, Pencil } from 'lucide-react';
 import {
   type Student,
   type CreateStudentBody,
@@ -12,55 +12,87 @@ import {
   changeStudentStatusByCode,
 } from '@/features/assistants/services/user/userApi';
 
-import {
-  type ClassRoom,
-  listClasses,
-} from '@/features/assistants/services/organization/orgApi';
-
+import { type ClassRoom, listClasses } from '@/features/assistants/services/organization/orgApi';
 import { type PageParams, unwrap } from '@/features/assistants/services/base';
 
 import StudentFormModal from '@/features/assistants/components/StudentFormModal';
 import ImportStudentsModal from '@/features/assistants/components/ImportStudentsModal';
-import {
-  UserPlus,
-  UploadCloud,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  Pencil,
-} from 'lucide-react';
 
-type ModalState = { open: boolean; editing?: Student | null };
-type ImportState = { open: boolean };
-type StatusState = { open: boolean; student?: Student | null };
+/* ===================== Small helpers ===================== */
+const norm = (v?: string) => (v || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/\p{Diacritic}/gu, '');
 
-function EligibleTag({
-  value,
-  onClick,
-}: {
-  value?: boolean;
-  onClick?: () => void;
-}) {
-  const base =
-    'inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm cursor-pointer border';
+function EligibleTag({ value, onClick }: { value?: boolean; onClick?: () => void }) {
+  const base = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm cursor-pointer border';
   if (value)
     return (
-      <span
-        onClick={onClick}
-        className={`${base} bg-green-50 text-green-700 border-green-200`}
-      >
+      <span onClick={onClick} className={`${base} bg-green-50 text-green-700 border-green-200`}>
         <CheckCircle2 size={14} /> Đủ điều kiện
       </span>
     );
   return (
-    <span
-      onClick={onClick}
-      className={`${base} bg-orange-50 text-orange-700 border-orange-200`}
-    >
+    <span onClick={onClick} className={`${base} bg-orange-50 text-orange-700 border-orange-200`}>
       <AlertTriangle size={14} /> Chưa đủ điều kiện
     </span>
   );
 }
+
+/* ===================== Pagination (centered) ===================== */
+function PageNav({
+  page,
+  total,
+  size,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  size: number;
+  onChange: (p: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const p1 = page + 1;
+
+  // window nhỏ gọn
+  const MAX_WINDOW = 5;
+  let start = Math.max(1, p1 - Math.floor(MAX_WINDOW / 2));
+  let end = Math.min(totalPages, start + MAX_WINDOW - 1);
+  if (end - start + 1 < MAX_WINDOW) start = Math.max(1, end - MAX_WINDOW + 1);
+
+  const go = (p: number) => onChange(Math.min(Math.max(0, p), totalPages - 1));
+
+  const btn = (label: string | number, active = false, disabled = false, to?: number): ReactNode => (
+    <button
+      key={`p-${label}`}
+      className={
+        'min-w-8 h-9 px-3 rounded border text-sm ' +
+        (active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50') +
+        (disabled ? ' opacity-40 cursor-not-allowed' : '')
+      }
+      onClick={() => (to != null ? go(to) : undefined)}
+      disabled={disabled}
+      aria-current={active ? 'page' : undefined}
+    >
+      {label}
+    </button>
+  );
+
+  const buttons: ReactNode[] = [];
+  buttons.push(btn('«', false, page === 0, 0));
+  buttons.push(btn('‹', false, page === 0, page - 1));
+  for (let i = start; i <= end; i++) buttons.push(btn(i, i === p1, false, i - 1));
+  if (totalPages > end) buttons.push(<span key="ellipsis" className="px-1 select-none">…</span>);
+  buttons.push(btn('›', false, page >= totalPages - 1, page + 1));
+  buttons.push(btn('»', false, page >= totalPages - 1, totalPages - 1));
+
+  return <div className="flex items-center justify-center gap-2">{buttons}</div>;
+}
+
+/* ===================== Page ===================== */
+type ModalState = { open: boolean; editing?: Student | null };
+type ImportState = { open: boolean };
+type StatusState = { open: boolean; student?: Student | null };
 
 export default function StudentsPage() {
   const [items, setItems] = useState<Student[]>([]);
@@ -73,9 +105,7 @@ export default function StudentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [imodal, setImodal] = useState<ImportState>({ open: false });
-  const [statusModal, setStatusModal] = useState<StatusState>({
-    open: false,
-  });
+  const [statusModal, setStatusModal] = useState<StatusState>({ open: false });
 
   const keyword = useMemo(() => q.trim(), [q]);
 
@@ -83,15 +113,10 @@ export default function StudentsPage() {
     setLoading(true);
     setError(null);
     try {
-      const pg = await listStudentsNormalized({
-        page,
-        size,
-        q: keyword || undefined,
-      } as PageParams);
+      const pg = await listStudentsNormalized({ page, size, q: keyword || undefined } as PageParams);
       setItems(pg.content);
       setTotal(pg.totalElements);
-    } catch (e: any) {
-      console.error('loadStudents error', e);
+    } catch (e) {
       setItems([]);
       setTotal(0);
       setError('Không tải được danh sách sinh viên.');
@@ -102,7 +127,7 @@ export default function StudentsPage() {
 
   async function loadClasses() {
     try {
-      const res = await listClasses(); // có thể truyền {page:0,size:999} nếu BE phân trang
+      const res = await listClasses();
       const data = unwrap<any>(res);
       const list: ClassRoom[] = Array.isArray(data?.content)
         ? data.content
@@ -110,27 +135,30 @@ export default function StudentsPage() {
         ? data
         : [];
       setClasses(list);
-    } catch (e) {
-      console.warn('loadClasses error', e);
+    } catch {
       setClasses([]);
     }
   }
 
-  useEffect(() => {
-    loadClasses();
-  }, []);
-  useEffect(() => {
-    loadStudents();
-  }, [page, size, keyword]);
+  useEffect(() => { loadClasses(); }, []);
+  useEffect(() => { loadStudents(); }, [page, size, keyword]);
+
+  // Lọc mềm phía client để chắc chắn tìm được theo TÊN hoặc MÃ SV
+  const view = useMemo(() => {
+    const k = norm(q);
+    if (!k) return items;
+    return items.filter(s =>
+      norm(s.hoTen).includes(k) ||
+      (s.maSinhVien || '').toLowerCase().includes(k)
+    );
+  }, [items, q]);
 
   const from = page * size + 1;
   const to = Math.min(total, page * size + items.length);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
-      <h1 className="text-3xl font-semibold text-center">
-        Danh sách tài khoản sinh viên
-      </h1>
+      <h1 className="text-3xl font-semibold text-center">Danh sách tài khoản sinh viên</h1>
 
       <div className="flex items-center gap-3">
         <button
@@ -144,26 +172,18 @@ export default function StudentsPage() {
           className="px-3 py-2 rounded-lg border inline-flex items-center gap-2"
           title="Import danh sách từ Excel"
         >
-           Import Excel
+          Import Excel
         </button>
         <div className="relative ml-2">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             className="h-10 w-80 rounded border pl-9 pr-3"
-            placeholder="Tìm theo mã/tên..."
+            placeholder="Tìm theo mã hoặc tên sinh viên…"
             value={q}
-            onChange={(e) => {
-              setPage(0);
-              setQ(e.target.value);
-            }}
+            onChange={(e) => { setPage(0); setQ(e.target.value); }}
           />
         </div>
-        <div className="ml-auto text-sm text-slate-600">
-          {total ? `${from}–${to}/${total}` : ''}
-        </div>
+        <div className="ml-auto text-sm text-slate-600">{total ? `${from}–${to}/${total}` : ''}</div>
       </div>
 
       <div className="rounded border bg-white">
@@ -181,77 +201,47 @@ export default function StudentsPage() {
           </thead>
           <tbody>
             {loading && (
-              <tr>
-                <td className="px-4 py-6 text-center" colSpan={7}>
-                  Đang tải…
-                </td>
-              </tr>
+              <tr><td className="px-4 py-6 text-center" colSpan={7}>Đang tải…</td></tr>
             )}
             {!loading && error && (
-              <tr>
-                <td
-                  className="px-4 py-6 text-center text-red-600"
-                  colSpan={7}
-                >
-                  {error}
+              <tr><td className="px-4 py-6 text-center text-red-600" colSpan={7}>{error}</td></tr>
+            )}
+            {!loading && !error && view.length === 0 && (
+              <tr><td className="px-4 py-6 text-center" colSpan={7}>Chưa có dữ liệu.</td></tr>
+            )}
+            {!loading && !error && view.map((s) => (
+              <tr key={`${s.id}`} className="border-t">
+                <td className="px-4 py-3">{s.email}</td>
+                <td className="px-4 py-3">{s.maSinhVien}</td>
+                <td className="px-4 py-3">{s.hoTen}</td>
+                <td className="px-4 py-3">{s.lopTen ?? '—'}</td>
+                <td className="px-4 py-3">{s.soDienThoai ?? '—'}</td>
+                <td className="px-4 py-3">
+                  <EligibleTag value={s.duDieuKien} onClick={() => setStatusModal({ open: true, student: s })} />
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
+                    onClick={() => setModal({ open: true, editing: s })}
+                    title="Sửa"
+                  >
+                    <Pencil size={16} />
+                    <span className="sr-only">Sửa</span>
+                  </button>
                 </td>
               </tr>
-            )}
-            {!loading && !error && items.length === 0 && (
-              <tr>
-                <td className="px-4 py-6 text-center" colSpan={7}>
-                  Chưa có dữ liệu.
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              !error &&
-              items.map((s) => (
-                <tr key={`${s.id}`} className="border-t">
-                  <td className="px-4 py-3">{s.email}</td>
-                  <td className="px-4 py-3">{s.maSinhVien}</td>
-                  <td className="px-4 py-3">{s.hoTen}</td>
-                  <td className="px-4 py-3">{s.lopTen ?? '—'}</td>
-                  <td className="px-4 py-3">{s.soDienThoai ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <EligibleTag
-                      value={s.duDieuKien}
-                      onClick={() =>
-                        setStatusModal({ open: true, student: s })
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-slate-100"
-                      onClick={() => setModal({ open: true, editing: s })}
-                      title="Sửa"
-                    >
-                      <Pencil size={16} />
-                      <span className="sr-only">Sửa</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            ))}
           </tbody>
         </table>
 
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button
-            className="rounded border px-3 py-1 disabled:opacity-40"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-          >
-            «
-          </button>
-          <span className="text-sm">{page + 1}</span>
-          <button
-            className="rounded border px-3 py-1 disabled:opacity-40"
-            onClick={() => setPage((p) => (from + size <= total ? p + 1 : p))}
-            disabled={from + size > total}
-          >
-            »
-          </button>
+        {/* Pagination center */}
+        <div className="p-3 flex justify-center">
+          <PageNav
+            page={page}
+            total={total}
+            size={size}
+            onChange={(p) => setPage(p)}
+          />
         </div>
       </div>
 
@@ -262,10 +252,7 @@ export default function StudentsPage() {
           onClose={() => setModal({ open: false })}
           onSubmit={async (payload: CreateStudentBody | UpdateStudentBody) => {
             if (modal.editing) {
-              await updateStudentByCode(
-                modal.editing.maSinhVien,
-                payload as UpdateStudentBody,
-              );
+              await updateStudentByCode(modal.editing.maSinhVien, payload as UpdateStudentBody);
             } else {
               await createStudent(payload as CreateStudentBody);
             }
@@ -292,12 +279,9 @@ export default function StudentsPage() {
         <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
           <div className="bg-white rounded-2xl p-6 w-[520px]">
             <h3 className="text-lg font-semibold mb-3">
-              Đổi trạng thái điều kiện – {statusModal.student.hoTen} (
-              {statusModal.student.maSinhVien})
+              Đổi trạng thái điều kiện – {statusModal.student.hoTen} ({statusModal.student.maSinhVien})
             </h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Chọn trạng thái mới cho sinh viên này.
-            </p>
+            <p className="text-sm text-slate-600 mb-4">Chọn trạng thái mới cho sinh viên này.</p>
             <div className="flex gap-3">
               <button
                 className="px-4 h-10 rounded border inline-flex items-center gap-2"

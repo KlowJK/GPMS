@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
 import 'package:intl/intl.dart';
-import 'package:GPMS/shared/components/NewsDetailPage.dart';
+import 'package:GPMS/shared/components/news_detail_page.dart';
 
 class AllNewsPage extends StatefulWidget {
   final List<ThongBaoVaTinTuc> notifications;
