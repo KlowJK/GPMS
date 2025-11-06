@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao, fetchStudentByCode } from '../services'
 import type { SinhVien } from '../models/SinhVien'
@@ -92,7 +93,7 @@ export default function useReportDetailViewModel(maSV?: string | null) {
 
       return result
     } catch (err: any) {
-      try { alert('Lỗi khi duyệt: ' + (err?.message ?? err)) } catch (e) {}
+      // let the caller (component) display UI notifications to avoid duplicates
       throw err
     } finally {
       setLoadingId(null)
@@ -129,7 +130,7 @@ export default function useReportDetailViewModel(maSV?: string | null) {
 
       return result
     } catch (err: any) {
-      try { alert('Lỗi khi từ chối: ' + (err?.message ?? err)) } catch (e) {}
+      // let the caller (component) display UI notifications to avoid duplicates
       throw err
     } finally {
       setLoadingId(null)
