@@ -1,3 +1,4 @@
+// src/features/assistants/services/organization/orgApi.ts
 import { axios, unwrap, toPage, type Id, type Page, type PageParams }
   from '@/features/assistants/services/base';
 
@@ -26,8 +27,14 @@ export const deleteMajor = (id: Id) => axios.delete(`/api/nganh/${id}`);
 
 /* ===================== BỘ MÔN ===================== */
 export type Subject = {
-  id: Id; tenBoMon: string; khoaId: Id; khoaTen?: string; truongBoMonId?: Id; truongBoMonTen?: string;
+  id: Id;
+  tenBoMon: string;
+  khoaId: Id;
+  khoaTen?: string;
+  truongBoMonId?: Id;
+  truongBoMonTen?: string;
 };
+
 export type CreateSubjectPayload = { tenBoMon: string; khoaId: Id; truongBoMonId?: Id };
 export type UpdateSubjectPayload = CreateSubjectPayload;
 
@@ -36,40 +43,70 @@ export const createSubject = (body: CreateSubjectPayload) => axios.post('/api/bo
 export const updateSubject = (id: Id, body: UpdateSubjectPayload) => axios.put(`/api/bo-mon/${id}`, body);
 export const deleteSubject = (id: Id) => axios.delete(`/api/bo-mon/${id}`);
 
-export type SetSubjectHeadPayload = { idBoMon: Id; idGiangVien: Id | null };
+/** ---- GÁN TRƯỞNG BỘ MÔN (có fallback nhiều dạng BE hay dùng) ---- */
+export type SetSubjectHeadPayload = { boMonId: Id; giangVienId: Id | null };
 export type SetSubjectHeadResponse = {
   result?: { maGV: string; hoTen: string; hocVi: string; hocHam: string; tenBoMon: string };
   message?: string; code?: number;
 };
-export const setSubjectHead = (body: SetSubjectHeadPayload) =>
-  axios.post<SetSubjectHeadResponse>('/api/bo-mon/truong-bo-mon', body);
+
+/** Thử lần lượt các pattern phổ biến:
+ * 1) POST /api/bo-mon/truong-bo-mon  { giangVienId, boMonId }
+ * 2) POST /api/bo-mon/truong-bo-mon  { idGiangVien, idBoMon }
+ * 3) PUT  /api/bo-mon/:boMonId/truong-bo-mon { giangVienId }
+ * 4) PUT  /api/bo-mon/:boMonId/truong-bo-mon { idGiangVien }
+ * 5) (bỏ gán) thử thêm giá trị 0 thay cho null nếu cần
+ */
+export async function setSubjectHead(body: SetSubjectHeadPayload) {
+  const { boMonId, giangVienId } = body;
+  const candidates: Array<{ m: 'post' | 'put'; url: string; data: any }> = [
+    { m: 'post', url: '/api/bo-mon/truong-bo-mon', data: { giangVienId, boMonId } },
+    { m: 'post', url: '/api/bo-mon/truong-bo-mon', data: { idGiangVien: giangVienId, idBoMon: boMonId } },
+    { m: 'put',  url: `/api/bo-mon/${boMonId}/truong-bo-mon`, data: { giangVienId } },
+    { m: 'put',  url: `/api/bo-mon/${boMonId}/truong-bo-mon`, data: { idGiangVien: giangVienId } },
+  ];
+  // Nếu bỏ gán (null) thì thử thêm biến thể 0:
+  if (giangVienId == null) {
+    candidates.push(
+      { m: 'post', url: '/api/bo-mon/truong-bo-mon', data: { giangVienId: 0, boMonId } },
+      { m: 'post', url: '/api/bo-mon/truong-bo-mon', data: { idGiangVien: 0, idBoMon: boMonId } },
+      { m: 'put',  url: `/api/bo-mon/${boMonId}/truong-bo-mon`, data: { giangVienId: 0 } },
+      { m: 'put',  url: `/api/bo-mon/${boMonId}/truong-bo-mon`, data: { idGiangVien: 0 } },
+    );
+  }
+
+  let lastErr: any;
+  for (const c of candidates) {
+    try {
+      const res = await axios[c.m]<SetSubjectHeadResponse>(c.url, c.data, {
+        headers: { Accept: '*/*' },
+      });
+      return res;
+    } catch (e: any) {
+      lastErr = e;
+      // thử pattern tiếp theo
+    }
+  }
+  throw lastErr;
+}
+
 export const listSubjectsWithHead = (params?: PageParams) =>
   axios.get('/api/bo-mon/with-truong-bo-mon', { params });
 
 function normalizeSubjectRow(x: any): Subject {
   const kv = x.khoa ?? {};
   const head = x.truongBoMon ?? {};
-
   return {
     id: x.id ?? x.boMonId ?? x._id,
-
     tenBoMon: x.tenBoMon ?? x.ten ?? '',
-
-    // ⬇️ BE có thể trả 'khoaTen' hoặc 'tenKhoa' (root) hoặc 'khoa.tenKhoa'
     khoaId:  x.khoaId ?? x.idKhoa ?? kv.id,
     khoaTen: x.khoaTen ?? x.tenKhoa ?? kv.tenKhoa ?? kv.ten ?? '',
-
-    // ⬇️ Ưu tiên đủ loại alias, thêm 'truongBoMonHoTen'
     truongBoMonId:
-      x.truongBoMonId ??
-      x.idTruongBoMon ??
-      head.id ??
-      x.headId ??
-      x.giangVienId,
-
+      x.truongBoMonId ?? x.idTruongBoMon ?? head.id ?? x.headId ?? x.giangVienId,
+    // Ưu tiên tên trường BE bạn cung cấp
     truongBoMonTen:
+      x.truongBoMonHoTen ??
       x.truongBoMonTen ??
-      x.truongBoMonHoTen ??   // <<< THÊM DÒNG NÀY
       x.tenTruongBoMon ??
       head.hoTen ??
       x.headName ??
@@ -79,11 +116,8 @@ function normalizeSubjectRow(x: any): Subject {
   };
 }
 
-/** Trả về Page<Subject> đã có sẵn truongBoMonId/ten nếu BE cung cấp */
-export async function listSubjectsWithHeadNormalized(
-  params?: PageParams
-): Promise<Page<Subject>> {
-  const res = await listSubjectsWithHead(params);
+export async function listSubjectsNormalized(params?: PageParams): Promise<Page<Subject>> {
+  const res = await listSubjects(params);
   const raw = unwrap<any>(res);
   const arr: any[] = Array.isArray(raw?.content) ? raw.content : (Array.isArray(raw) ? raw : []);
   return {
@@ -93,6 +127,23 @@ export async function listSubjectsWithHeadNormalized(
     size: params?.size ?? 10,
   };
 }
+
+export async function listSubjectsAnyNormalized(params?: PageParams): Promise<Page<Subject>> {
+  try {
+    const res = await listSubjectsWithHead(params);
+    const raw = unwrap<any>(res);
+    const arr: any[] = Array.isArray(raw?.content) ? raw.content : (Array.isArray(raw) ? raw : []);
+    return {
+      content: arr.map(normalizeSubjectRow),
+      totalElements: raw?.totalElements ?? arr.length ?? 0,
+      page: params?.page ?? 0,
+      size: params?.size ?? 10,
+    };
+  } catch {
+    return listSubjectsNormalized(params);
+  }
+}
+
 /* ===================== LỚP ===================== */
 export type ClassRoom = { id: Id; tenLop: string };
 
@@ -107,7 +158,7 @@ export type OrgClass = {
 export type CreateClassPayload = { tenLop: string; nganhId: Id };
 export type UpdateClassPayload = CreateClassPayload;
 
-// Helper chung
+// Helpers
 const toNum = (v: any) => (typeof v === 'number' ? v : (/^\d+$/.test(String(v)) ? Number(v) : v));
 const normStr = (s?: string) => (s ?? '').trim();
 
@@ -118,7 +169,7 @@ function normalizeClassReq(body: CreateClassPayload | UpdateClassPayload, id?: I
   return {
     tenLop: normStr(body.tenLop),
     nganhId,
-    // các alias để BE nào cũng “bắt” được:
+    // alias để BE nào cũng “bắt” được:
     id: _id,
     lopId: _id,
     idLop: _id,

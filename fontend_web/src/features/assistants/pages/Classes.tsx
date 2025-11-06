@@ -1,5 +1,6 @@
 // src/features/assistants/pages/ClassesPage.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { type Id, type PageParams, unwrap } from '@/features/assistants/services/base';
 import {
   type OrgClass,
@@ -18,29 +19,67 @@ type MajorRow = { id: Id; tenNganh: string; khoaId: Id };
 type DeptRow  = { id: Id; tenKhoa: string };
 type ConfirmState = { open: boolean; row?: OrgClass | null; busy?: boolean };
 
+/* ---------- helpers ---------- */
+function norm(v?: string) {
+  return (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+function PageNav({
+  page, totalPages, onChange,
+}: { page: number; totalPages: number; onChange: (p: number) => void }) {
+  const MAX_WINDOW = 5;
+  const p1 = page + 1;
+  const tp = Math.max(1, totalPages);
+
+  let start = Math.max(1, p1 - Math.floor(MAX_WINDOW / 2));
+  let end   = Math.min(tp, start + MAX_WINDOW - 1);
+  if (end - start + 1 < MAX_WINDOW) start = Math.max(1, end - MAX_WINDOW + 1);
+
+  const go = (p: number) => onChange(Math.min(Math.max(0, p), tp - 1));
+    const btn = (label: string | number, active = false, disabled = false, to?: number): ReactNode => (
+    <button
+      key={`${label}-${to ?? label}`}
+      className={`min-w-9 h-9 px-2 rounded border text-sm ${
+        active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50'
+      } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      onClick={() => (to != null && !disabled ? go(to) : undefined)}
+      disabled={disabled}
+    >
+      {label}
+    </button>
+  );
+
+    const buttons: ReactNode[] = [];
+  buttons.push(btn('«', false, page === 0, 0));
+  buttons.push(btn('‹', false, page === 0, page - 1));
+  for (let i = start; i <= end; i++) buttons.push(btn(i, i === p1, false, i - 1));
+  if (tp > end) buttons.push(<span key="ellipsis" className="px-2 select-none">…</span>);
+  buttons.push(btn('›', false, page >= tp - 1, page + 1));
+  buttons.push(btn('»', false, page >= tp - 1, tp - 1));
+
+  return <div className="flex items-center gap-2">{buttons}</div>;
+}
+/* -------------------------------- */
+
 export default function ClassesPage() {
   const { success, error: toastError } = useToast();
 
   const [items, setItems] = useState<OrgClass[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(0);            // 0-based
   const [size] = useState(10);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // maps để join ngành → khoa
   const [majors, setMajors] = useState<Record<string, MajorRow>>({});
   const [depts,  setDepts]  = useState<Record<string, DeptRow>>({});
 
-  // modal & ref chống race condition
   const [modal, setModal] = useState<{ open: boolean; editing?: OrgClass | null }>({ open: false });
   const editingIdRef = useRef<Id | null>(null);
 
-  // modal xác nhận xoá
   const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
 
-  const keyword = useMemo(() => q.trim().toLowerCase(), [q]);
+  const keyword = useMemo(() => norm(q), [q]);
 
   async function loadClasses() {
     setLoading(true); setError(null);
@@ -55,11 +94,9 @@ export default function ClassesPage() {
       setLoading(false);
     }
   }
-
-  // tải lớp theo trang
   useEffect(() => { loadClasses(); }, [page, size]);
 
-  // tải ngành + khoa 1 lần
+  // load ngành + khoa 1 lần
   useEffect(() => {
     (async () => {
       try {
@@ -67,7 +104,6 @@ export default function ClassesPage() {
           listMajors({ page:0, size: 999 }),
           listDepartments({ page:0, size: 999 }),
         ]);
-        // majors
         const mraw = unwrap<any>(majRes);
         const marr: any[] = Array.isArray(mraw?.content) ? mraw.content : (Array.isArray(mraw) ? mraw : []);
         const m: Record<string, MajorRow> = {};
@@ -76,7 +112,7 @@ export default function ClassesPage() {
           m[id] = { id, tenNganh: x.tenNganh ?? x.ten ?? '', khoaId: x.khoaId ?? x.idKhoa };
         });
         setMajors(m);
-        // departments
+
         const draw = unwrap<any>(depRes);
         const darr: any[] = Array.isArray(draw?.content) ? draw.content : (Array.isArray(draw) ? draw : []);
         const d: Record<string, DeptRow> = {};
@@ -88,29 +124,17 @@ export default function ClassesPage() {
     })();
   }, []);
 
-  const view = items.filter(x =>
-    !keyword ||
-    x.tenLop?.toLowerCase().includes(keyword) ||
-    (x.nganhTen ?? majors[String(x.nganhId)]?.tenNganh ?? '').toLowerCase().includes(keyword) ||
-    (x.khoaTen ?? depts[String(majors[String(x.nganhId)]?.khoaId)]?.tenKhoa ?? '').toLowerCase().includes(keyword)
-  );
+  // 🔎 chỉ tìm theo TÊN LỚP (client-side trong trang hiện tại)
+  const view = items.filter(x => !keyword || norm(x.tenLop).includes(keyword));
 
   const from = page * size + 1;
   const to = Math.min(total, page * size + items.length);
+  const totalPages = Math.max(1, Math.ceil(total / size));
 
-  function openCreate() {
-    setModal({ open: true, editing: null });
-  }
-  function openEdit(x: OrgClass) {
-    setModal({ open: true, editing: x });
-  }
+  function openCreate() { setModal({ open: true, editing: null }); }
+  function openEdit(x: OrgClass) { setModal({ open: true, editing: x }); }
 
-  // mở modal xác nhận xoá
-  function askDelete(row: OrgClass) {
-    setConfirm({ open: true, row, busy: false });
-  }
-
-  // thực hiện xoá sau khi xác nhận
+  function askDelete(row: OrgClass) { setConfirm({ open: true, row, busy: false }); }
   async function doDelete() {
     if (!confirm.row) return;
     try {
@@ -135,8 +159,12 @@ export default function ClassesPage() {
         </button>
         <div className="relative ml-2">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-          <input className="h-10 w-80 rounded border pl-9 pr-3" placeholder="Tìm theo tên…"
-                 value={q} onChange={e => setQ(e.target.value)} />
+          <input
+            className="h-10 w-80 rounded border pl-9 pr-3"
+            placeholder="Tìm theo tên lớp…"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
         </div>
         <div className="ml-auto text-sm text-slate-600">{total ? `${from}–${to}/${total}` : ''}</div>
       </div>
@@ -180,13 +208,13 @@ export default function ClassesPage() {
           </tbody>
         </table>
 
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button className="rounded border px-3 py-1 disabled:opacity-40"
-                  onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>«</button>
-          <span className="text-sm">{page + 1}</span>
-          <button className="rounded border px-3 py-1 disabled:opacity-40"
-                  onClick={() => setPage(p => (from + size <= total ? p + 1 : p))}
-                  disabled={from + size > total}>»</button>
+        {/* Phân trang: căn giữa + có đầu/cuối */}
+        <div className="p-3 flex justify-center">
+          <PageNav
+            page={page}
+            totalPages={totalPages}
+            onChange={(p) => { if (p !== page) setPage(p); }}
+          />
         </div>
       </div>
 

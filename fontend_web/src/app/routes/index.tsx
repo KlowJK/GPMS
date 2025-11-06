@@ -63,6 +63,7 @@ export const router = createBrowserRouter([
                                     { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
                                     { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
                                     { path: 'assistants', lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
+                                    { path: 'notifications', lazy: () => import('@features/admin/pages/NotificationsPage').then(m => ({ Component: m.default })) },
                                 ]
                             },
                             {
@@ -79,24 +80,30 @@ export const router = createBrowserRouter([
                     },
                     // Assistant (Trợ lý khoa)
                     {
-                        element: <RoleGuard allow={['TRO_LY_KHOA']} />,
-                        children: [
-                            {
-                                path: 'assistant',
-                                lazy: () => import('@features/assistants/routes/AssistantApp').then(m => ({ Component: m.default })),
-                                children: [
-                                    { index: true, lazy: () => import('@features/assistants/pages/Dashboard').then(m => ({ Component: m.default })) },
-                                    { path: 'subjects', lazy: () => import('@features/assistants/pages/Subjects').then(m => ({ Component: m.default })) },
-                                    { path: 'majors', lazy: () => import('@features/assistants/pages/Majors').then(m => ({ Component: m.default })) },
-                                    { path: 'classes', lazy: () => import('@features/assistants/pages/Classes').then(m => ({ Component: m.default })) },
-                                    { path: 'staff', lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
-                                    { path: 'students', lazy: () => import('@features/assistants/pages/Students').then(m => ({ Component: m.default })) },
-                                    { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
-                                    { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundTimesPage').then(m => ({ Component: m.default })) },
-                                ],
-                            },
-                        ],
-                    },
+  element: <RoleGuard allow={['TRO_LY_KHOA']} />,
+  children: [
+    {
+      path: 'assistant',
+      lazy: () => import('@features/assistants/routes/AssistantApp').then(m => ({ Component: m.default })),
+      children: [
+        { index: true, lazy: () => import('@features/assistants/pages/Dashboard').then(m => ({ Component: m.default })) },
+        { path: 'subjects', lazy: () => import('@features/assistants/pages/Subjects').then(m => ({ Component: m.default })) },
+        { path: 'majors',   lazy: () => import('@features/assistants/pages/Majors').then(m => ({ Component: m.default })) },
+        { path: 'classes', lazy: () => import('@features/assistants/pages/Classes').then(m => ({ Component: m.default })) },
+        { path: 'staff',    lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
+        { path: 'students', lazy: () => import('@features/assistants/pages/Students').then(m => ({ Component: m.default })) },
+        { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
+        { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundTimesPage').then(m => ({ Component: m.default })) },
+        { path: 'councils', lazy: () => import('@features/assistants/pages/CouncilsPage').then(m => ({ Component: m.default })) },
+        { path: 'councils/:id', lazy: () => import('@features/assistants/pages/CouncilDetailPage').then(m => ({ Component: m.default })) },    
+        { path: 'notifications', lazy: () => import('@features/assistants/pages/NotificationsPage').then(m => ({ Component: m.default })) },
+],
+        
+    },
+  ],
+},
+                    
+                        
 
 
                     // Student
@@ -116,7 +123,7 @@ export const router = createBrowserRouter([
 
                     // Lecturer
                     {
-                        element: <RoleGuard allow={['GIANG_VIEN', 'TRUONG_BO_MON', 'CHU_NHIEM_KHOA']} />,
+                        element: <RoleGuard allow={['GIANG_VIEN', 'TRUONG_BO_MON']} />,
                         children: [
                             {
                                 path: 'lecturers',

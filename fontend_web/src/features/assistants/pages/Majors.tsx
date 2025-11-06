@@ -1,5 +1,5 @@
 // src/features/assistants/pages/MajorsPage.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 
 import { useToast } from '@/features/admin/components/ToastProvider';
@@ -18,7 +18,71 @@ import {
   type UpdateMajorPayload,
 } from '@/features/assistants/services/organization/orgApi';
 
-type ModalState = { open: boolean; editing?: Major | null };
+/* ---------------- helpers ---------------- */
+function useDebounce<T>(value: T, delay = 300) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return v;
+}
+function norm(v?: string) {
+  return (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+
+/** Thanh phân trang có đầu/cuối, căn giữa */
+function PageNav({
+  page,            // 0-based
+  totalPages,      // >= 1
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+}) {
+  const MAX_WINDOW = 5;
+  const p1 = page + 1;
+  const tp = totalPages;
+
+  let start = Math.max(1, p1 - Math.floor(MAX_WINDOW / 2));
+  let end   = Math.min(tp, start + MAX_WINDOW - 1);
+  if (end - start + 1 < MAX_WINDOW) start = Math.max(1, end - MAX_WINDOW + 1);
+
+  const pages: number[] = [];
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  const go = (p: number) => onChange(Math.min(Math.max(0, p), tp - 1));
+
+  const btn = (label: string | number, active = false, disabled = false, to?: number) => (
+    <button
+      key={`${label}-${to ?? label}`}
+      className={`min-w-9 h-9 px-2 rounded border text-sm ${
+        active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50'
+      } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      onClick={() => (to != null && !disabled ? go(to) : undefined)}
+      disabled={disabled}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="flex items-center gap-2">
+      {btn('«', false, page === 0, 0)}
+      {btn('‹', false, page === 0, page - 1)}
+      {pages.map(n => btn(n, n === p1, false, n - 1))}
+      {tp > end && <span className="px-2 select-none">…</span>}
+      {btn('›', false, page >= tp - 1, page + 1)}
+      {btn('»', false, page >= tp - 1, tp - 1)}
+    </div>
+  );
+}
+
+/* ---------------- page ---------------- */
+const PAGE_SIZE = 12;
+
+type ModalState  = { open: boolean; editing?: Major | null };
 type ConfirmState = { open: boolean; row?: Major | null; busy?: boolean };
 
 export default function MajorsPage() {
@@ -26,15 +90,16 @@ export default function MajorsPage() {
 
   const [rows, setRows] = useState<Major[]>([]);
   const [deps, setDeps] = useState<Department[]>([]);
-  const [page, setPage] = useState(0);
-  const [size] = useState(1000);
+  const [page, setPage] = useState(0);            // 0-based
+  const [size, setSize] = useState(PAGE_SIZE);    // dòng/trang
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
+  const qDebounced = useDebounce(q, 300);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false });
-
-  // ✅ modal xác nhận xoá
   const [confirm, setConfirm] = useState<ConfirmState>({ open: false, row: null, busy: false });
+
+  const totalPages = Math.max(1, Math.ceil(total / size));
 
   async function loadDeps() {
     try {
@@ -49,7 +114,8 @@ export default function MajorsPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await listMajors({ page, size, q: q.trim() || undefined });
+      // vẫn gửi q lên BE nếu có hỗ trợ; FE sẽ lọc lại theo mã/tên để chắc chắn
+      const res = await listMajors({ page, size, q: qDebounced.trim() || undefined });
       const pg = toPage<Major>(res, { page, size });
       setRows(pg.content);
       setTotal(pg.totalElements);
@@ -59,17 +125,21 @@ export default function MajorsPage() {
   }
 
   useEffect(() => { loadDeps(); }, []);
-  useEffect(() => { load(); }, [page, size, q]);
+  useEffect(() => { load(); }, [page, size, qDebounced]);
+
+  // Lọc theo MÃ hoặc TÊN (client-side, không phụ thuộc BE)
+  const filtered = useMemo(() => {
+    const k = norm(qDebounced);
+    if (!k) return rows;
+    return rows.filter(r =>
+      norm(r.tenNganh).includes(k) || norm(r.maNganh).includes(k)
+    );
+  }, [rows, qDebounced]);
 
   function openCreate() { setModal({ open: true, editing: null }); }
   function openEdit(row: Major) { setModal({ open: true, editing: row }); }
 
-  // ✅ mở modal xác nhận xoá
-  function askDelete(row: Major) {
-    setConfirm({ open: true, row, busy: false });
-  }
-
-  // ✅ thực hiện xoá sau khi xác nhận
+  function askDelete(row: Major) { setConfirm({ open: true, row, busy: false }); }
   async function doDelete() {
     if (!confirm.row) return;
     try {
@@ -85,7 +155,7 @@ export default function MajorsPage() {
   }
 
   const from = page * size + 1;
-  const to = Math.min(total, page * size + rows.length);
+  const to   = Math.min(total, page * size + filtered.length);
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
@@ -97,11 +167,13 @@ export default function MajorsPage() {
         </button>
         <input
           className="h-10 px-3 rounded border w-80"
-          placeholder="Tìm theo mã/tên ngành…"
+          placeholder="Tìm theo mã hoặc tên ngành…"
           value={q}
           onChange={(e) => { setPage(0); setQ(e.target.value); }}
         />
-        <div className="ml-auto text-sm text-slate-600">{total ? `${from}–${to}/${total}` : ''}</div>
+        <div className="ml-auto text-sm text-slate-600">
+          {total ? `${from}–${to}/${total}` : ''}
+        </div>
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -117,9 +189,9 @@ export default function MajorsPage() {
           <tbody>
             {loading ? (
               <tr><td className="px-4 py-6 text-center" colSpan={4}>Đang tải…</td></tr>
-            ) : rows.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <tr><td className="px-4 py-6 text-center" colSpan={4}>Không có dữ liệu.</td></tr>
-            ) : rows.map((r) => (
+            ) : filtered.map((r) => (
               <tr key={`${r.id}`} className="border-t">
                 <td className="px-4 py-3">{r.maNganh}</td>
                 <td className="px-4 py-3">{r.tenNganh}</td>
@@ -151,22 +223,32 @@ export default function MajorsPage() {
           </tbody>
         </table>
 
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-40"
-            onClick={() => setPage(p => Math.max(0, p - 1))}
-            disabled={page === 0}
-          >Trước</button>
-          <span className="text-sm">{page + 1}</span>
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-40"
-            onClick={() => setPage(p => (from + size <= total ? p + 1 : p))}
-            disabled={from + size > total}
-          >Sau</button>
+        {/* Footer phân trang: căn giữa + đầu/cuối */}
+        <div className="p-3">
+          <div className="flex justify-center">
+            <PageNav
+              page={page}
+              totalPages={totalPages}
+              onChange={(p) => { if (p !== page) setPage(p); }}
+            />
+          </div>
+
+          {/* (tuỳ chọn) chọn số dòng/trang */}
+          <div className="mt-3 flex justify-center">
+            <select
+              className="h-9 border rounded px-2 bg-white"
+              value={size}
+              onChange={(e) => { setPage(0); setSize(Number(e.target.value) || PAGE_SIZE); }}
+            >
+              {[12, 20, 50, 100].map(s => (
+                <option key={s} value={s}>{s}/trang</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* ✅ Modal xác nhận xoá */}
+      {/* Modal xác nhận xoá */}
       {confirm.open && confirm.row && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
           <div className="w-[460px] rounded-2xl bg-white p-6 shadow-xl">
