@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { fetchStudentsWithoutSupervisor, fetchStudentByCode, assignDeTai } from '../services'
 import { listLecturersNormalized } from '@/features/assistants/services/user/userApi'
 import { axios } from '@shared/libs/axios'
@@ -20,10 +20,25 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
   const [loading, setLoading] = useState<boolean>(false)
   const [student, setStudent] = useState<SinhVien | null>(null)
   const [lecturers, setLecturers] = useState<GiangVien[]>([])
+  const [rawLecturers, setRawLecturers] = useState<GiangVien[]>([])
   // store selected lecturer code (maGiangVien / maGV) because backend expects maGV
   const [lecturerId, setLecturerId] = useState<string | null>(null)
+  const [lecturerQuery, setLecturerQuery] = useState<string>('')
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false)
+  const suggestionsRef = useRef<HTMLDivElement | null>(null)
+  // close suggestions when clicking outside
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      const el = suggestionsRef.current
+      if (!el) return
+      if (!el.contains(e.target as Node)) setShowSuggestions(false)
+    }
+    document.addEventListener('click', onDoc)
+    return () => document.removeEventListener('click', onDoc)
+  }, [])
   const [lecturersLoading, setLecturersLoading] = useState<boolean>(false)
   const [saving, setSaving] = useState<boolean>(false)
+  const [showAllLecturers, setShowAllLecturers] = useState<boolean>(false)
 
   function extractBoMonId(s: any) {
     if (!s) return null
@@ -32,6 +47,8 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
 
   useEffect(() => {
     if (!open) return
+    // close suggestions when modal opens/closes
+    setShowSuggestions(false)
     let mounted = true
     async function load() {
       setLoading(true)
@@ -63,19 +80,12 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
           setLecturersLoading(true)
           const list = await loadLecturersForStudent(found ?? studentRecord)
           const rawList: GiangVien[] = Array.isArray(list) ? (list as GiangVien[]) : []
-          // only include supervisors who have capacity: soLuongDeTai < soLuongChoPhepHuongDan
-          const eligible = rawList.filter(g => {
-            try {
-              const used = Number(g.soLuongDeTai ?? g.raw?.soLuongDeTai ?? 0)
-              const allowed = Number(g.soLuongChoPhepHuongDan ?? g.raw?.soLuongChoPhepHuongDan ?? Number.MAX_SAFE_INTEGER)
-              return Number.isFinite(used) && Number.isFinite(allowed) ? used < allowed : true
-            } catch (err) {
-              return true
-            }
-          })
+          // Backend now provides the correct list (including capacity rules).
+          // Use the backend-provided list directly and avoid client-side filtering.
           if (mounted) {
-            if (import.meta.env.DEV) console.debug('[PhanCongModal] lecturers eligible', eligible.length, '/', rawList.length)
-            setLecturers(eligible)
+            if (import.meta.env.DEV) console.debug('[PhanCongModal] lecturers loaded', rawList.length)
+            setRawLecturers(rawList)
+            setLecturers(rawList)
           }
         } catch (e) {
           console.debug('loadLecturersForStudent failed', e)
@@ -104,6 +114,16 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
   async function handleSave() {
     // Call assignment API: POST /api/de-tai/gan-de-tai with { maSV, maGV }
     try {
+      // if user typed a label that matches exactly one lecturer, resolve id automatically
+      if (!lecturerId && lecturerQuery) {
+        const matched = lecturers.find(g => {
+          const code = String(g.maGiangVien ?? (g as any).maGV ?? g.id ?? '')
+          const label = `${g.hoTen ?? ''}${code ? ` (${code})` : ''}`
+          return label === lecturerQuery || (g.hoTen ?? '').toLowerCase() === lecturerQuery.toLowerCase()
+        })
+        if (matched) setLecturerId(String(matched.maGiangVien ?? (matched as any).maGV ?? matched.id ?? ''))
+      }
+
       if (!lecturerId) {
         toast.error('Vui lòng chọn giảng viên')
         return
@@ -153,22 +173,68 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
             <div>
               <div className="mb-4">
                 <label className="block text-sm text-slate-600 mb-2">Giảng viên</label>
-                <select
-                  value={lecturerId ?? ''}
-                  onChange={e => setLecturerId(e.target.value || null)}
-                  disabled={lecturersLoading || loading || saving}
-                  aria-disabled={lecturersLoading || loading || saving}
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="">Chọn giảng viên</option>
-                  {lecturers.map((g: GiangVien) => {
-                      const code = (g.maGiangVien ?? (g as any).maGV ?? String(g.id ?? '')) as string
-                    return (
-                        <option key={`${String(g.id)}-${code}`} value={String(code)}>{(g.hoTen ?? '')} {code ? `(${code})` : ''}</option>
-                    )
-                  })}
-                </select>
-                {lecturersLoading && <div className="text-xs text-slate-500 mt-1">Đang tải giảng viên...</div>}
+                <div className="mb-2 flex items-center gap-3">
+                  <label className="text-sm flex items-center gap-2">
+                    <input type="checkbox" checked={showAllLecturers} onChange={e => setShowAllLecturers(e.target.checked)} />
+                    <span className="text-sm text-slate-600">Hiển thị cả giảng viên đã đầy chỗ</span>
+                  </label>
+                  <div className="ml-auto text-xs text-slate-400">Hiện: {showAllLecturers ? 'Tất cả' : 'Chỉ còn chỗ'}</div>
+                </div>
+
+                <div className="relative" ref={suggestionsRef}>
+                  <input
+                    value={lecturerQuery}
+                    onChange={e => {
+                      setLecturerQuery(e.target.value)
+                      setLecturerId(null)
+                      setShowSuggestions(true)
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    disabled={lecturersLoading || loading || saving}
+                    aria-disabled={lecturersLoading || loading || saving}
+                    placeholder="Nhập tên hoặc mã giảng viên"
+                    className="w-full border rounded px-3 py-2"
+                  />
+
+                  {showSuggestions && !lecturersLoading && ( (showAllLecturers ? rawLecturers : lecturers).length > 0 ) && (
+                    <div className="absolute z-40 left-0 right-0 mt-1 bg-white border rounded shadow max-h-52 overflow-auto">
+                      {(showAllLecturers ? rawLecturers : lecturers)
+                        .filter(g => {
+                          const q = (lecturerQuery || '').toLowerCase().trim()
+                          if (!q) return true
+                          const code = String(g.maGiangVien ?? (g as any).maGV ?? g.id ?? '').toLowerCase()
+                          const name = String(g.hoTen ?? '').toLowerCase()
+                          return name.includes(q) || code.includes(q)
+                        })
+                        .map(g => {
+                          const code = String(g.maGiangVien ?? (g as any).maGV ?? g.id ?? '')
+                          const used = Number(g.soLuongDeTai ?? g.raw?.soLuongDeTai ?? 0)
+                          const allowed = Number(g.soLuongChoPhepHuongDan ?? g.raw?.soLuongChoPhepHuongDan ?? Number.MAX_SAFE_INTEGER)
+                          const isFull = Number.isFinite(used) && Number.isFinite(allowed) ? used >= allowed : false
+                          const label = `${g.hoTen ?? ''}${code ? ` (${code})` : ''}`
+                          return (
+                            <div
+                              key={`${String(g.id)}-${code}`}
+                              className={`px-3 py-2 cursor-pointer text-sm ${isFull ? 'text-slate-400' : 'hover:bg-slate-100'}`}
+                              onClick={() => {
+                                setLecturerQuery(label)
+                                setLecturerId(code)
+                                setShowSuggestions(false)
+                              }}
+                              title={isFull ? `Đã hết chỗ (${used}/${allowed})` : `Còn chỗ (${used}/${allowed})`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>{label}</div>
+                                <div className={`text-xs ${isFull ? 'text-rose-500' : 'text-slate-500'}`}>{isFull ? `Đã hết (${used}/${allowed})` : `${used}/${allowed}`}</div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  )}
+
+                  {lecturersLoading && <div className="text-xs text-slate-500 mt-1">Đang tải giảng viên...</div>}
+                </div>
               </div>
               <div className="mt-6 flex justify-end gap-3 col-span-2">
                 <button onClick={handleClose} className="px-4 py-2 rounded bg-gray-200">Hủy</button>

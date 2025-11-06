@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import usePhanBienViewModel from '../viewmodels/PhanBienViewmodels'
 import { useAuth } from '@features/auth/useAuth'
-import { Eye } from 'lucide-react'
+import { FileText } from 'lucide-react'
 // (useState imported above)
 import DeCuongDetailModal from '../components/DeCuongPhanBien'
 
@@ -101,8 +101,8 @@ export default function PhanBienPage() {
                         className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
                         aria-label={`Xem chi tiết ${it.maSinhVien}`}
                       >
-                        <Eye size={16} />
-                        Xem chi tiết
+                        <FileText size={16} />
+                        <span>Duyệt đề cương PB</span>
                       </button>
                     </div>
                    </td>

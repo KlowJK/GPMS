@@ -28,6 +28,11 @@ export function useReviewsViewModel(initialPage = 0, initialSize = 1000) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lecturers-reviews'] as any }),
   })
 
+  const approveWithReasonMutation = useMutation<any, Error, { id: string; nhanXet: string }>({
+    mutationFn: ({ id, nhanXet }) => approveDeTai(id, { approved: true, nhanXet }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lecturers-reviews'] as any }),
+  })
+
   const rejectMutation = useMutation<any, Error, { id: string; nhanXet: string }>({
     mutationFn: ({ id, nhanXet }) => rejectDeTai(id, nhanXet),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lecturers-reviews'] as any }),
@@ -87,6 +92,12 @@ export function useReviewsViewModel(initialPage = 0, initialSize = 1000) {
     approve: (id: string) => {
       setApprovingId(id)
       approveMutation.mutate(id, {
+        onSettled: () => setApprovingId(null),
+      })
+    },
+    approveWithReason: (id: string, nhanXet: string) => {
+      setApprovingId(id)
+      approveWithReasonMutation.mutate({ id, nhanXet }, {
         onSettled: () => setApprovingId(null),
       })
     },

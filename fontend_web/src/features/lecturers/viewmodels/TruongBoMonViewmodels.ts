@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchDeCuongPage, getLecturersByBoMon } from '../services'
 import { listLecturersNormalized } from '@/features/assistants/services/user/userApi'
+import { bulkUpdateQuotas } from '../services/giangVienApi'
 import type { PhanTrang } from '../models/PhanTrang'
 import type { DeCuong } from '../models/DeCuong'
 import type { SinhVien } from '../models/SinhVien'
@@ -151,6 +152,8 @@ export async function loadLecturersForStudent(student: any): Promise<GiangVien[]
     }
   }
 
+  
+
   // fallback: return the normalized lecturers list (first page large size)
   try {
     const res = await listLecturersNormalized({ page: 0, size: 1000 })
@@ -159,4 +162,22 @@ export async function loadLecturersForStudent(student: any): Promise<GiangVien[]
     console.debug('loadLecturersForStudent: fallback list failed', e)
     return []
   }
+}
+
+export async function updateQuotasForRows(rows: any[], quotaInstruct: number) {
+  if (!Array.isArray(rows) || rows.length === 0) return { success: 0, failed: 0, details: [] }
+  const ids = rows.map(r => (r.id ?? r.maGV ?? (r as any).maGiangVien)).filter(Boolean)
+  const results = await bulkUpdateQuotas(ids, quotaInstruct)
+  let success = 0, failed = 0
+  const details: Array<any> = []
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      success++
+      details.push({ ok: true, value: (r as any).value })
+    } else {
+      failed++
+      details.push({ ok: false, reason: (r as any).reason })
+    }
+  }
+  return { success, failed, details }
 }

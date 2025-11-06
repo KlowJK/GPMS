@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { fetchStudentsWithoutSupervisor, fetchStudentByCode, assignReviewerToDeCuong } from '../services'
 import { loadLecturersForStudent } from '../viewmodels/TruongBoMonViewmodels'
 import { toast } from 'sonner'
@@ -18,7 +18,12 @@ export default function PhanCongPhanBienModal({ open, onClose, row, onAssigned }
   const [loading, setLoading] = useState<boolean>(false)
   const [student, setStudent] = useState<SinhVien | null>(null)
   const [lecturers, setLecturers] = useState<GiangVien[]>([])
+  const [rawLecturers, setRawLecturers] = useState<GiangVien[]>([])
   const [lecturerId, setLecturerId] = useState<string | null>(null)
+  const [lecturerQuery, setLecturerQuery] = useState<string>('')
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false)
+  const suggestionsRef = useRef<HTMLDivElement | null>(null)
+  const [showAllLecturers, setShowAllLecturers] = useState<boolean>(false)
   const [lecturersLoading, setLecturersLoading] = useState<boolean>(false)
   const [saving, setSaving] = useState<boolean>(false)
 
@@ -128,40 +133,42 @@ export default function PhanCongPhanBienModal({ open, onClose, row, onAssigned }
 
   if (mounted) setStudent(studentRecord as SinhVien)
 
-        try {
-          setLecturersLoading(true)
-          const list = await loadLecturersForStudent(found ?? studentRecord)
-          // filter out any lecturer that is the student's supervisor
-          const candidates = collectSupervisorCandidates(studentRecord, row)
-          const filtered = (Array.isArray(list) ? (list as GiangVien[]) : []).filter(g => {
-            try {
-              const gid = normalizeString(String(g.id ?? g.raw?.id ?? ''))
-              const gcode = normalizeString(String(g.maGiangVien ?? g.raw?.maGiangVien ?? g.raw?.maGV ?? ''))
-              const gname = normalizeString(String(g.hoTen ?? g.raw?.hoTen ?? g.raw?.hoVaTen ?? g.raw?.ten ?? ''))
-              for (const cand of candidates) {
-                if (!cand) continue
-                if (cand === gid || cand === gcode) return false
-                if (gname && (cand === gname || gname.includes(cand) || cand.includes(gname))) return false
+          try {
+            setLecturersLoading(true)
+            const list = await loadLecturersForStudent(found ?? studentRecord)
+            const rawList: GiangVien[] = Array.isArray(list) ? (list as GiangVien[]) : []
+            // filter out any lecturer that is the student's supervisor
+            const candidates = collectSupervisorCandidates(studentRecord, row)
+            const filtered = rawList.filter(g => {
+              try {
+                const gid = normalizeString(String(g.id ?? g.raw?.id ?? ''))
+                const gcode = normalizeString(String(g.maGiangVien ?? g.raw?.maGiangVien ?? g.raw?.maGV ?? ''))
+                const gname = normalizeString(String(g.hoTen ?? g.raw?.hoTen ?? g.raw?.hoVaTen ?? g.raw?.ten ?? ''))
+                for (const cand of candidates) {
+                  if (!cand) continue
+                  if (cand === gid || cand === gcode) return false
+                  if (gname && (cand === gname || gname.includes(cand) || cand.includes(gname))) return false
+                }
+                return true
+              } catch (e) {
+                return true
               }
-              return true
-            } catch (e) {
-              return true
-            }
-          })
+            })
 
-          if (mounted) {
-            if (import.meta.env.DEV) {
-              console.debug('[PhanCongPhanBienModal] lecturers (filtered)', filtered)
-              console.debug('[PhanCongPhanBienModal] supervisor candidates', Array.from(candidates))
-              console.debug('[PhanCongPhanBienModal] studentRecord', studentRecord)
+            if (mounted) {
+              if (import.meta.env.DEV) {
+                console.debug('[PhanCongPhanBienModal] lecturers (filtered)', filtered)
+                console.debug('[PhanCongPhanBienModal] supervisor candidates', Array.from(candidates))
+                console.debug('[PhanCongPhanBienModal] studentRecord', studentRecord)
+              }
+              setRawLecturers(rawList)
+              setLecturers(filtered)
             }
-            setLecturers(filtered)
+          } catch (e) {
+            console.debug('loadLecturersForStudent failed', e)
+          } finally {
+            setLecturersLoading(false)
           }
-        } catch (e) {
-          console.debug('loadLecturersForStudent failed', e)
-        } finally {
-          setLecturersLoading(false)
-        }
       } catch (err) {
         console.error(err)
         toast.error('Lỗi khi tải dữ liệu')
@@ -229,17 +236,64 @@ export default function PhanCongPhanBienModal({ open, onClose, row, onAssigned }
         <div>
           <div className="mb-4">
             <label className="block text-sm text-slate-600 mb-2">Giảng viên phản biện</label>
-            <select value={lecturerId ?? ''} onChange={e => setLecturerId(e.target.value || null)} className="w-full border rounded px-3 py-2">
-              <option value="">Chọn giảng viên</option>
-              {lecturers.map((g: GiangVien) => {
-                  const idVal = String(g.id ?? g.raw?.id ?? g.maGiangVien ?? '')
-                  const code = String(g.maGiangVien ?? (g as any).maGV ?? '')
-                return (
-                    <option key={`${String(g.id)}-${code}`} value={idVal}>{(g.hoTen ?? '')} {code ? `(${code})` : ''}</option>
-                )
-              })}
-            </select>
-            {lecturersLoading && <div className="text-xs text-slate-500 mt-1">Đang tải giảng viên...</div>}
+            <div className="mb-2 flex items-center gap-3">
+              <label className="text-sm flex items-center gap-2">
+                <input type="checkbox" checked={showAllLecturers} onChange={e => setShowAllLecturers(e.target.checked)} />
+                <span className="text-sm text-slate-600">Hiển thị tất cả giảng viên</span>
+              </label>
+              <div className="ml-auto text-xs text-slate-400">Hiện: {showAllLecturers ? 'Tất cả' : 'Đã lọc'}</div>
+            </div>
+
+            <div className="relative" ref={suggestionsRef}>
+              <input
+                value={lecturerQuery}
+                onChange={e => {
+                  setLecturerQuery(e.target.value)
+                  setLecturerId(null)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                disabled={lecturersLoading || loading || saving}
+                aria-disabled={lecturersLoading || loading || saving}
+                placeholder="Nhập tên hoặc mã giảng viên"
+                className="w-full border rounded px-3 py-2"
+              />
+
+              {showSuggestions && !lecturersLoading && ((showAllLecturers ? rawLecturers : lecturers).length > 0) && (
+                <div className="absolute z-40 left-0 right-0 mt-1 bg-white border rounded shadow max-h-52 overflow-auto">
+                  {(showAllLecturers ? rawLecturers : lecturers)
+                    .filter(g => {
+                      const q = (lecturerQuery || '').toLowerCase().trim()
+                      if (!q) return true
+                      const code = String(g.maGiangVien ?? (g as any).maGV ?? g.id ?? '').toLowerCase()
+                      const name = String(g.hoTen ?? '').toLowerCase()
+                      return name.includes(q) || code.includes(q)
+                    })
+                    .map(g => {
+                      const idVal = String(g.id ?? g.raw?.id ?? g.maGiangVien ?? '')
+                      const code = String(g.maGiangVien ?? (g as any).maGV ?? '')
+                      const label = `${g.hoTen ?? ''}${code ? ` (${code})` : ''}`
+                      return (
+                        <div
+                          key={`${String(g.id)}-${code}`}
+                          className={`px-3 py-2 cursor-pointer text-sm hover:bg-slate-100`}
+                          onClick={() => {
+                            setLecturerQuery(label)
+                            setLecturerId(idVal)
+                            setShowSuggestions(false)
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>{label}</div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
+
+              {lecturersLoading && <div className="text-xs text-slate-500 mt-1">Đang tải giảng viên...</div>}
+            </div>
           </div>
           <div className="mt-6 flex justify-end gap-3 col-span-2">
             <button onClick={handleClose} className="px-4 py-2 rounded bg-gray-200">Hủy</button>

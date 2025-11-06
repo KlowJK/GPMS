@@ -2,6 +2,24 @@ import React from 'react'
 import type { SinhVien } from '../models/SinhVien'
 
 export default function ReportHeader({ student, onClose }: { student: SinhVien | null; onClose?: () => void }) {
+  // helper: try common places where backend may put CV url
+  function getCvUrl(s: any): string | null {
+    if (!s) return null
+    // check normalized field first
+    const direct = s.duongDanCv ?? s.duongDanFile ?? s.fileUrl ?? s.cvUrl ?? s.linkCv ?? null
+    if (direct) return direct
+    // nested shapes
+    if (s.cv && typeof s.cv === 'object' && s.cv.url) return s.cv.url
+    if (s.file && typeof s.file === 'object' && s.file.url) return s.file.url
+    // raw/backing object
+    const raw = s.raw ?? s
+    return raw?.duongDanCv ?? raw?.duongDanFile ?? raw?.fileUrl ?? raw?.cvUrl ?? (raw?.cv && raw.cv.url) ?? raw?.linkCv ?? null
+  }
+
+  function fileNameFromUrl(url?: string | null) {
+    if (!url) return ''
+    try { return String(url).split('/').pop() ?? '' } catch { return '' }
+  }
   return (
     <div className="flex items-start gap-6 mb-6">
       <div className="flex items-center gap-4">
@@ -37,10 +55,14 @@ export default function ReportHeader({ student, onClose }: { student: SinhVien |
         <div className="text-xs text-slate-500">CV</div>
         <div className="mt-1">
           {
-            // support multiple possible field names returned by backend
             (() => {
-              const url = student?.duongDanCv ?? null
-              if (url) return (<a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">Link CV</a>)
+              const url = getCvUrl(student)
+              if (url) {
+                const name = fileNameFromUrl(url)
+                return (
+                  <a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">{name ? `Link CV ` : 'Link CV'}</a>
+                )
+              }
               return (<span className="text-sm text-slate-500">Chưa có CV</span>)
             })()
           }
