@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchStudentsWithoutSupervisor } from '../services'
-import PhanCongModal from '../components/PhanCongModal'
+import PhanCongModal from '../components/PhanCongHuongDanModal'
 
 export default function TruongBoMonPhanCongGiangVienPage() {
   const navigate = useNavigate()
@@ -63,7 +63,7 @@ export default function TruongBoMonPhanCongGiangVienPage() {
   return (
     <div >
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Phân công giảng viên hướng dẫn </h1>
+        <h2 className="text-2xl font-semibold">Phân công giảng viên hướng dẫn </h2>
         <div className="flex items-center gap-3">
         
           <div className="inline-flex items-center rounded-full bg-transparent p-1">

@@ -1,5 +1,7 @@
 import { axios } from '@shared/libs/axios'
 import type { AxiosError } from 'axios'
+import type { PhanTrang } from '../models/PhanTrang'
+import type { DeCuong } from '../models/DeCuong'
 
 /**
  * Reject a proposal (đề cương) by id (and optional version/phienBan).
@@ -66,7 +68,7 @@ export async function approveDeCuong(id: string | number, phienBan?: number | st
  * GET /api/de-cuong?page=0&size=10&sort=updatedAt,DESC&status=...
  * Returns resp.data.result (paged)
  */
-export async function fetchDeCuongPage(params: { page?: number; size?: number; sort?: string[]; status?: string; } = {}) {
+export async function fetchDeCuongPage(params: { page?: number; size?: number; sort?: string[]; status?: string; } = {}): Promise<PhanTrang<DeCuong>> {
   const search = new URLSearchParams()
   if (typeof params.page === 'number') search.append('page', String(params.page))
   if (typeof params.size === 'number') search.append('size', String(params.size))
@@ -113,4 +115,48 @@ export async function exportDeCuongAcceptedExcelForTbm() {
     timeout: 30000,
   })
   return resp
+}
+
+/**
+ * Assign a reviewer (giảng viên phản biện) to a proposal (đề cương)
+ * POST /api/de-cuong/{idDeTai}/gan-gv-phan-bien?idGiangVienHuongDan={id}
+ */
+export async function assignReviewerToDeCuong(idDeTai: string | number, idGiangVienHuongDan: string) {
+  if (!idDeTai) throw new Error('idDeTai is required')
+  const url = `/api/de-cuong/${encodeURIComponent(String(idDeTai))}/gan-gv-phan-bien`
+  // send id as query param using axios `params` so headers/encoding handled by axios
+  const resp = await axios.post(url, null, { params: { idGiangVienHuongDan }, headers: { Accept: '*/*' }, timeout: 10000 })
+  return resp.data?.result ?? resp.data
+}
+
+/**
+ * Update topic name (and optional overview file) for a student
+ * Endpoint: PUT /api/de-tai/cap-nhat-ten-de-tai (multipart/form-data)
+ * Body fields: maSinhVien (string, required), tenDeTai (string), fileTongQuan (file)
+ */
+export async function updateTenDeTai(maSinhVien: string, tenDeTai?: string | null, file?: File | null) {
+  if (!maSinhVien) throw new Error('maSinhVien is required')
+  const url = `/api/de-tai/cap-nhat-ten-de-tai`
+  const fd = new FormData()
+  fd.append('maSinhVien', String(maSinhVien))
+  if (tenDeTai !== undefined && tenDeTai !== null) fd.append('tenDeTai', String(tenDeTai))
+  if (file) fd.append('fileTongQuan', file, (file as File).name)
+
+  try {
+    const resp = await axios.put(url, fd, { headers: { Accept: '*/*', 'Content-Type': 'multipart/form-data' }, timeout: 60000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    const aerr = err as AxiosError | undefined
+    if (aerr && aerr.response && aerr.response.status === 401) {
+      const e = new Error('Unauthorized') as Error & { status?: number }
+      e.status = 401
+      throw e
+    }
+    if (aerr && (aerr.code === 'ECONNABORTED' || /timeout/i.test(String(aerr.message)))) {
+      const e = new Error('Request timeout') as Error & { code?: string }
+      e.code = 'TIMEOUT'
+      throw e
+    }
+    throw err
+  }
 }

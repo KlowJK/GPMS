@@ -11,12 +11,6 @@ export type XetDuyetItem = {
   nhanXet?: string | null
 }
 
-export type PageXetDuyet = {
-  content: XetDuyetItem[]
-  number: number
-  size: number
-  totalElements: number
-  totalPages: number
-  first: boolean
-  last: boolean
-}
+import type { PhanTrang } from './PhanTrang'
+
+export type PageXetDuyet = PhanTrang<XetDuyetItem>

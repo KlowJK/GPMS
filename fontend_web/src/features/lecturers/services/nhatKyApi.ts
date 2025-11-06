@@ -1,11 +1,12 @@
 import { axios } from '@shared/libs/axios'
+import type { NhatKy } from '../models/NhatKy'
 
 /**
  * Fetch weeks (tuần) for diary by lecturer
  * GET /api/nhat-ky-tien-trinh/tuans-by-lecturer?includeAll={boolean}
  * Returns: resp.data.result (array of { tuan, ngayBatDau, ngayKetThuc })
  */
-export async function fetchTuansByLecturer(includeAll = false) {
+export async function fetchTuansByLecturer(includeAll = false): Promise<any[]> {
   const search = new URLSearchParams()
   search.append('includeAll', String(includeAll))
   const url = `/api/nhat-ky-tien-trinh/tuans-by-lecturer?${search.toString()}`
@@ -19,7 +20,7 @@ export async function fetchTuansByLecturer(includeAll = false) {
  * GET /api/nhat-ky-tien-trinh/all-nhat-ky/list?tuan={tuan}
  * Returns: resp.data.result (array of entries)
  */
-export async function fetchDiaryListByWeek(tuan?: number) {
+export async function fetchDiaryListByWeek(tuan?: number): Promise<NhatKy[]> {
   const params: any = {}
   if (typeof tuan === 'number') params.tuan = tuan
 
@@ -56,7 +57,7 @@ export async function fetchDiaryListByWeek(tuan?: number) {
  * Returns: resp.data.result (array of week entries)
  * If backend path differs, adapt accordingly.
  */
-export async function fetchDiaryProgressByProposal(proposalId: string | number) {
+export async function fetchDiaryProgressByProposal(proposalId: string | number): Promise<any[]> {
   const url = `/api/nhat-ky-tien-trinh/proposal/${encodeURIComponent(String(proposalId))}/progress`
   try {
     const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
@@ -71,7 +72,7 @@ export async function fetchDiaryProgressByProposal(proposalId: string | number) 
  * Fetch diary entries for a proposal (đề tài).
  * Endpoint: GET /api/nhat-ky-tien-trinh/{id}
  */
-export async function fetchStudentDiaryByProposal(idDeTai: string | number, studentCode?: string | number) {
+export async function fetchStudentDiaryByProposal(idDeTai: string | number, studentCode?: string | number): Promise<NhatKy[]> {
   const params: any = {}
   if (studentCode !== undefined && studentCode !== null) params.maSinhVien = studentCode
 

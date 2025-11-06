@@ -1,40 +1,26 @@
 // src/features/assistants/pages/Subjects.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, Trash2, Crown } from 'lucide-react';
+import { Pencil, Trash2, IdCardLanyard } from 'lucide-react';
 import {
   type Subject,
   type Department,
   type CreateSubjectPayload,
   type UpdateSubjectPayload,
-  listSubjects,
+  listDepartments,
   createSubject,
   updateSubject,
   deleteSubject,
-  listDepartments,
-  setSubjectHead,        // ✅ thêm API gán/bỏ gán trưởng bộ môn
+  // Nếu bạn chưa có hàm này trong orgApi,
+  // hãy đổi sang listSubjectsWithHeadNormalized hoặc thêm theo hướng dẫn trước đó.
+  listSubjectsAnyNormalized,
 } from '@/features/assistants/services/organization/orgApi';
 
 import { toPage } from '@/features/assistants/services/base';
 import SubjectFormModal from '@/features/assistants/components/SubjectFormModal';
+import AssignSubjectHeadModal from '@/features/assistants/components/AssignSubjectHeadModal';
 import { useToast } from '@/features/admin/components/ToastProvider';
 
-// Giảng viên
-import type { Lecturer } from '@/features/assistants/services/user/userApi';
-import { listLecturers } from '@/features/assistants/services/user/userApi';
-
-type ModalState   = { open: boolean; editing?: Subject | null };
-type ConfirmState = { open: boolean; row?: Subject | null; busy?: boolean };
-type HeadState    = {
-  open: boolean;
-  subject?: Subject | null;
-  busy?: boolean;
-  q: string;
-  loadingGV: boolean;
-  options: Lecturer[];
-  selectedId: string; // id giảng viên chọn để gán
-};
-
-/** Debounce nhỏ gọn cho ô tìm kiếm */
+/* ---------------- helpers ---------------- */
 function useDebounce<T>(value: T, delay = 300) {
   const [v, setV] = useState(value);
   useEffect(() => {
@@ -43,30 +29,89 @@ function useDebounce<T>(value: T, delay = 300) {
   }, [value, delay]);
   return v;
 }
-
-function toId(v: string | number) {
-  return typeof v === 'number' ? v : (/^\d+$/.test(v) ? Number(v) : v);
+function norm(v?: string) {
+  return (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 }
+
+/** Thanh phân trang giống mẫu (có đầu/cuối) */
+function PageNav({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;            // 0-based
+  totalPages: number;      // >= 1
+  onChange: (p: number) => void;
+}) {
+  const MAX_WINDOW = 5; // hiển thị tối đa 5 trang liên tiếp
+  const p1 = page + 1;   // 1-based
+  const tp = totalPages;
+
+  // Tính dải trang hiển thị
+  let start = Math.max(1, p1 - Math.floor(MAX_WINDOW / 2));
+  let end   = Math.min(tp, start + MAX_WINDOW - 1);
+  if (end - start + 1 < MAX_WINDOW) {
+    start = Math.max(1, end - MAX_WINDOW + 1);
+  }
+  const pages: number[] = [];
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  const go = (p: number) => {
+    const clamped = Math.min(Math.max(0, p), tp - 1);
+    onChange(clamped);
+  };
+
+  const btn = (label: string | number, active = false, disabled = false, to?: number) => (
+    <button
+      key={`${label}-${to ?? label}`}
+      className={`min-w-9 h-9 px-2 rounded border text-sm ${
+        active
+          ? 'bg-blue-600 text-white border-blue-600'
+          : 'bg-white hover:bg-slate-50'
+      } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      onClick={() => (to != null && !disabled ? go(to) : undefined)}
+      disabled={disabled}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="flex items-center gap-2">
+      {btn('«', false, page === 0, 0)}
+      {btn('‹', false, page === 0, page - 1)}
+
+      {pages.map((n) => btn(n, n === p1, false, n - 1))}
+      {tp > end && <span className="px-2 select-none">…</span>}
+
+      {btn('›', false, page >= tp - 1, page + 1)}
+      {btn('»', false, page >= tp - 1, tp - 1)}
+    </div>
+  );
+}
+
+/* ---------------- page ---------------- */
+const PAGE_SIZE = 12;
+
+type ModalState   = { open: boolean; editing?: Subject | null };
+type ConfirmState = { open: boolean; row?: Subject | null; busy?: boolean };
 
 export default function SubjectsPage() {
   const { success, error: toastError } = useToast();
 
   const [rows, setRows]   = useState<Subject[]>([]);
   const [deps, setDeps]   = useState<Department[]>([]);
-  const [page, setPage]   = useState(0);
-  const [size]            = useState(1000);
+  const [page, setPage]   = useState(0);                 // 0-based
+  const [size, setSize]   = useState<number>(PAGE_SIZE); // dòng/trang
   const [total, setTotal] = useState(0);
   const [q, setQ]         = useState('');
   const qDebounced        = useDebounce(q, 300);
   const [loading, setLoading] = useState(false);
   const [modal, setModal]     = useState<ModalState>({ open: false });
   const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
+  const [headSubject, setHeadSubject] = useState<Subject | null>(null);
 
-  // ✅ modal gán trưởng bộ môn
-  const [headBox, setHeadBox] = useState<HeadState>({
-    open: false, subject: null, busy: false, q: '', loadingGV: false, options: [], selectedId: ''
-  });
-  const gvQDebounced = useDebounce(headBox.q, 300);
+  const totalPages = Math.max(1, Math.ceil(total / size));
 
   async function loadOptions() {
     try {
@@ -82,8 +127,8 @@ export default function SubjectsPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await listSubjects({ page, size, q: qDebounced.trim() || undefined });
-      const pg = toPage<Subject>(res, { page, size });
+      // lấy dữ liệu theo trang từ BE (đã chuẩn hoá để có tên Trưởng BM nếu BE trả)
+      const pg = await listSubjectsAnyNormalized({ page, size });
       setRows(pg.content);
       setTotal(pg.totalElements);
     } catch (e: any) {
@@ -95,93 +140,58 @@ export default function SubjectsPage() {
   }
 
   useEffect(() => { loadOptions(); }, []);
-  useEffect(() => { load(); }, [page, size, qDebounced]);
+  useEffect(() => { load(); }, [page, size]);
 
-  // Tải GV cho modal gán trưởng bộ môn
-  useEffect(() => {
-    if (!headBox.open) return;
-    let alive = true;
-    (async () => {
-      setHeadBox(s => ({ ...s, loadingGV: true }));
-      try {
-        const res = await listLecturers({ page: 0, size: 12, q: gvQDebounced.trim() || undefined });
-        const pg  = toPage<Lecturer>(res, { page: 0, size: 12 });
-        if (alive) setHeadBox(s => ({ ...s, options: pg.content }));
-      } finally {
-        if (alive) setHeadBox(s => ({ ...s, loadingGV: false }));
-      }
-    })();
-    return () => { alive = false; };
-  }, [gvQDebounced, headBox.open]);
+  // Tìm kiếm client-side trên page hiện tại (theo tên BM hoặc tên Khoa)
+  const filtered = useMemo(() => {
+    const k = norm(qDebounced.trim());
+    if (!k) return rows;
+    return rows.filter(r => {
+      const name = norm(r.tenBoMon);
+      const dept = norm(
+        (r as any).tenKhoa ??
+        (r as any).khoaTen ??
+        deps.find(d => `${d.id}` === `${r.khoaId}`)?.tenKhoa ?? ''
+      );
+      return name.includes(k) || dept.includes(k);
+    });
+  }, [rows, qDebounced, deps]);
 
   const openCreate = () => setModal({ open: true, editing: null });
   const openEdit   = (row: Subject) => setModal({ open: true, editing: row });
 
-  function askDelete(row: Subject) {
-    setConfirm({ open: true, row, busy: false });
-  }
+  function askDelete(row: Subject) { setConfirm({ open: true, row, busy: false }); }
   async function doDelete() {
     if (!confirm.row) return;
     try {
-      setConfirm((c) => ({ ...c, busy: true }));
+      setConfirm(c => ({ ...c, busy: true }));
       await deleteSubject(confirm.row.id);
       success('Xóa bộ môn thành công.');
       setConfirm({ open: false, row: null, busy: false });
       await load();
     } catch (e: any) {
-      setConfirm((c) => ({ ...c, busy: false }));
+      setConfirm(c => ({ ...c, busy: false }));
       toastError(e?.response?.data?.message || 'Không thể xóa bộ môn.');
     }
   }
-
-  // ✅ mở modal gán trưởng bộ môn
-  function openHeadModal(row: Subject) {
-    const currentHeadId =
-      (row as any).truongBoMonId != null ? String((row as any).truongBoMonId) : '';
-    setHeadBox({
-      open: true,
-      subject: row,
-      busy: false,
-      q: '',
-      loadingGV: false,
-      options: [],
-      selectedId: currentHeadId,
-    });
-  }
-  // ✅ gán
-  async function assignHead() {
-    if (!headBox.subject) return;
-    try {
-      setHeadBox(s => ({ ...s, busy: true }));
-      await setSubjectHead({
-        idBoMon: headBox.subject.id,
-        idGiangVien: headBox.selectedId ? toId(headBox.selectedId) : null,
-      });
-      success(headBox.selectedId ? 'Gán Trưởng bộ môn thành công.' : 'Bỏ gán Trưởng bộ môn thành công.');
-      setHeadBox({ open: false, subject: null, busy: false, q: '', loadingGV: false, options: [], selectedId: '' });
-      await load();
-    } catch (e: any) {
-      setHeadBox(s => ({ ...s, busy: false }));
-      toastError(e?.response?.data?.message || 'Thao tác thất bại.');
-    }
-  }
-
-  const from = page * size + 1;
-  const to   = Math.min(total, page * size + rows.length);
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
       <h1 className="text-3xl font-semibold text-center">Danh sách bộ môn</h1>
 
       <div className="flex items-center gap-3">
-        <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg">+ Thêm bộ môn</button>
+        <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+          + Thêm bộ môn
+        </button>
         <input
           className="h-10 px-3 rounded border w-80"
-          placeholder="Tìm theo tên…"
+          placeholder="Tìm theo tên bộ môn hoặc tên khoa…"
           value={q}
           onChange={(e) => { setPage(0); setQ(e.target.value); }}
         />
-        <div className="ml-auto text-sm text-slate-600">{total ? `${from}–${to}/${total}` : ''}</div>
+        <div className="ml-auto text-sm text-slate-600">
+          {`${filtered.length}/${total || filtered.length}`}
+        </div>
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -191,24 +201,29 @@ export default function SubjectsPage() {
               <th className="px-4 w-16">STT</th>
               <th className="px-4">Tên bộ môn</th>
               <th className="px-4">Khoa</th>
-              <th className="px-4">Trưởng bộ môn</th> {/* ✅ cột mới */}
+              <th className="px-4">Trưởng bộ môn</th>
               <th className="px-4 w-[220px]">Hành động</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr><td className="px-4 py-6 text-center" colSpan={5}>Đang tải…</td></tr>
-            ) : rows.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <tr><td className="px-4 py-6 text-center" colSpan={5}>Không có dữ liệu.</td></tr>
-            ) : rows.map((r, idx) => {
+            ) : filtered.map((r, idx) => {
               const deptName =
-                r.khoaTen ?? deps.find(d => `${d.id}` === `${r.khoaId}`)?.tenKhoa ?? '—';
+                (r as any).tenKhoa ??
+                (r as any).khoaTen ??
+                deps.find(d => `${d.id}` === `${r.khoaId}`)?.tenKhoa ?? '—';
+
               const headName =
+                (r as any).truongBoMonHoTen ??
                 (r as any).truongBoMonTen ??
                 (r as any).truongBoMon?.hoTen ??
                 (r as any).tenTruongBoMon ??
                 (r as any).headName ?? '—';
-              const hasHead = Boolean(r.truongBoMonId) || Boolean(headName && headName !== '—');
+
+              const hasHead = headName && headName !== '—';
 
               return (
                 <tr key={`${r.id}`} className="border-t">
@@ -223,11 +238,11 @@ export default function SubjectsPage() {
                       {/* Gán Trưởng bộ môn */}
                       <button
                         className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-slate-100"
-                        onClick={() => openHeadModal(r)}
+                        onClick={() => setHeadSubject(r)}
                         title="Gán Trưởng bộ môn"
                         aria-label="Gán Trưởng bộ môn"
                       >
-                        <Crown size={16} className={hasHead ? 'text-amber-500' : 'text-slate-600'} />
+                        <IdCardLanyard size={16} className={hasHead ? 'text-amber-500' : 'text-slate-600'} />
                       </button>
 
                       {/* Sửa */}
@@ -238,7 +253,6 @@ export default function SubjectsPage() {
                         aria-label="Sửa bộ môn"
                       >
                         <Pencil size={16} />
-                        <span className="sr-only">Sửa</span>
                       </button>
 
                       {/* Xóa */}
@@ -249,7 +263,6 @@ export default function SubjectsPage() {
                         aria-label="Xóa bộ môn"
                       >
                         <Trash2 size={16} />
-                        <span className="sr-only">Xóa</span>
                       </button>
                     </div>
                   </td>
@@ -259,14 +272,28 @@ export default function SubjectsPage() {
           </tbody>
         </table>
 
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button className="px-3 py-1 border rounded disabled:opacity-40"
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}>Trước</button>
-          <span className="text-sm">{page + 1}</span>
-          <button className="px-3 py-1 border rounded disabled:opacity-40"
-                  onClick={() => setPage(p => (from + size <= total ? p + 1 : p))}
-                  disabled={from + size > total}>Sau</button>
+        {/* Footer phân trang CĂN GIỮA */}
+        <div className="p-3">
+          <div className="flex justify-center">
+            <PageNav
+              page={page}
+              totalPages={totalPages}
+              onChange={(p) => { if (p !== page) setPage(p); }}
+            />
+          </div>
+
+          {/* (tuỳ chọn) chọn số dòng/trang — cũng căn giữa */}
+          <div className="mt-3 flex justify-center">
+            <select
+              className="h-9 border rounded px-2 bg-white"
+              value={size}
+              onChange={(e) => { setPage(0); setSize(Number(e.target.value) || PAGE_SIZE); }}
+            >
+              {[12, 20, 50, 100].map(s => (
+                <option key={s} value={s}>{s}/trang</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -299,67 +326,16 @@ export default function SubjectsPage() {
         </div>
       )}
 
-      {/* ✅ Modal gán Trưởng bộ môn */}
-      {headBox.open && headBox.subject && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
-          <div className="w-[560px] rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold">Gán Trưởng bộ môn</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              Bộ môn: <span className="font-medium">{headBox.subject.tenBoMon}</span>
-            </p>
-
-            <div className="mt-4 space-y-2">
-              <input
-                className="w-full h-10 rounded border px-3"
-                placeholder="Tìm giảng viên theo tên/email/mã GV…"
-                value={headBox.q}
-                onChange={(e) => setHeadBox(s => ({ ...s, q: e.target.value }))}
-              />
-              <select
-                className="w-full h-10 rounded border px-3 bg-white"
-                value={headBox.selectedId}
-                onChange={(e) => setHeadBox(s => ({ ...s, selectedId: e.target.value }))}
-              >
-                <option value="">{headBox.loadingGV ? 'Đang tải…' : '— Không chọn —'}</option>
-                {headBox.options.map(gv => (
-                  <option key={`${gv.id}`} value={String(gv.id)}>
-                    {gv.hoTen} {gv.boMonTen ? `(${gv.boMonTen})` : ''} — {gv.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                className="px-4 h-10 rounded border"
-                onClick={() => setHeadBox({ open: false, subject: null, busy: false, q: '', loadingGV: false, options: [], selectedId: '' })}
-                disabled={headBox.busy}
-              >
-                Đóng
-              </button>
-              <button
-                className="px-4 h-10 rounded bg-slate-500 text-white disabled:opacity-50"
-                onClick={async () => {
-                  // Bỏ gán (set null)
-                  setHeadBox(s => ({ ...s, selectedId: '' }));
-                  await assignHead();
-                }}
-                disabled={headBox.busy}
-              >
-                Bỏ gán
-              </button>
-              <button
-                className="px-4 h-10 rounded bg-blue-600 text-white disabled:opacity-50"
-                onClick={assignHead}
-                disabled={headBox.busy}
-              >
-                {headBox.busy ? 'Đang lưu…' : 'Gán'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Modal gán Trưởng bộ môn */}
+      {headSubject && (
+        <AssignSubjectHeadModal
+          subject={headSubject}
+          onClose={() => setHeadSubject(null)}
+          onSaved={() => load()}
+        />
       )}
 
+      {/* Modal thêm/sửa bộ môn */}
       {modal.open && (
         <SubjectFormModal
           initial={modal.editing ?? undefined}

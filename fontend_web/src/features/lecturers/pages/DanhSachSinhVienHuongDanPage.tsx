@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useReviewsViewModel } from '../viewmodels/DuyetDeTaiViewmodels'
-import { Eye } from 'lucide-react'
+import { FileText, Edit } from 'lucide-react'
 import StudentDetail from '../components/DanhSachSinhVienHD'
+import UpdateTenDeTaiModal from '../components/CapNhatTenDeTaiModal'
 
 export default function DoAnListPage() {
   return <Inner />
@@ -10,6 +11,7 @@ export default function DoAnListPage() {
 function Inner() {
   const vm = useReviewsViewModel()
   const [selectedMaSV, setSelectedMaSV] = useState<string | null>(null)
+  const [selectedMaSVUpdate, setSelectedMaSVUpdate] = useState<string | null>(null)
 
   // client-side search/paging moved to viewmodel
   useEffect(() => { vm.setStatusFilter('DA_DUYET') }, [])
@@ -60,15 +62,35 @@ function Inner() {
                   <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <button
-                        title="Xem chi tiết"
-                        onClick={() => setSelectedMaSV(r.maSV)}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
-                        aria-label={`Xem chi tiết ${r.maSV}`}
-                      >
-                        <Eye size={16} />
-                        Xem chi tiết
-                      </button>
+                      {(() => {
+                        const title = String(r.tenDeTai ?? '').trim()
+                        const noTopic = !title || /chưa\s*có\s*đề\s*tài/i.test(title)
+                          if (noTopic) {
+                          return (
+                            <button
+                              title="Cập nhật"
+                              onClick={() => setSelectedMaSVUpdate(r.maSV)}
+                              className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-50 border rounded text-yellow-700 hover:bg-yellow-100"
+                              aria-label={`Cập nhật đề tài ${r.maSV}`}
+                            >
+                              <Edit size={16} />
+                              <span>Cập nhật đề tài</span>
+                            </button>
+                          )
+                        }
+
+                        return (
+                          <button
+                            title="Xem chi tiết"
+                            onClick={() => setSelectedMaSV(r.maSV)}
+                            className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
+                            aria-label={`Xem chi tiết ${r.maSV}`}
+                          >
+                            <FileText size={16} />
+                            <span>Duyệt đề cương</span>
+                          </button>
+                        )
+                      })()}
                     </div>
                   </td>
                 </tr>
@@ -99,6 +121,15 @@ function Inner() {
         })()}
       </div>
       <StudentDetail open={!!selectedMaSV} maSV={selectedMaSV ?? undefined} onClose={() => setSelectedMaSV(null)} />
+      <UpdateTenDeTaiModal
+        open={!!selectedMaSVUpdate}
+        maSV={selectedMaSVUpdate ?? undefined}
+        onClose={() => setSelectedMaSVUpdate(null)}
+        onSaved={() => {
+          // refresh client-side viewmodel list: reset to first page so change is visible
+          try { vm.setClientPage(0) } catch (e) { /* ignore */ }
+        }}
+      />
     </div>
   )
 }
