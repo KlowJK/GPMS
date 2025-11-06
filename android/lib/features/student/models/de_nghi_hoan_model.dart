@@ -6,8 +6,8 @@ class DeNghiHoanModel {
   final TrangThaiDeNghi trangThai;
   final String lyDo;
   final String? minhChungUrl;
-  final DateTime requestedAt;
-  final DateTime? decidedAt;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
   final int? nguoiPheDuyetId;
   final String? ghiChuQuyetDinh;
 
@@ -17,8 +17,8 @@ class DeNghiHoanModel {
     required this.trangThai,
     required this.lyDo,
     this.minhChungUrl,
-    required this.requestedAt,
-    this.decidedAt,
+    required this.createdAt,
+    this.updatedAt,
     this.nguoiPheDuyetId,
     this.ghiChuQuyetDinh,
   });
@@ -34,8 +34,12 @@ class DeNghiHoanModel {
       lyDo: json['lyDo'] ?? '',
       minhChungUrl: json['minhChungUrl'],
       // Safely parse requestedAt, fallback to current time if null
-      requestedAt: json['requestedAt'] != null ? DateTime.parse(json['requestedAt']) : DateTime.now(),
-      decidedAt: json['decidedAt'] != null ? DateTime.parse(json['decidedAt']) : null,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
       nguoiPheDuyetId: json['nguoiPheDuyetId'],
       ghiChuQuyetDinh: json['ghiChuQuyetDinh'],
     );

@@ -1,4 +1,4 @@
-enum DiaryStatus { pending, approved, rejected }
+enum DiaryStatus { HOAN_THANH, DA_NOP, CHUA_NOP }
 
 /// Local diary entry model used by the UI when creating/submitting diaries.
 class DiaryEntry {
@@ -14,8 +14,7 @@ class DiaryEntry {
     required this.timeRange,
     required this.content,
     this.resultFileName,
-    this.status = DiaryStatus.pending,
+    this.status = DiaryStatus.CHUA_NOP,
     this.teacherNote,
   });
 }
-

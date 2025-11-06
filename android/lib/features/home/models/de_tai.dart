@@ -1,4 +1,4 @@
-import 'package:GPMS/shared/models/de_cuong.dart';
+import 'package:GPMS/features/home/models/de_cuong.dart';
 
 class DeTai {
   final int id;

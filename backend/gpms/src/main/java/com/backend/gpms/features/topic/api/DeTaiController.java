@@ -110,9 +110,9 @@ public class DeTaiController {
 
     @Operation(summary = "Chủ nhiệm khoa duyệt đơn hoãn đồ án")
     @PreAuthorize("hasAnyAuthority('ROLE_GIANG_VIEN','ROLE_CHU_NHIEM_KHOA')")
-    @PutMapping(value = "/duyet-don-hoan-do-an/duyet",  consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/duyet-don-hoan-do-an/duyet", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<String> approvePostponeRequest(
-            @RequestBody @Valid DonHoanDoAnDuyetRequest request) {
+            @ModelAttribute @Valid DonHoanDoAnDuyetRequest request) {
         return ApiResponse.success(donHoanDoAnService.duyetDonHoanDoAn(request));
     }
 

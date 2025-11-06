@@ -1,13 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:GPMS/shared/models/de_tai.dart';
+import 'package:GPMS/features/home/models/de_tai.dart';
 
+/// Service xử lý API calls cho Home/Guest features
+///
+/// Refactored để support dependency injection và testing
 class MainService {
+  final http.Client _client;
+
+  // Constructor cho dependency injection
+  MainService({http.Client? client}) : _client = client ?? http.Client();
+
   /// Base URL configuration
-  static String get baseUrl {
+  String get baseUrl {
     if (kIsWeb) {
       return 'http://localhost:8080';
     }
@@ -20,10 +28,10 @@ class MainService {
   }
 
   /// Get list of notifications
-  static Future<List<ThongBaoVaTinTuc>> listThongBao() async {
+  Future<List<ThongBaoVaTinTuc>> listThongBao() async {
     final uri = Uri.parse('$baseUrl/api/public/thong-bao/list');
     try {
-      final response = await http
+      final response = await _client
           .get(uri, headers: const {'Accept': 'application/json'})
           .timeout(const Duration(seconds: 15));
 
@@ -54,14 +62,18 @@ class MainService {
         throw Exception('Failed to load notifications: $message (code: $code)');
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('Error in listThongBao: $e');
+      }
       throw Exception('Error loading notifications: $e');
     }
   }
 
-  static Future<List<DeTai>> listDeTai() async {
+  /// Get list of topics
+  Future<List<DeTai>> listDeTai() async {
     final uri = Uri.parse('$baseUrl/api/public/thu-vien/de-tai');
     try {
-      final response = await http
+      final response = await _client
           .get(uri, headers: const {'Accept': 'application/json'})
           .timeout(const Duration(seconds: 15));
 
@@ -93,7 +105,15 @@ class MainService {
         throw Exception('Failed to load de tai: $message (code: $code)');
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('Error in listDeTai: $e');
+      }
       throw Exception('Error loading de tai: $e');
     }
+  }
+
+  /// Dispose HTTP client
+  void dispose() {
+    _client.close();
   }
 }
