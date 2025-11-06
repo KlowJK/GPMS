@@ -150,8 +150,11 @@ export default function StudentDetail({ open, maSV, onClose }: { open: boolean; 
               {/* Submissions */}
               <div className="mb-3 font-medium">Đề cương — Số lần nộp: {versionCount}</div>
 
-              <div className="space-y-4">
-                {displayProposals.map((sub: any, idx: number) => (
+              {versionCount === 0 ? (
+                <div className="p-4 text-center text-slate-500">Chưa có đề cương nào</div>
+              ) : (
+                <div className="space-y-4">
+                  {displayProposals.map((sub: any, idx: number) => (
                   <div key={idx} className="border rounded flex">
                     <div className={`w-2 ${isApproved(sub.trangThai) ? 'bg-emerald-500' : isRejected(sub.trangThai) ? 'bg-rose-600' : 'bg-sky-600'}`} />
                     <div className="p-4 flex-1">
@@ -237,7 +240,8 @@ export default function StudentDetail({ open, maSV, onClose }: { open: boolean; 
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
 
               <div className="mt-6 flex justify-end">
                 <button onClick={onClose} className="px-4 py-2 border rounded text-slate-600">Đóng</button>

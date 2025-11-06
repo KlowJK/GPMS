@@ -103,27 +103,32 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
               const path2 = '/lecturers/do-an/duyet'
               const path3 = '/lecturers/truong-bo-mon/duyet-de-cuong-cuoi'
               const path4 = '/lecturers/truong-bo-mon/phan-cong-giang-vien'
+              const path5 = '/lecturers/truong-bo-mon/danh-sach-giang-vien'
               // also treat the reviewer assignment route as the same TBM "Phân công giảng viên" item
               const path4Reviewer = '/lecturers/truong-bo-mon/phan-cong-phan-bien'
               const sel1 = selected === path1
               const sel2 = selected === path2
               const sel3 = selected === path3
               const sel4 = selected === path4 || selected === path4Reviewer
+              const sel5 = selected === path5
               return (
                 <>
                   <NavLink to={path1} className={`block text-sm ${sel1 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path1) }}>
                     Danh sách sinh viên hướng dẫn
                   </NavLink>
                   <NavLink to={path2} className={`block text-sm ${sel2 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path2) }}>
-                    Duyệt đề tài
+                    Duyệt Đăng ký đề tài
                   </NavLink>
                   {isHead && (
                     <>
                       <NavLink to={path3} className={`block text-sm ${sel3 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path3) }}>
-                        Duyệt đề cương cuối
+                        Duyệt đề cương cuối (TBM)
                       </NavLink>
                       <NavLink to={path4} className={`block text-sm ${sel4 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path4) }}>
-                        Phân công giảng viên 
+                        Phân công giảng viên (TBM) 
+                      </NavLink>
+                      <NavLink to={path5} className={`block text-sm ${sel5 ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected(path5) }}>
+                        Danh sách giảng viên (TBM)
                       </NavLink>
                     </>
                   )}

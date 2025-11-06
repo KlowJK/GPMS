@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchDiaryListByWeek, fetchTuansByLecturer } from '../services'
 import { parseISOToDate } from '@shared/utils/format'
+import type { NhatKy } from '../models/NhatKy'
 
 // fallback week entries used only when API data missing
 const FALLBACK_WEEKS = Array.from({ length: 11 }, (_, i) => ({ tuan: i + 1, ngayBatDau: null, ngayKetThuc: null }))
@@ -15,7 +16,7 @@ export function useDiaryViewModel(initialWeek = 1) {
 
   const queryClient = useQueryClient()
 
-  const diaryQuery = useQuery<any[], Error>({
+  const diaryQuery = useQuery<NhatKy[], Error>({
     queryKey: ['diary-list', week],
     queryFn: () => fetchDiaryListByWeek(week),
     enabled: !!week,

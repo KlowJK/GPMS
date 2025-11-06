@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchStudentsWithoutSupervisor } from '../services'
-import PhanCongModal from '../components/PhanCongModal'
+import PhanCongModal from '../components/PhanCongHuongDanModal'
 import PhanCongPhanBienModal from '../components/PhanCongPhanBienModal'
 
 export default function TruongBoMonPhanCongPhanBienPage() {
@@ -22,8 +22,10 @@ export default function TruongBoMonPhanCongPhanBienPage() {
       try {
         // For reviewer assignment we want topics that are already approved
         const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
-        const items = Array.isArray(resp?.content) ? resp.content : []
-        setRows(items)
+  const items = Array.isArray(resp?.content) ? resp.content : []
+  // only show records that don't yet have a reviewer assigned
+  const unassigned = items.filter((it: any) => it?.idGiangVienPB == null)
+  setRows(unassigned)
       } catch (err) {
         setErrorDetails({
           message: (err as any)?.message ?? String(err),
@@ -55,7 +57,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
   return (
     <div >
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Phân công giảng viên phản biện</h1>
+        <h2 className="text-2xl font-semibold">Phân công giảng viên phản biện</h2>
         <div className="flex items-center gap-3">
         
           <div className="inline-flex items-center rounded-full bg-transparent p-1">
@@ -102,6 +104,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
               <tr className="border-b">
                 <th className="text-left px-6 py-4">Mã sinh viên</th>
                 <th className="text-left px-6 py-4">Họ và tên</th>
+                <th className="text-left px-6 py-4">Giảng viên hướng dẫn</th>
                 <th className="text-left px-6 py-4">Lớp</th>
                 <th className="text-left px-6 py-4">Tên đề tài</th>
                 <th className="text-left px-6 py-4">Tổng quan</th>
@@ -113,6 +116,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
                 <tr key={r.idDeTai ?? r.id ?? r.maSV} className="border-b hover:bg-slate-50">
                   <td className="px-6 py-4 font-medium">{r.maSV}</td>
                   <td className="px-6 py-4">{r.hoTen}</td>
+                  <td className="px-6 py-4">{r.hoTenGiangVienHD ? r.hoTenGiangVienHD : <span className="text-sm text-slate-500">—</span>}</td>
                   <td className="px-6 py-4">{r.tenLop}</td>
                   <td className="px-6 py-4 max-w-[40ch] break-words whitespace-normal">{r.tenDeTai}</td>
                   <td className="px-6 py-4">
@@ -127,7 +131,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
                       <button
                         title="Phân công"
                         onClick={() => { setAssignRow(r); setShowAssignModal(true) }}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border rounded text-emerald-700 hover:bg-emerald-100"
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-50 border rounded text-yellow-700 hover:bg-yellow-100"
                       >
                         Phân công
                       </button>
@@ -151,7 +155,8 @@ export default function TruongBoMonPhanCongPhanBienPage() {
             try {
               const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
               const items = Array.isArray(resp?.content) ? resp.content : []
-              setRows(items)
+              const unassigned = items.filter((it: any) => it?.idGiangVienPB == null)
+              setRows(unassigned)
             } catch (e) {
               console.error('[TBM-phan-bien] refetch failed', e)
             }

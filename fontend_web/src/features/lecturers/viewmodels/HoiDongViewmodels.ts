@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchHoiDongList, fetchHoiDongDetail } from '../services'
+import type { HoiDong } from '../models/HoiDong'
 
 export function useHoiDongViewModel(initialIdGiangVien?: number) {
   const [idGiangVien, setIdGiangVien] = useState<number | undefined>(initialIdGiangVien)
 
-  const query = useQuery<any, Error>({
+  const query = useQuery<HoiDong[] | null, Error>({
     queryKey: ['hoi-dong', idGiangVien],
     queryFn: () => fetchHoiDongList(idGiangVien),
   })

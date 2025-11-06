@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchReviewList, rejectDeTai, approveDeTai } from '../services'
-import type { XetDuyetItem, PageXetDuyet } from '../models/DanhSachDuyetModels'
+import type { XetDuyetItem } from '../models/DanhSachDuyetModels'
+import type { PhanTrang } from '../models/PhanTrang'
 
 export function useReviewsViewModel(initialPage = 0, initialSize = 1000) {
   const [page, setPage] = useState(initialPage)
@@ -14,7 +15,7 @@ export function useReviewsViewModel(initialPage = 0, initialSize = 1000) {
   const [clientSize, setClientSize] = useState<number>(10)
   const queryClient = useQueryClient()
 
-  const query = useQuery<PageXetDuyet, Error>({
+  const query = useQuery<PhanTrang<XetDuyetItem>, Error>({
     queryKey: ['lecturers-reviews', page, size, statusFilter],
     queryFn: () => fetchReviewList({ status: statusFilter, page, size, sort: [] }),
     staleTime: 1000 * 60, // 1 minute

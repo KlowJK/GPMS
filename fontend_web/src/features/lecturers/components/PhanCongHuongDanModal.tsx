@@ -5,21 +5,25 @@ import { axios } from '@shared/libs/axios'
 import { loadLecturersForStudent } from '../viewmodels/TruongBoMonViewmodels'
 import { toast } from 'sonner'
 import ReportHeader from './ThongTinSinhVien'
+import type { DeCuong } from '../models/DeCuong'
+import type { SinhVien } from '../models/SinhVien'
+import type { GiangVien } from '../models/GiangVien'
 
 type Props = {
   open: boolean
   onClose: () => void
-  row: any | null
-  onAssigned?: (payload: { idDeTai?: any; idGiangVien?: any; idBoMon?: any }) => void
+  row: DeCuong | null
+  onAssigned?: (payload: { idDeTai?: string | number | null; idGiangVien?: string | null; idBoMon?: string | number | null; mode?: 'huong-dan' | 'phan-bien' }) => void
 }
 
 export default function PhanCongModal({ open, onClose, row, onAssigned }: Props) {
-  const [loading, setLoading] = useState(false)
-  const [student, setStudent] = useState<any | null>(null)
-  const [lecturers, setLecturers] = useState<any[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [student, setStudent] = useState<SinhVien | null>(null)
+  const [lecturers, setLecturers] = useState<GiangVien[]>([])
   // store selected lecturer code (maGiangVien / maGV) because backend expects maGV
   const [lecturerId, setLecturerId] = useState<string | null>(null)
-  const [lecturersLoading, setLecturersLoading] = useState(false)
+  const [lecturersLoading, setLecturersLoading] = useState<boolean>(false)
+  const [saving, setSaving] = useState<boolean>(false)
 
   function extractBoMonId(s: any) {
     if (!s) return null
@@ -35,8 +39,8 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
         // Try to find student in the "sinh-vien-chua-co-gvhd" endpoint which includes idBoMon.
         // This lets us get idBoMon directly and call /api/giang-vien/{boMonId}.
         const svResp = await fetchStudentsWithoutSupervisor({ page: 0, size: 1000 })
-        const svItems: any[] = Array.isArray(svResp?.content) ? svResp.content : (Array.isArray(svResp) ? svResp : [])
-        const found = svItems.find(it => String(it.maSV ?? it.maSinhVien ?? it.ma ?? it.msv ?? it.id ?? '') === String(row?.maSV ?? row?.maSinhVien ?? row?.ma ?? row?.msv ?? row?.id ?? ''))
+  const svItems: any[] = Array.isArray(svResp?.content) ? svResp.content : (Array.isArray(svResp) ? svResp : [])
+  const found = svItems.find(it => String(it.maSV ?? it.maSinhVien ?? it.ma ?? it.msv ?? it.id ?? '') === String((row as any)?.maSV ?? (row as any)?.maSinhVien ?? (row as any)?.ma ?? (row as any)?.msv ?? (row as any)?.id ?? ''))
 
   // Try to fetch the full student record (same as DanhSachSinhVienHD) so ThongTinSinhVien has all fields
   // Prefer the record from sinh-vien-chua-co-gvhd (found) because it contains idBoMon
@@ -45,20 +49,34 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
         if (ma) {
           try {
             const full = await fetchStudentByCode(ma)
-            if (mounted && full) studentRecord = full
+            if (mounted && full) studentRecord = full as SinhVien
           } catch (e) {
             // ignore and fall back to partial record
             console.debug('fetchStudentByCode failed', e)
           }
         }
 
-        if (mounted) setStudent(studentRecord)
+  if (mounted) setStudent(studentRecord as SinhVien)
 
         // delegate lecturer loading to viewmodel helper (prefers boMon -> falls back)
         try {
           setLecturersLoading(true)
           const list = await loadLecturersForStudent(found ?? studentRecord)
-          if (mounted) setLecturers(Array.isArray(list) ? list : [])
+          const rawList: GiangVien[] = Array.isArray(list) ? (list as GiangVien[]) : []
+          // only include supervisors who have capacity: soLuongDeTai < soLuongChoPhepHuongDan
+          const eligible = rawList.filter(g => {
+            try {
+              const used = Number(g.soLuongDeTai ?? g.raw?.soLuongDeTai ?? 0)
+              const allowed = Number(g.soLuongChoPhepHuongDan ?? g.raw?.soLuongChoPhepHuongDan ?? Number.MAX_SAFE_INTEGER)
+              return Number.isFinite(used) && Number.isFinite(allowed) ? used < allowed : true
+            } catch (err) {
+              return true
+            }
+          })
+          if (mounted) {
+            if (import.meta.env.DEV) console.debug('[PhanCongModal] lecturers eligible', eligible.length, '/', rawList.length)
+            setLecturers(eligible)
+          }
         } catch (e) {
           console.debug('loadLecturersForStudent failed', e)
         } finally {
@@ -97,8 +115,8 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
         return
       }
 
-      setLoading(true)
-      const resp = await assignDeTai({ maSV: ma, maGV: String(lecturerId) })
+  setSaving(true)
+  const resp = await assignDeTai({ maSV: ma, maGV: String(lecturerId) })
 
       // API returns result with success/message in various shapes
       const success = resp?.success ?? resp?.result?.success ?? true
@@ -117,7 +135,7 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
       console.error('[PhanCongModal] assign failed', err)
       toast.error('Lưu phân công thất bại')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -135,12 +153,18 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
             <div>
               <div className="mb-4">
                 <label className="block text-sm text-slate-600 mb-2">Giảng viên</label>
-                <select value={lecturerId ?? ''} onChange={e => setLecturerId(e.target.value || null)} className="w-full border rounded px-3 py-2">
+                <select
+                  value={lecturerId ?? ''}
+                  onChange={e => setLecturerId(e.target.value || null)}
+                  disabled={lecturersLoading || loading || saving}
+                  aria-disabled={lecturersLoading || loading || saving}
+                  className="w-full border rounded px-3 py-2"
+                >
                   <option value="">Chọn giảng viên</option>
-                  {lecturers.map((g: any) => {
-                    const code = g.maGiangVien ?? g.maGV ?? String(g.id ?? '')
+                  {lecturers.map((g: GiangVien) => {
+                      const code = (g.maGiangVien ?? (g as any).maGV ?? String(g.id ?? '')) as string
                     return (
-                      <option key={`${g.id}-${code}`} value={String(code)}>{g.hoTen} {code ? `(${code})` : ''}</option>
+                        <option key={`${String(g.id)}-${code}`} value={String(code)}>{(g.hoTen ?? '')} {code ? `(${code})` : ''}</option>
                     )
                   })}
                 </select>
@@ -148,7 +172,13 @@ export default function PhanCongModal({ open, onClose, row, onAssigned }: Props)
               </div>
               <div className="mt-6 flex justify-end gap-3 col-span-2">
                 <button onClick={handleClose} className="px-4 py-2 rounded bg-gray-200">Hủy</button>
-                <button onClick={handleSave} className="px-4 py-2 rounded bg-sky-600 text-white">Lưu</button>
+                <button
+                  onClick={handleSave}
+                  disabled={lecturersLoading || loading || saving}
+                  aria-disabled={lecturersLoading || loading || saving}
+                  className={`px-4 py-2 rounded text-white ${lecturersLoading || loading || saving ? 'bg-sky-400 cursor-not-allowed opacity-70' : 'bg-sky-600'}`}>
+                  {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
               </div>
             </div>
           </div>

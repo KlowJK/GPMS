@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchDeCuongPage } from '../services'
+import type { PhanTrang } from '../models/PhanTrang'
+import type { DeCuong } from '../models/DeCuong'
 
 export function usePhanBienViewModel(currentName?: string, initialPage = 0, initialSize = 1000) {
   // server-side paging (used in query)
@@ -13,18 +15,18 @@ export function usePhanBienViewModel(currentName?: string, initialPage = 0, init
   const [search, setSearch] = useState<string>('')
   const qc = useQueryClient()
 
-  const query = useQuery<any, Error>({
+  const query = useQuery<PhanTrang<DeCuong>, Error>({
     queryKey: ['de-cuong-page', page, size, statusFilter, search],
     queryFn: () => fetchDeCuongPage({ page, size, sort: ['updatedAt,DESC'], status: statusFilter }),
     staleTime: 1000 * 60,
   })
 
   // derived items
-  const rawItems = (query.data?.content ?? [])
+  const rawItems: DeCuong[] = (query.data?.content ?? [])
 
   // If multiple versions exist for the same proposal/student, keep only the largest phienBan.
   const items = (() => {
-    if (!Array.isArray(rawItems) || rawItems.length === 0) return []
+  if (!Array.isArray(rawItems) || rawItems.length === 0) return []
 
     // sort by phienBan desc so first encountered per key is the largest
     const sorted = [...rawItems].sort((a: any, b: any) => {
@@ -34,11 +36,11 @@ export function usePhanBienViewModel(currentName?: string, initialPage = 0, init
     })
 
     const seen = new Set<string>()
-    const dedup: any[] = []
+  const dedup: DeCuong[] = []
 
     for (const it of sorted) {
       // create a grouping key - prefer an explicit student id + title if available
-      const key = `${String(it.maSinhVien ?? it.maSV ?? '')}||${String(it.tenDeTai ?? it.title ?? '')}`
+  const key = `${String((it as any).maSinhVien ?? (it as any).maSV ?? '')}||${String((it as any).tenDeTai ?? (it as any).title ?? '')}`
       if (seen.has(key)) continue
       seen.add(key)
       dedup.push(it)
@@ -75,8 +77,8 @@ export function usePhanBienViewModel(currentName?: string, initialPage = 0, init
     }
 
     const cn = normalizeName(currentName)
-    return items.filter((it: any) => {
-      const rawGv = it.giangVienPhanBien ?? it.gvPhanBien ?? ''
+    return items.filter((it: DeCuong) => {
+      const rawGv = (it as any).giangVienPhanBien ?? (it as any).gvPhanBien ?? ''
       const gv = normalizeName(rawGv)
       if (!gv) return false
       return namesMatch(gv, cn)

@@ -73,7 +73,7 @@ function Inner() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold">Duyệt đề cương cuối (Trưởng bộ môn)</h2>
+        <h2 className="text-2xl font-semibold">Duyệt đề cương cuối </h2>
         <div className="flex items-center gap-3">
           <div>
           <button

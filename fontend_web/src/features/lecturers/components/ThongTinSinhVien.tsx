@@ -1,6 +1,7 @@
 import React from 'react'
+import type { SinhVien } from '../models/SinhVien'
 
-export default function ReportHeader({ student, onClose }: { student: any; onClose?: () => void }) {
+export default function ReportHeader({ student, onClose }: { student: SinhVien | null; onClose?: () => void }) {
   return (
     <div className="flex items-start gap-6 mb-6">
       <div className="flex items-center gap-4">
