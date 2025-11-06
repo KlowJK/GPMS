@@ -36,11 +36,7 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
                   <Home size={18} />
                   <span className="text-sm font-medium">Trang chủ</span>
                   <div className="ml-auto" />
-                  {isSelected ? (
-                    <div className="ml-3 w-4 h-4 rounded-sm bg-slate-200" />
-                  ) : (
-                    <div className="ml-3 w-4 h-4" />
-                  )}
+                  {/* removed right-side decorative indicator */}
                 </div>
               </div>
             )
@@ -63,11 +59,7 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
                       <Icon size={18} />
                       <span className="text-sm font-medium">{label}</span>
                       <div className="ml-auto" />
-                      {isSelected ? (
-                        <div className="ml-3 w-4 h-4 rounded-sm bg-slate-200" />
-                      ) : (
-                        <div className="ml-3 w-4 h-4" />
-                      )}
+                      {/* removed right-side decorative indicator */}
                     </div>
                   </div>
                 )
