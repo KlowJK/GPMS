@@ -172,7 +172,36 @@ public class DeTaiService {
         }
 
         // 4. Lưu (cập nhật hoặc tạo mới)
-        deTaiRepository.save(deTai);
+       deTai= deTaiRepository.save(deTai);
+
+        // 5) Tự động tạo và thêm list nhật ký nếu duyệt thành công (DA_DUYET)
+        if (deTai.getTrangThai() == TrangThaiDeTai.DA_DUYET) {
+            // Lấy danh sách tuần từ NhatKyTienTrinhService
+            List<TuanResponse> tuanList = nhatKyTienTrinhService.getTuanList(deTai.getId());
+            if (tuanList == null || tuanList.isEmpty()) {
+                throw new ApplicationException(ErrorCode.NO_WEEKS_AVAILABLE);
+            }
+            List<NhatKyTienTrinh> nhatKyList = new ArrayList<>();
+            for (TuanResponse tuanResponse : tuanList) {
+                NhatKyTienTrinh nhatKy = new NhatKyTienTrinh();
+                nhatKy.setDeTai(deTai);
+                nhatKy.setTuan(tuanResponse.getTuan());
+                nhatKy.setNgayBatDau(tuanResponse.getNgayBatDau());
+                nhatKy.setNgayKetThuc(tuanResponse.getNgayKetThuc());
+                nhatKy.setGiangVienHuongDan(deTai.getGiangVienHuongDan());
+                nhatKy.setTrangThaiNhatKy(TrangThaiNhatKy.CHUA_NOP);
+
+                // Kiểm tra trùng lặp
+                if (nhatKyRepository.findByDeTai_IdAndTuan(deTai.getId(), tuanResponse.getTuan()).isPresent()) {
+                    continue;
+                }
+
+                nhatKyList.add(nhatKy);
+            }
+
+            // Lưu toàn bộ danh sách nhật ký
+            nhatKyRepository.saveAll(nhatKyList);
+        }
 
         Map<String, String> thamSo = Map.of(
                 "sinhVien", deTai.getSinhVien().getHoTen()

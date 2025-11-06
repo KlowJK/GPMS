@@ -193,6 +193,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         title: const Text(
           'Đăng ký đề tài',

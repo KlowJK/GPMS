@@ -6,6 +6,7 @@ class HoiDongItem {
   final DateTime? thoiGianBatDau;
   final DateTime? thoiGianKetThuc;
   final String? trangThai;
+  final String? diaDiem;
 
   HoiDongItem({
     required this.id,
@@ -13,6 +14,7 @@ class HoiDongItem {
     this.thoiGianBatDau,
     this.thoiGianKetThuc,
     this.trangThai,
+    this.diaDiem,
   });
 
   factory HoiDongItem.fromJson(Map<String, dynamic> json) {
@@ -27,20 +29,23 @@ class HoiDongItem {
     }
 
     return HoiDongItem(
-      id: (json['id'] is int) ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: (json['id'] is int)
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       tenHoiDong: (json['tenHoiDong'] ?? json['tenHoiDong'])?.toString() ?? '',
       thoiGianBatDau: parseDate(json['thoiGianBatDau']),
       thoiGianKetThuc: parseDate(json['thoiGianKetThuc']),
       trangThai: json['trangThai']?.toString(),
+      diaDiem: json['diaDiem']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'tenHoiDong': tenHoiDong,
-        'thoiGianBatDau': thoiGianBatDau?.toIso8601String(),
-        'thoiGianKetThuc': thoiGianKetThuc?.toIso8601String(),
-        'trangThai': trangThai,
-      };
+    'id': id,
+    'tenHoiDong': tenHoiDong,
+    'thoiGianBatDau': thoiGianBatDau?.toIso8601String(),
+    'thoiGianKetThuc': thoiGianKetThuc?.toIso8601String(),
+    'trangThai': trangThai,
+    'diaDiem': diaDiem,
+  };
 }
-

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:GPMS/shared/models/de_tai.dart';
+import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TopicDetailPage extends StatelessWidget {

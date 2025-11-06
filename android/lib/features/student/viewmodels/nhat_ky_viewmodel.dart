@@ -1,32 +1,33 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:GPMS/features/student/models/nhat_ki_tuan.dart';
 import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
 import 'package:GPMS/features/student/services/nhat_ky_service.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 
+/// ViewModel cho danh sách Nhật ký
 class NhatKyViewModel extends ChangeNotifier {
-  final NhatKyService service;
-  NhatKyViewModel({NhatKyService? service}) : service = service ?? NhatKyService();
+  final NhatKyService _service;
 
   List<TuanItem> _tuans = [];
-  List<TuanItem> get tuans => _tuans;
-
   List<DiaryItem> _diaries = [];
-  List<DiaryItem> get diaries => _diaries;
-
   bool _loading = false;
-  bool get loading => _loading;
-
   bool _loadingDiaries = false;
-  bool get loadingDiaries => _loadingDiaries;
-
   String? _error;
-  String? get error => _error;
-
-  // New: flag indicating the student has no topic (đề tài)
-  bool _noDeTai = false;
-  bool get noDeTai => _noDeTai;
-
+  ErrorCode? _errorCode;
   bool _isDisposed = false;
+
+  NhatKyViewModel({required NhatKyService service}) : _service = service;
+
+  List<TuanItem> get tuans => _tuans;
+  List<DiaryItem> get diaries => _diaries;
+  bool get loading => _loading;
+  bool get loadingDiaries => _loadingDiaries;
+  String? get error => _error;
+  ErrorCode? get errorCode => _errorCode;
+
+  bool get noDeTai => _errorCode == ErrorCode.deTaiNotFound;
+  bool get hasError => _error != null;
 
   @override
   void dispose() {
@@ -34,59 +35,65 @@ class NhatKyViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  void clearError() {
-    _error = null;
-    _noDeTai = false;
-  }
-
-  bool _detectNoDeTai(Object e) {
-    try {
-      final s = e.toString().toLowerCase();
-      if (s.contains('3005')) return true;
-      if (s.contains('de tai') || s.contains('đề tài')) {
-        if (s.contains('khong') || s.contains('không') || s.contains('khong ton tai') || s.contains('không tồn tại') || s.contains('not found')) return true;
-      }
-    } catch (_) {}
-    return false;
+  void _notify() {
+    if (!_isDisposed) notifyListeners();
   }
 
   Future<void> fetchTuans({bool includeAll = false}) async {
     _loading = true;
     _error = null;
-    _noDeTai = false;
-    if (!_isDisposed) notifyListeners();
+    _errorCode = null;
+    _notify();
+
     try {
-      _tuans = await service.getTuans(includeAll: includeAll);
+      _tuans = await _service.getTuans(includeAll: includeAll);
+      _error = null;
+      _errorCode = null;
+    } on CustomException catch (e) {
+      _errorCode = e.errorCode;
+      _error = e.errorCode.message;
+      _tuans = [];
     } catch (e) {
-      if (_detectNoDeTai(e)) {
-        _noDeTai = true;
-        _error = null;
-      } else {
-        _error = e.toString();
-        _noDeTai = false;
-      }
+      _errorCode = ErrorCode.internalServerError;
+      _error = 'Lỗi: $e';
+      _tuans = [];
+    } finally {
+      _loading = false;
+      _notify();
     }
-    _loading = false;
-    if (!_isDisposed) notifyListeners();
   }
 
   Future<void> fetchDiaries({bool includeAll = false}) async {
     _loadingDiaries = true;
     _error = null;
-    _noDeTai = false;
-    if (!_isDisposed) notifyListeners();
+    _errorCode = null;
+    _notify();
+
     try {
-      _diaries = await service.getDiaries(includeAll: includeAll);
+      _diaries = await _service.getDiaries(includeAll: includeAll);
+      _error = null;
+      _errorCode = null;
+    } on CustomException catch (e) {
+      _errorCode = e.errorCode;
+      _error = e.errorCode.message;
+      _diaries = [];
     } catch (e) {
-      if (_detectNoDeTai(e)) {
-        _noDeTai = true;
-        _error = null;
-      } else {
-        _error = e.toString();
-        _noDeTai = false;
-      }
+      _errorCode = ErrorCode.internalServerError;
+      _error = 'Lỗi: $e';
+      _diaries = [];
+    } finally {
+      _loadingDiaries = false;
+      _notify();
     }
-    _loadingDiaries = false;
-    if (!_isDisposed) notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
+    _errorCode = null;
+    _notify();
+  }
+
+  Future<void> retry() async {
+    await Future.wait([fetchTuans(), fetchDiaries()]);
   }
 }

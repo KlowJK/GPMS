@@ -1,237 +1,258 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:GPMS/features/auth/services/auth_service.dart';
 import 'package:GPMS/features/student/models/nhat_ki_tuan.dart';
 import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 
+/// Service xử lý API calls cho Nhật ký tiến trình
+///
+/// Refactored để support:
+/// - Instance-based với dependency injection
+/// - Better error handling với ErrorCode
+/// - Upload progress tracking
+/// - Retry logic cho file upload
 class NhatKyService {
   final Dio _dio;
-  NhatKyService({Dio? dio}) : _dio = dio ?? Dio(BaseOptions(baseUrl: AuthService.baseUrl, connectTimeout: const Duration(seconds: 15), receiveTimeout: const Duration(seconds: 15)));
+  final Future<String?> Function() _tokenProvider;
 
-  Future<Response> fetchTuansRaw({bool includeAll = false}) async {
-    final token = await AuthService.getToken();
-    final headers = <String, String>{'accept': '*/*'};
-    if (token != null && token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
+  NhatKyService({Dio? dio, required Future<String?> Function() tokenProvider})
+    : _tokenProvider = tokenProvider,
+      _dio = dio ?? _createDefaultDio();
 
-    final queryParams = <String, dynamic>{'includeAll': includeAll};
+  static Dio _createDefaultDio() {
+    return Dio(
+      BaseOptions(
+        baseUrl: _getBaseUrl(),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {'Accept': '*/*'},
+      ),
+    );
+  }
 
+  static String _getBaseUrl() {
+    if (kIsWeb) return 'http://localhost:8080';
+    return 'http://10.0.2.2:8080';
+  }
+
+  Future<String?> _getToken() async {
     try {
-      if (kDebugMode) {
-        print('[NhatKyService] GET /api/nhat-ky-tien-trinh/tuans -> params: $queryParams');
-        print('[NhatKyService] headers: $headers');
-      }
-      final resp = await _dio.get(
-        '/api/nhat-ky-tien-trinh/tuans',
-        queryParameters: queryParams,
-        options: Options(headers: headers),
-      );
-      return resp;
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (kDebugMode) print('[NhatKyService] DioException: status=$status, message=${e.message}');
-      if (status == 401) throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
-      final msg = e.response?.data?.toString() ?? e.message;
-      throw Exception('Lỗi khi tải tuần: $msg');
+      return await _tokenProvider();
     } catch (e) {
-      if (kDebugMode) print('[NhatKyService] Unexpected error: $e');
-      throw Exception('Lỗi không xác định: $e');
+      if (kDebugMode) print('❌ Error getting token: $e');
+      return null;
     }
   }
 
-  Future<List<TuanItem>> getTuans({bool includeAll = false}) async {
-    final resp = await fetchTuansRaw(includeAll: includeAll);
-    final data = resp.data;
+  Never _handleDioError(DioException e) {
+    final statusCode = e.response?.statusCode;
 
-    // The API in screenshots returns { "result": [ {..}, ... ], ... }
-    List<dynamic>? list;
-    if (data is Map<String, dynamic>) {
-      if (data['result'] is List) list = List<dynamic>.from(data['result']);
-      else if (data['data'] is List) list = List<dynamic>.from(data['data']);
-    } else if (data is List) {
-      list = data;
-    }
+    if (statusCode == 401) throw CustomException(ErrorCode.unauthenticated);
+    if (statusCode == 403) throw CustomException(ErrorCode.forbidden);
+    if (statusCode == 404) throw CustomException(ErrorCode.nhatKyNotFound);
 
-    if (list == null) return [];
-
-    return list.map((e) => TuanItem.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-  }
-
-  /// Fetch raw response for diaries
-  Future<Response> fetchDiariesRaw({bool includeAll = false}) async {
-    final token = await AuthService.getToken();
-    final headers = <String, String>{'accept': '*/*'};
-    if (token != null && token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
-
-    final queryParams = <String, dynamic>{'includeAll': includeAll};
-
-    try {
-      if (kDebugMode) {
-        print('[NhatKyService] GET /api/nhat-ky-tien-trinh -> params: $queryParams');
-        print('[NhatKyService] headers: $headers');
-      }
-      final resp = await _dio.get(
-        '/api/nhat-ky-tien-trinh',
-        queryParameters: queryParams,
-        options: Options(headers: headers),
-      );
-      return resp;
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (kDebugMode) print('[NhatKyService] DioException (diaries): status=$status, message=${e.message}');
-      if (status == 401) throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
-      final msg = e.response?.data?.toString() ?? e.message;
-      throw Exception('Lỗi khi tải nhật ký: $msg');
-    } catch (e) {
-      if (kDebugMode) print('[NhatKyService] Unexpected error (diaries): $e');
-      throw Exception('Lỗi không xác định: $e');
-    }
-  }
-
-  /// Higher-level: parse diaries into List<DiaryItem>
-  Future<List<DiaryItem>> getDiaries({bool includeAll = false}) async {
-    final resp = await fetchDiariesRaw(includeAll: includeAll);
-    final data = resp.data;
-
-    List<dynamic>? list;
-    if (data is Map<String, dynamic>) {
-      if (data['result'] is List) list = List<dynamic>.from(data['result']);
-      else if (data['data'] is List) list = List<dynamic>.from(data['data']);
-    } else if (data is List) {
-      list = data;
-    }
-
-    if (list == null) return [];
-
-    return list.map((e) => DiaryItem.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-  }
-
-  /// Submit diary using multipart/form-data (PUT)
-  /// Endpoint: PUT /api/nhat-ky-tien-trinh/{deTaiId}/nop-nhat-ky
-  Future<DiaryItem> submitDiary({required int deTaiId, required int idNhatKy, required String noiDung, String? filePath, void Function(int, int)? onSendProgress}) async {
-    final token = await AuthService.getToken();
-    // Ensure token exists — if not, return a clear error so UI can prompt login
-    if (token == null || token.isEmpty) {
-      if (kDebugMode) print('[NhatKyService] submitDiary: No auth token found in storage');
-      throw Exception('UNAUTHORIZED: Không tìm thấy token. Vui lòng đăng nhập lại.');
-    }
-    final headers = <String, String>{'accept': '*/*', 'Authorization': 'Bearer $token'};
-
-    try {
-      final map = <String, dynamic>{
-        // send id as int (server may accept int)
-        'idNhatKy': idNhatKy,
-        'noiDung': noiDung,
-      };
-
-      if (filePath != null && filePath.isNotEmpty) {
-        final file = File(filePath);
-        if (await file.exists()) {
-          final fileName = file.path.split(Platform.pathSeparator).last;
-          final mp = await MultipartFile.fromFile(file.path, filename: fileName);
-          // Use single field 'duongDanFile' to avoid duplicating the same MultipartFile instance
-          map['duongDanFile'] = mp;
-        }
-      }
-
-      final formData = FormData.fromMap(map);
-
-      if (kDebugMode) {
-        print('[NhatKyService] PUT /api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky -> headers: $headers');
-        print('[NhatKyService] form keys: ${formData.fields.map((e) => e.key).toList()}');
-        try {
-          print('[NhatKyService] form files: ${formData.files.map((e) => e.key).toList()}');
-        } catch (_) {}
-        // log file details if present
-        if (filePath != null && filePath.isNotEmpty) {
-          try {
-            final f = File(filePath);
-            if (f.existsSync()) {
-              print('[NhatKyService] Uploading file: ${f.path} (${f.lengthSync()} bytes)');
-            }
-          } catch (e) {
-            print('[NhatKyService] Could not read file info: $e');
-          }
-        }
-      }
-
-      Response resp;
+    if (e.response?.data is Map<String, dynamic>) {
       try {
-        resp = await _dio.put('/api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky', data: formData, options: Options(headers: headers), onSendProgress: onSendProgress);
+        final errorCode = ErrorCode.fromResponse(e.response!.data);
+        throw CustomException(errorCode);
+      } catch (_) {}
+    }
+
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      throw CustomException(ErrorCode.timeout);
+    }
+
+    throw CustomException(ErrorCode.internalServerError);
+  }
+
+  Future<String> _requireToken() async {
+    final token = await _getToken();
+    if (token == null || token.isEmpty) {
+      throw CustomException(ErrorCode.unauthenticated);
+    }
+    return token;
+  }
+
+  /// Fetch danh sách tuần
+  Future<List<TuanItem>> getTuans({bool includeAll = false}) async {
+    final token = await _requireToken();
+
+    try {
+      final response = await _dio.get(
+        '/api/nhat-ky-tien-trinh/tuans',
+        queryParameters: {'includeAll': includeAll},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      return _parseTuansResponse(response.data);
+    } on DioException catch (e) {
+      _handleDioError(e);
+    } catch (e) {
+      if (e is CustomException) rethrow;
+      throw CustomException(ErrorCode.internalServerError);
+    }
+  }
+
+  List<TuanItem> _parseTuansResponse(dynamic data) {
+    try {
+      List<dynamic>? list;
+      if (data is Map<String, dynamic>) {
+        list = (data['result'] ?? data['data']) as List<dynamic>?;
+      } else if (data is List) {
+        list = data;
+      }
+
+      if (list == null) return [];
+      return list.map((e) => TuanItem.fromJson(e)).toList();
+    } catch (e) {
+      throw CustomException(ErrorCode.invalidResponse);
+    }
+  }
+
+  /// Fetch danh sách nhật ký
+  Future<List<DiaryItem>> getDiaries({bool includeAll = false}) async {
+    final token = await _requireToken();
+
+    try {
+      final response = await _dio.get(
+        '/api/nhat-ky-tien-trinh',
+        queryParameters: {'includeAll': includeAll},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      return _parseDiariesResponse(response.data);
+    } on DioException catch (e) {
+      _handleDioError(e);
+    } catch (e) {
+      if (e is CustomException) rethrow;
+      throw CustomException(ErrorCode.internalServerError);
+    }
+  }
+
+  List<DiaryItem> _parseDiariesResponse(dynamic data) {
+    try {
+      List<dynamic>? list;
+      if (data is Map<String, dynamic>) {
+        list = (data['result'] ?? data['data']) as List<dynamic>?;
+      } else if (data is List) {
+        list = data;
+      }
+
+      if (list == null) return [];
+      return list.map((e) => DiaryItem.fromJson(e)).toList();
+    } catch (e) {
+      throw CustomException(ErrorCode.invalidResponse);
+    }
+  }
+
+  /// Submit diary
+  Future<DiaryItem> submitDiary({
+    required int deTaiId,
+    required int idNhatKy,
+    required String noiDung,
+    String? filePath,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    final token = await _requireToken();
+
+    // Validate
+    if (noiDung.trim().isEmpty) {
+      throw CustomException(ErrorCode.noiDungRequired);
+    }
+
+    try {
+      final formData = await _buildFormData(
+        idNhatKy: idNhatKy,
+        noiDung: noiDung,
+        filePath: filePath,
+      );
+
+      Response response;
+      try {
+        response = await _dio.put(
+          '/api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky',
+          data: formData,
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+          onSendProgress: onSendProgress,
+        );
       } on DioException catch (inner) {
-        // Special-case: some servers may complain 'Content size below specified contentLength'.
-        // Retry once by recreating the MultipartFile to ensure a fresh stream.
-        final msg = inner.message?.toString() ?? inner.toString();
-        if (filePath != null && msg.contains('Content size below')) {
-          if (kDebugMode) print('[NhatKyService] Detected content-size mismatch; retrying upload with fresh MultipartFile');
-          // recreate form data
-          final retryMap = <String, dynamic>{
-            'idNhatKy': idNhatKy,
-            'noiDung': noiDung,
-          };
-          final file = File(filePath);
-          if (await file.exists()) {
-            final fileName = file.path.split(Platform.pathSeparator).last;
-            final fresh = await MultipartFile.fromFile(file.path, filename: fileName);
-            retryMap['duongDanFile'] = fresh;
-          }
-          final retryForm = FormData.fromMap(retryMap);
-          // attempt the retry
-          resp = await _dio.put('/api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky', data: retryForm, options: Options(headers: headers), onSendProgress: onSendProgress);
+        // Retry logic for content-size mismatch
+        if (_shouldRetryUpload(inner, filePath)) {
+          if (kDebugMode) print('🔄 Retrying upload with fresh MultipartFile');
+          final retryFormData = await _buildFormData(
+            idNhatKy: idNhatKy,
+            noiDung: noiDung,
+            filePath: filePath,
+          );
+          response = await _dio.put(
+            '/api/nhat-ky-tien-trinh/$deTaiId/nop-nhat-ky',
+            data: retryFormData,
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+            onSendProgress: onSendProgress,
+          );
         } else {
           rethrow;
         }
       }
 
-      if (kDebugMode) {
-        print('[NhatKyService] submitDiary response status: ${resp.statusCode}');
-        print('[NhatKyService] submitDiary response data: ${resp.data}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return _parseSubmitResponse(response.data);
       }
-
-      if (resp.statusCode == 200 || resp.statusCode == 201) {
-        final data = resp.data;
-        if (kDebugMode) print('[NhatKyService] submitDiary success data: $data');
-        if (data is Map<String, dynamic>) {
-          final res = data['result'];
-          if (res is Map<String, dynamic>) {
-            return DiaryItem.fromJson(Map<String, dynamic>.from(res));
-          }
-        }
-        // Try to handle when API returns the created object directly
-        if (data is Map<String, dynamic>) {
-          return DiaryItem.fromJson(Map<String, dynamic>.from(data));
-        }
-        final bodyStr = resp.data != null ? resp.data.toString() : '<empty body>';
-        throw Exception('Invalid response format when submitting diary. status=${resp.statusCode}, body=$bodyStr');
-      } else {
-        final bodyStr = resp.data != null ? resp.data.toString() : '<empty body>';
-        final statusMsg = resp.statusMessage ?? '';
-        if (kDebugMode) print('[NhatKyService] submitDiary non-200: ${resp.statusCode}, statusMessage: $statusMsg, data: ${resp.data}');
-        throw Exception('Server returned status=${resp.statusCode} ${statusMsg.isNotEmpty ? "($statusMsg)" : ''}, body=$bodyStr');
-      }
+      throw CustomException(ErrorCode.uploadFileFailed);
     } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      final statusMsg = e.response?.statusMessage;
-      final respData = e.response?.data;
-      String bodyStr;
-      try {
-        bodyStr = respData != null ? respData.toString() : '<empty body>';
-      } catch (_) {
-        bodyStr = '<unprintable body>';
-      }
-      if (kDebugMode) print('[NhatKyService] DioException (submitDiary): status=$status, statusMessage=$statusMsg, message=${e.message}, data=$bodyStr, error=${e.error}');
-      if (status == 401) throw Exception('UNAUTHORIZED: Bạn cần đăng nhập.');
-      final msgParts = <String>[];
-      if (status != null) msgParts.add('status=$status');
-      if (statusMsg != null && statusMsg.isNotEmpty) msgParts.add('statusMessage=$statusMsg');
-      if (bodyStr.isNotEmpty) msgParts.add('body=$bodyStr');
-      if (e.message != null && e.message.toString().isNotEmpty) msgParts.add('message=${e.message}');
-      if (e.error != null) msgParts.add('error=${e.error}');
-      final combined = msgParts.isNotEmpty ? msgParts.join(' | ') : 'Unknown DioException: ${e.toString()}';
-      throw Exception('Lỗi khi nộp nhật ký: $combined');
+      _handleDioError(e);
     } catch (e) {
-      if (kDebugMode) print('[NhatKyService] Unexpected error (submitDiary): $e');
-      throw Exception('Lỗi không xác định khi nộp nhật ký: ${e.toString()}');
+      if (e is CustomException) rethrow;
+      throw CustomException(ErrorCode.internalServerError);
     }
   }
+
+  bool _shouldRetryUpload(DioException e, String? filePath) {
+    if (filePath == null) return false;
+    final msg = e.message?.toString() ?? '';
+    return msg.contains('Content size below');
+  }
+
+  Future<FormData> _buildFormData({
+    required int idNhatKy,
+    required String noiDung,
+    String? filePath,
+  }) async {
+    final map = <String, dynamic>{'idNhatKy': idNhatKy, 'noiDung': noiDung};
+
+    if (filePath != null && filePath.isNotEmpty) {
+      final file = File(filePath);
+      if (await file.exists()) {
+        final fileName = file.path.split(Platform.pathSeparator).last;
+        map['duongDanFile'] = await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        );
+      }
+    }
+
+    return FormData.fromMap(map);
+  }
+
+  DiaryItem _parseSubmitResponse(dynamic data) {
+    try {
+      if (data is Map<String, dynamic>) {
+        final result = data['result'];
+        if (result is Map<String, dynamic>) {
+          return DiaryItem.fromJson(result);
+        }
+        // Direct response
+        return DiaryItem.fromJson(data);
+      }
+      throw CustomException(ErrorCode.invalidResponse);
+    } catch (e) {
+      if (e is CustomException) rethrow;
+      throw CustomException(ErrorCode.invalidResponse);
+    }
+  }
+
+  void dispose() => _dio.close();
 }

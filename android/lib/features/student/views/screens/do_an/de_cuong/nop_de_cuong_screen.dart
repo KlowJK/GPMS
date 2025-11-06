@@ -100,6 +100,7 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
     return Scaffold(
       backgroundColor: Colors.blueGrey[50],
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         title: const Text(
           'Nộp đề cương',

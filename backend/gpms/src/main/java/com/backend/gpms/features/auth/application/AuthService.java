@@ -286,4 +286,70 @@ public class AuthService {
         return anhDaiDienUrl;
     }
 
+    public UserResponse fetchMe() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ApplicationException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        String email = auth.getName();
+        User user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
+
+        Long studentId = null, teacherId = null, adminId = null, assistantId = null;
+        String fullName = null;
+
+        var svOpt = studentRepo.findByUserId(user.getId());
+        if (svOpt.isPresent()) {
+            studentId = svOpt.get().getId();
+            fullName = svOpt.get().getHoTen();
+        }
+
+        var gvOpt = lecturerRepo.findByUserId(user.getId());
+        if (gvOpt.isPresent()) {
+            var gv = gvOpt.get();
+            teacherId = gv.getId();
+            if (gv.getHoTen() != null && !gv.getHoTen().isBlank()) {
+                StringBuilder sb = new StringBuilder();
+                if (gv.getHocHam() != null && !gv.getHocHam().isBlank()) {
+                    sb.append(gv.getHocHam()).append(' ');
+                }
+                if (gv.getHocVi() != null && !gv.getHocVi().isBlank()) {
+                    sb.append(gv.getHocVi()).append(' ');
+                }
+                sb.append(gv.getHoTen());
+                fullName = sb.toString().trim();
+            }
+        }
+
+        var qtvOpt = quanTriVienRepository.findByUserId(user.getId());
+        if (qtvOpt.isPresent()) {
+            adminId = qtvOpt.get().getId();
+            if (qtvOpt.get().getHoTen() != null && !qtvOpt.get().getHoTen().isBlank()) {
+                fullName = qtvOpt.get().getHoTen();
+            }
+        }
+
+        var tlkOpt = troLyKhoaRepository.findByUserId(user.getId());
+        if (tlkOpt.isPresent()) {
+            assistantId = tlkOpt.get().getId();
+            if (tlkOpt.get().getHoTen() != null && !tlkOpt.get().getHoTen().isBlank()) {
+                fullName = tlkOpt.get().getHoTen();
+            }
+        }
+
+        return UserResponse.of(
+                user.getId(),
+                fullName,
+                user.getEmail(),
+                user.getVaiTro(),
+                user.getDuongDanAvt(),
+                user.getTrangThaiKichHoat(),
+                teacherId,
+                studentId,
+                adminId,
+                assistantId
+        );
+    }
+
 }
