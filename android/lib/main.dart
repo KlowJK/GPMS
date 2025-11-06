@@ -6,7 +6,7 @@ import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
 import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
 import 'package:GPMS/core/services/main_service.dart';
 import 'package:intl/intl.dart';
-import 'package:GPMS/shared/components/NewsDetailPage.dart';
+import 'package:GPMS/shared/components/news_detail_page.dart';
 import 'package:GPMS/shared/components/all_news_page.dart';
 import 'package:GPMS/shared/models/de_tai.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
@@ -53,24 +53,22 @@ class HomeGuestResponsive extends StatefulWidget {
 }
 
 class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
-  late Future<List<ThongBaoVaTinTuc>> _notificationsFuture;
-  late Future<List<DeTai>> _deTaiList;
+  // Cache dữ liệu
+  List<ThongBaoVaTinTuc>? _cachedNotifications;
+  List<DeTai>? _cachedDeTai;
+
+  bool _isInitialLoading = true;
+  bool _isRefreshing = false;
+  String? _errorMessage;
+
   late DateFormat _dateFormat;
   bool _didInitDeps = false;
 
   @override
   void initState() {
     super.initState();
-    _refreshData(); // Khởi tạo lần đầu
     _dateFormat = DateFormat('dd/MM/yy');
-  }
-
-  // HÀM LÀM MỚI DỮ LIỆU
-  Future<void> _refreshData() async {
-    setState(() {
-      _notificationsFuture = MainService.listThongBao();
-      _deTaiList = MainService.listDeTai();
-    });
+    _loadInitialData();
   }
 
   @override
@@ -84,8 +82,81 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
     }
 
     final auth = context.watch<AuthViewModel>();
-    if (auth.isLoggedIn) {
-      _refreshData(); // Refresh khi đăng nhập
+    if (auth.isLoggedIn && _cachedNotifications != null) {
+      _refreshData();
+    }
+  }
+
+  // Load dữ liệu lần đầu (song song)
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isInitialLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Load song song cả 2 API
+      final results = await Future.wait([
+        MainService.listThongBao(),
+        MainService.listDeTai(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _cachedNotifications = results[0] as List<ThongBaoVaTinTuc>;
+          _cachedDeTai = results[1] as List<DeTai>;
+          _isInitialLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isInitialLoading = false;
+          _errorMessage = 'Không thể tải dữ liệu: $e';
+        });
+      }
+    }
+  }
+
+  // Làm mới dữ liệu (kéo xuống)
+  Future<void> _refreshData() async {
+    if (_isRefreshing) return;
+
+    setState(() {
+      _isRefreshing = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Load song song cả 2 API
+      final results = await Future.wait([
+        MainService.listThongBao(),
+        MainService.listDeTai(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _cachedNotifications = results[0] as List<ThongBaoVaTinTuc>;
+          _cachedDeTai = results[1] as List<DeTai>;
+          _isRefreshing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+          _errorMessage = 'Không thể làm mới dữ liệu';
+        });
+
+        // Hiển thị snackbar khi refresh failed
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể làm mới dữ liệu: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -107,6 +178,52 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
             final double pad = w >= 900 ? 24 : 16;
             final double gap = w >= 900 ? 16 : 12;
 
+            // Hiển thị loading skeleton lần đầu
+            if (_isInitialLoading) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+                    children: [
+                      _buildSkeletonSection(gap),
+                      SizedBox(height: gap),
+                      _buildSkeletonSection(gap),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            // Hiển thị lỗi nếu load failed
+            if (_errorMessage != null && _cachedNotifications == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _loadInitialData,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Hiển thị dữ liệu đã cache
             final content = Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxContentWidth),
@@ -115,96 +232,31 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                   child: ListView(
                     padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
                     children: [
+                      // Tin tức
                       SectionHeader(
                         title: 'Tin tức',
-                        trailing: FutureBuilder<List<ThongBaoVaTinTuc>>(
-                          future: _notificationsFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const SizedBox.shrink();
-                            } else if (snapshot.hasError || !snapshot.hasData) {
-                              return const SizedBox.shrink();
-                            }
-                            final notifications = snapshot.data!;
-                            return TextButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => AllNewsPage(
-                                      notifications: notifications,
+                        trailing: TextButton(
+                          onPressed:
+                              _cachedNotifications == null ||
+                                  _cachedNotifications!.isEmpty
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => AllNewsPage(
+                                        notifications: _cachedNotifications!,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                              child: const Text('Xem thêm'),
-                            );
-                          },
+                                  );
+                                },
+                          child: const Text('Xem thêm'),
                         ),
                       ),
-
-                      AppCardList<ThongBaoVaTinTuc>(
-                        future: _notificationsFuture,
-                        maxItems: 3,
-                        leadingIcon: Icons.campaign,
-                        trailingTextBuilder: (noti) =>
-                            _dateFormat.format(noti.ngayDang),
-                        itemBuilder: (noti, date) {
-                          return ListTile(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      NewsDetailPage(notification: noti),
-                                ),
-                              );
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                              child: const Icon(Icons.campaign, size: 18),
-                            ),
-                            title: Text(
-                              noti.tieuDe,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                              noti.noiDung,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (date != null)
-                                  Text(
-                                    date,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                          );
-                        },
-                      ),
+                      _buildNewsList(gap),
 
                       SizedBox(height: gap),
 
+                      // Đề tài nổi bật
                       SectionHeader(
                         title: 'Đề tài nổi bật',
                         trailing: TextButton(
@@ -218,49 +270,7 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                           child: const Text('Xem thêm'),
                         ),
                       ),
-
-                      AppCardList<DeTai>(
-                        future: _deTaiList,
-                        maxItems: 4,
-                        leadingIcon: Icons.description,
-                        showTrailingText: false, // Không có ngày
-                        itemBuilder: (dt, _) {
-                          return ListTile(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => TopicDetailPage(deTai: dt),
-                                ),
-                              );
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                              child: const Icon(Icons.description, size: 18),
-                            ),
-                            title: Text(
-                              dt.deTai,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                              '${dt.hocKy} - ${dt.namHoc}',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                          );
-                        },
-                      ),
+                      _buildTopicsList(gap),
                     ],
                   ),
                 ),
@@ -276,6 +286,205 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
             return content;
           },
         ),
+      ),
+    );
+  }
+
+  // Widget skeleton loading
+  Widget _buildSkeletonSection(double gap) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 24,
+          width: 150,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: List.generate(
+              3,
+              (index) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(backgroundColor: Colors.grey[300], radius: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 16,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 14,
+                            width: 200,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Build danh sách tin tức từ cache
+  Widget _buildNewsList(double gap) {
+    if (_cachedNotifications == null || _cachedNotifications!.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[400]),
+                const SizedBox(height: 8),
+                Text(
+                  'Chưa có tin tức nào',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final displayItems = _cachedNotifications!.take(3).toList();
+
+    return Card(
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: displayItems.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final noti = displayItems[index];
+          final date = _dateFormat.format(noti.ngayDang);
+
+          return ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NewsDetailPage(notification: noti),
+                ),
+              );
+            },
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: const Icon(Icons.campaign, size: 18),
+            ),
+            title: Text(
+              noti.tieuDe,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              noti.noiDung,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            trailing: Text(
+              date,
+              style: const TextStyle(color: Colors.black, fontSize: 12),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Build danh sách đề tài từ cache
+  Widget _buildTopicsList(double gap) {
+    if (_cachedDeTai == null || _cachedDeTai!.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[400]),
+                const SizedBox(height: 8),
+                Text(
+                  'Chưa có đề tài nào',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final displayItems = _cachedDeTai!.take(4).toList();
+
+    return Card(
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: displayItems.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final dt = displayItems[index];
+
+          return ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TopicDetailPage(deTai: dt)),
+              );
+            },
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: const Icon(Icons.description, size: 18),
+            ),
+            title: Text(
+              dt.deTai,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              '${dt.hocKy} - ${dt.namHoc}',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+          );
+        },
       ),
     );
   }
@@ -298,7 +507,6 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 12,
       title: Row(
         children: [
-          // Logo placeholder
           SizedBox(
             width: 55,
             height: 55,
@@ -307,7 +515,7 @@ class _HeaderBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 9),
           Flexible(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text(
                   'TRƯỜNG ĐẠI HỌC THỦY LỢI',
@@ -366,30 +574,6 @@ class SectionHeader extends StatelessWidget {
           if (trailing != null) trailing!,
         ],
       ),
-    );
-  }
-}
-
-class _FilterChip extends StatefulWidget {
-  const _FilterChip({required this.label, this.selected = false});
-  final String label;
-  final bool selected;
-
-  @override
-  State<_FilterChip> createState() => _FilterChipState();
-}
-
-class _FilterChipState extends State<_FilterChip> {
-  late bool _selected = widget.selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(widget.label),
-      selected: _selected,
-      onSelected: (v) => setState(() => _selected = v),
-      showCheckmark: false,
-      shape: const StadiumBorder(),
     );
   }
 }

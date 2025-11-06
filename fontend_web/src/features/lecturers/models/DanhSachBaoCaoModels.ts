@@ -1,18 +1,10 @@
 // Shared models for the lecturers feature
 // Keep fields optional where backend may omit them; expand as backend schema stabilizes.
+import type { SinhVien } from './SinhVien'
+import type { PhanTrang } from './PhanTrang'
 
-export interface Student {
-  maSV: string
-  hoTen?: string
-  email?: string
-  soDienThoai?: string
-  ngaySinh?: string
-  tenNganh?: string
-  gioiTinh?: string
-  tenLop?: string
-  duongDanCv?: string 
-  [key: string]: any
-}
+// Re-export SinhVien under the older name `Student` for compatibility
+export type Student = SinhVien
 
 export interface ReportComment {
   nhanXet?: string
@@ -36,13 +28,4 @@ export interface ReportVersion {
   raw?: any
 }
 
-export interface PagedResult<T> {
-  content: T[]
-  page?: number
-  size?: number
-  totalElements?: number
-  totalPages?: number
-  [key: string]: any
-}
-
-export default {}
+export type PagedResult<T> = PhanTrang<T>

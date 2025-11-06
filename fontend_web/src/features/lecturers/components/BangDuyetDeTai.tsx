@@ -36,7 +36,7 @@ export default function BangDuyetDeTai({ rows, isLoading, onApprove, onReject, o
                 {/* Approve */}
                 <div className="w-9 h-9 flex items-center justify-center">
                   {r.trangThai === 'CHO_XET_DUYET' ? (
-                    approvingId === r.idDeTai ? (
+                      approvingId === r.idDeTai ? (
                       <div className="w-9 h-9 flex items-center justify-center text-green-600">...</div>
                     ) : (
                       <button title="Duyệt" onClick={() => onApprove(r.idDeTai)} className="w-9 h-9 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition">

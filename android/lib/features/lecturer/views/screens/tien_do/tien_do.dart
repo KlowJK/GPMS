@@ -25,7 +25,7 @@ class TienDo extends StatelessWidget {
               const SizedBox(width: 12),
               Flexible(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
                     Text(

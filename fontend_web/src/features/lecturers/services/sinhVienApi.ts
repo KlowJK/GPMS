@@ -1,10 +1,11 @@
 import { axios } from '@shared/libs/axios'
+import type { SinhVien } from '../models/SinhVien'
 
 /**
  * Fetch student basic info by student code
  * GET /api/sinh-vien/{maSV}
  */
-export async function fetchStudentByCode(maSV: string) {
+export async function fetchStudentByCode(maSV: string): Promise<SinhVien | null> {
   if (!maSV) return null
   const url = `/api/sinh-vien/${encodeURIComponent(String(maSV))}`
   const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 10000 })
