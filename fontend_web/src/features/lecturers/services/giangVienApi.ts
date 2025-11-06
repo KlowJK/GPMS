@@ -166,3 +166,23 @@ export async function getLecturersByBoMon(boMonId: string | number): Promise<Gia
   const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 50000 })
   return resp.data?.result ?? resp.data ?? []
 }
+
+/**
+ * Update quota (soLuongChoPhepHuongDan) for a single lecturer
+ * PUT /api/giang-vien/{id}/quota?quotaInstruct={number}
+ */
+export async function updateQuotaForLecturer(id: string | number, quotaInstruct: number) {
+  if (id == null) throw new Error('Missing lecturer id')
+  const url = `/api/giang-vien/${encodeURIComponent(String(id))}/quota`
+  const resp = await axios.put(url, null, { params: { quotaInstruct }, headers: { Accept: '*/*' }, timeout: 20000 })
+  return resp.data?.result ?? resp.data
+}
+
+/**
+ * Bulk update quotas for multiple lecturers. Returns Promise.allSettled results.
+ * Note: backend currently exposes per-lecturer endpoint; this helper runs them in parallel.
+ */
+export async function bulkUpdateQuotas(ids: Array<string | number>, quotaInstruct: number) {
+  const tasks = ids.map(id => updateQuotaForLecturer(id, quotaInstruct).then(r => ({ id, ok: true, result: r })).catch(e => ({ id, ok: false, error: e })))
+  return Promise.allSettled(tasks)
+}

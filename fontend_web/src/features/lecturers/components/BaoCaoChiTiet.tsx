@@ -1,7 +1,44 @@
-import React from 'react'
+import React, { useState } from 'react'
 import useReportDetailViewModel from '../viewmodels/BaoCaoChiTietViewmodels'
 import ReportHeader from './ThongTinSinhVien'
 import ReportVersionItem from './DanhSachBaoCao'
+import { toast } from 'sonner'
+
+// Heuristic fixer for Vietnamese messages returned without diacritics from backend.
+// It applies common word replacements (ASCII -> proper Vietnamese diacritics).
+// This is intentionally conservative and only replaces whole words (case-insensitive).
+function prettifyVietnamese(raw?: any) {
+  if (!raw && raw !== 0) return ''
+  let s = String(raw)
+  // quick bail if string already contains diacritic characters (common Vietnamese vowels)
+  if (/[\u00C0-\u1EF9]/.test(s)) return s
+
+  const replacements: Array<[RegExp, string]> = [
+    [/\bNgoai\b/gi, 'Ngoại'],
+    [/\bngoai\b/gi, 'ngoại'],
+    [/\bthoi\s+gian\b/gi, 'thời gian'],
+    [/\bthoi_gian\b/gi, 'thời gian'],
+    [/\bthoi\b/gi, 'thời'],
+    [/\bnop\b/gi, 'nộp'],
+    [/\bbao\s+cao\b/gi, 'báo cáo'],
+    [/\bduyet\b/gi, 'duyệt'],
+    [/\btu\s*choi\b/gi, 'từ chối'],
+    [/\btu-choi\b/gi, 'từ chối'],
+    [/(\b|\s)khong\b/gi, ' không'],
+    [/\bkhong\s+thanh\s+cong\b/gi, 'không thành công'],
+    [/\bthanh\s+cong\b/gi, 'thành công'],
+    [/\bdiem\b/gi, 'điểm'],
+    [/\bsinh\s+vien\b/gi, 'sinh viên'],
+    [/\bma\s+sinh\s+vien\b/gi, 'mã sinh viên'],
+  ]
+
+  for (const [re, rep] of replacements) {
+    s = s.replace(re, rep)
+  }
+
+  // trim and fix double spaces
+  return s.replace(/\s{2,}/g, ' ').trim()
+}
 
 export default function ReportDetail({ open, maSV, onClose }: { open: boolean; maSV?: string | null; onClose: () => void }) {
   if (!open) return null
@@ -46,6 +83,11 @@ export default function ReportDetail({ open, maSV, onClose }: { open: boolean; m
 
   // approve/reject are provided by the viewmodel (vm.approve / vm.reject)
   const loadingId = vm.loadingId
+  const [approveModal, setApproveModal] = useState<{ open: boolean; item?: any }>({ open: false })
+  const [approveNote, setApproveNote] = useState<string>('')
+  const [approveScore, setApproveScore] = useState<string>('')
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; item?: any }>({ open: false })
+  const [rejectReason, setRejectReason] = useState<string>('')
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
@@ -75,33 +117,15 @@ export default function ReportDetail({ open, maSV, onClose }: { open: boolean; m
                     v={v}
                     loadingId={loadingId}
                     onApprove={async (item) => {
-                      const ok = window.confirm('Xác nhận duyệt báo cáo này?')
-                      if (!ok) return
-                      const note = window.prompt('Ghi chú (tuỳ chọn):', '')
-                      // prompt for score (diemHuongDan) — optional
-                      const scoreStr = window.prompt('Nhập điểm hướng dẫn (số) (tùy chọn):', item.diem != null ? String(item.diem) : '')
-                      let score: number | undefined = undefined
-                      if (scoreStr !== null && scoreStr.trim() !== '') {
-                        const n = Number(scoreStr)
-                        if (!Number.isNaN(n)) score = n
-                      }
-
-                      try {
-                        await vm.approve(item.id, score, note ?? '')
-                        try { alert('Duyệt báo cáo thành công') } catch (e) {}
-                      } catch (err: any) {
-                        try { alert('Duyệt không thành công: ' + (err?.message ?? err)) } catch (e) {}
-                      }
+                      // open approve modal with item
+                      setApproveModal({ open: true, item })
+                      setApproveNote('')
+                      setApproveScore(item.diem != null ? String(item.diem) : '')
                     }}
                     onReject={async (item) => {
-                      const reason = window.prompt('Lý do từ chối (tùy chọn):', '')
-                      try {
-                        // await the vm.reject so we ensure the API call was made
-                        await vm.reject(item.id, item.phienBan, reason ?? '')
-                        try { alert('Từ chối báo cáo thành công') } catch (e) {}
-                      } catch (err: any) {
-                        try { alert('Từ chối không thành công: ' + (err?.message ?? err)) } catch (e) {}
-                      }
+                      // open reject modal
+                      setRejectModal({ open: true, item })
+                      setRejectReason('')
                     }}
                     isApproved={isApproved}
                     isRejected={isRejected}
@@ -110,6 +134,83 @@ export default function ReportDetail({ open, maSV, onClose }: { open: boolean; m
               </div>
             )}
           </div>
+
+          {/* Approve modal */}
+          {approveModal.open && (
+            <div className="fixed inset-0 z-60 grid place-items-center bg-black/40">
+              <div className="w-[520px] bg-white rounded-md shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="font-semibold">Duyệt báo cáo</div>
+                  <button onClick={() => setApproveModal({ open: false })} className="text-xl leading-none">×</button>
+                </div>
+                <div className="mb-3">
+                  <div className="text-sm text-slate-500">Tiêu đề</div>
+                  <div className="font-medium">{approveModal.item?.title ?? approveModal.item?.tenDeTai ?? 'Báo cáo'}</div>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-sm text-slate-600 mb-1">Ghi chú (tuỳ chọn)</label>
+                  <textarea value={approveNote} onChange={e => setApproveNote(e.target.value)} rows={3} className="w-full border rounded p-2" />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm text-slate-600 mb-1">Điểm hướng dẫn (số, tuỳ chọn)</label>
+                  <input type="number" value={approveScore} onChange={e => setApproveScore(e.target.value)} className="w-36 border rounded px-3 py-2" />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setApproveModal({ open: false })} className="px-4 py-2 rounded bg-gray-200">Huỷ</button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const score = (approveScore ?? '').trim() === '' ? undefined : Number(approveScore)
+                        await vm.approve(approveModal.item.id, score, approveNote ?? '')
+                        toast.success('Duyệt báo cáo thành công')
+                        setApproveModal({ open: false })
+                      } catch (err: any) {
+                        const message = prettifyVietnamese(err?.message ?? String(err))
+                        toast.error('Duyệt không thành công: ' + message)
+                      }
+                    }}
+                    className="px-4 py-2 rounded bg-emerald-600 text-white"
+                  >Duyệt</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reject modal */}
+          {rejectModal.open && (
+            <div className="fixed inset-0 z-60 grid place-items-center bg-black/40">
+              <div className="w-[520px] bg-white rounded-md shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="font-semibold">Từ chối báo cáo</div>
+                  <button onClick={() => setRejectModal({ open: false })} className="text-xl leading-none">×</button>
+                </div>
+                <div className="mb-3">
+                  <div className="text-sm text-slate-500">Tiêu đề</div>
+                  <div className="font-medium">{rejectModal.item?.title ?? rejectModal.item?.tenDeTai ?? 'Báo cáo'}</div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm text-slate-600 mb-1">Lý do từ chối (tuỳ chọn)</label>
+                  <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={4} className="w-full border rounded p-2" />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setRejectModal({ open: false })} className="px-4 py-2 rounded bg-gray-200">Huỷ</button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await vm.reject(rejectModal.item.id, rejectModal.item.phienBan, rejectReason ?? '')
+                        toast.success('Từ chối báo cáo thành công')
+                        setRejectModal({ open: false })
+                      } catch (err: any) {
+                        const message = prettifyVietnamese(err?.message ?? String(err))
+                        toast.error('Từ chối không thành công: ' + message)
+                      }
+                    }}
+                    className="px-4 py-2 rounded bg-rose-600 text-white"
+                  >Từ chối</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 flex justify-end">
             <button onClick={onClose} className="px-4 py-2 border rounded text-slate-600">Quay lại</button>

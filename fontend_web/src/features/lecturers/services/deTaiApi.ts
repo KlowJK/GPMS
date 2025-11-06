@@ -43,3 +43,42 @@ export async function assignDeTai(payload: { maSV: string; maGV: string }) {
     throw err
   }
 }
+
+/**
+ * Fetch list of student requests to postpone thesis for department heads
+ * GET /api/de-tai/danh-sach-sinh-vien/hoan-do-an-by-cn-khoa
+ * Accepts pageable params: page, size, sort
+ */
+export async function fetchHoanDoAnByCnKhoa(params: { page?: number; size?: number; sort?: string[] } = {}) {
+  const sp = new URLSearchParams()
+  if (params.page != null) sp.set('page', String(params.page))
+  if (params.size != null) sp.set('size', String(params.size))
+  if (Array.isArray(params.sort)) params.sort.forEach(s => sp.append('sort', s))
+  const url = `/api/de-tai/danh-sach-sinh-vien/hoan-do-an-by-cn-khoa?${sp.toString()}`
+  try {
+    const resp = await axios.get(url, { headers: { Accept: '*/*' }, timeout: 15000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    throw err
+  }
+}
+
+/**
+ * Approve a thesis postponement request (Chủ nhiệm khoa)
+ * PUT /api/de-tai/duyet-don-hoan-do-an/duyet
+ * Body: multipart/form-data { donHoanDoAnId, bienbanHopPheDuyetFile (file) }
+ */
+export async function duyetDonHoanDoAn(payload: { donHoanDoAnId: number | string; bienbanHopPheDuyetFile?: File | null }) {
+  const url = '/api/de-tai/duyet-don-hoan-do-an/duyet'
+  try {
+    const form = new FormData()
+    form.append('donHoanDoAnId', String(payload.donHoanDoAnId))
+    if (payload.bienbanHopPheDuyetFile) {
+      form.append('bienbanHopPheDuyetFile', payload.bienbanHopPheDuyetFile)
+    }
+    const resp = await axios.put(url, form, { headers: { Accept: '*/*' }, timeout: 20000 })
+    return resp.data?.result ?? resp.data
+  } catch (err) {
+    throw err
+  }
+}
