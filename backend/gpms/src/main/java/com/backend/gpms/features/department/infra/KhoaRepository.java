@@ -14,5 +14,7 @@ public interface KhoaRepository extends JpaRepository<Khoa,Long> {
 
     List<Khoa> findAllByOrderByTenKhoaAsc();
 
+    Optional<Khoa> findByChuNhiemKhoa_Id(Long giangVienId);
+
 
 }
