@@ -15,6 +15,10 @@ public class DonHoanDoAnResponse {
     Long id;
 
     Long sinhVienId;
+    String hoTenSinhVien;
+    String maSinhVien;
+    String lopSinhVien;
+    String nganhSinhVien;
 
     TrangThaiDeTai trangThai;
     String lyDo;

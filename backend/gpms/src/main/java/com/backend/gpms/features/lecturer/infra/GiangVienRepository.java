@@ -23,6 +23,7 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
 
     List<GiangVien> findAllByBoMon_Id(Long boMonId);
 
+
     @Override
     List<GiangVien> findAll();
 
@@ -42,48 +43,51 @@ public interface GiangVienRepository extends JpaRepository<GiangVien, Long> {
     @EntityGraph(attributePaths = {"boMon", "user"})
     Page<GiangVien> findAll(Pageable pageable);
 
-    @Query("SELECT gv FROM GiangVien gv " +
-            "WHERE gv.boMon.id = :boMonId " +
-            "AND (" +
-            "   SELECT COUNT(d) FROM DeTai d " +
-            "   WHERE d.giangVienHuongDan = gv " +
-            "   AND d.sinhVien.user.trangThaiKichHoat = true" +
-            ") < 10")
-    Set<GiangVien> findAvailableGiangVienByBoMon(@Param("boMonId") Long boMonId);
-
+@Query("SELECT gv FROM GiangVien gv " +
+       "WHERE gv.boMon.id = :boMonId " +
+       "AND (" +
+       "   SELECT COUNT(d) FROM DeTai d " +
+       "   WHERE d.giangVienHuongDan = gv " +
+       "   AND d.sinhVien.duDieuKien = true " +
+       "   AND d.trangThai = :approved" +
+       ") < COALESCE(gv.quotaInstruct, 0)")
+Set<GiangVien> findAvailableGiangVienByBoMon(@Param("boMonId") Long boMonId,
+                                             @Param("approved") TrangThaiDeTai approved);
     @Query("SELECT COUNT(d) FROM DeTai d " +
             "WHERE d.giangVienHuongDan.maGiangVien = :maGV " +
             "AND d.sinhVien.duDieuKien = true")
     int countDeTaiByGiangVienAndSinhVienActive(@Param("maGV") String maGV);
 
+
     @Query("""
-    select
-        gv.id as id,
-        concat(
-            coalesce(concat(gv.hocHam, ' '), ''),
-            coalesce(concat(gv.hocVi, ' '), ''),
-            gv.hoTen
-        ) as hoTen,
-        bm.id as boMonId,
-        coalesce(gv.quotaInstruct, 0) as quotaInstruct,
-        coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0) as currentInstruct,
-        (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) as remaining
-    from GiangVien gv
-        join gv.boMon bm
-        left join DeTai d on d.giangVienHuongDan = gv
-    where bm.id = :boMonId
-    group by gv.id, gv.hocHam, gv.hocVi, gv.hoTen, bm.id, gv.quotaInstruct
-    having (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) > 0
-    order by
-        (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) desc,
-        concat(
-            coalesce(concat(gv.hocHam, ' '), ''),
-            coalesce(concat(gv.hocVi, ' '), ''),
-            gv.hoTen
-        ) asc
-    """)
-    List<GiangVienLiteProjection> findAdvisorsWithRemainingByBoMonId(
-            @Param("boMonId") Long boMonId,
+        select
+            gv.id as id,
+            concat(
+                coalesce(concat(gv.hocHam, ' '), ''),
+                coalesce(concat(gv.hocVi, ' '), ''),
+                gv.hoTen
+            ) as hoTen,
+            bm.id as boMonId,
+            coalesce(gv.quotaInstruct, 0) as quotaInstruct,
+            coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0) as currentInstruct,
+            (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) as remaining
+        from GiangVien gv
+            join gv.boMon bm
+            join bm.khoa k
+            left join DeTai d on d.giangVienHuongDan = gv
+        where k.id = :khoaId
+        group by gv.id, gv.hocHam, gv.hocVi, gv.hoTen, bm.id, gv.quotaInstruct
+        having (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) > 0
+        order by
+            (coalesce(gv.quotaInstruct, 0) - coalesce(sum(case when d.trangThai = :approved then 1 else 0 end), 0)) desc,
+            concat(
+                coalesce(concat(gv.hocHam, ' '), ''),
+                coalesce(concat(gv.hocVi, ' '), ''),
+                gv.hoTen
+            ) asc
+        """)
+    List<GiangVienLiteProjection> findAdvisorsWithRemainingByKhoaId(
+            @Param("khoaId") Long khoaId,
             @Param("approved") TrangThaiDeTai approved
     );
 
