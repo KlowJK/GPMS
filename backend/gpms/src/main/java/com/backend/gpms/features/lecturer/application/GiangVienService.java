@@ -37,6 +37,7 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.apache.poi.ss.formula.functions.T;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -88,11 +89,11 @@ public class GiangVienService {
         if (sv.getLop() == null) return List.of();
 
         // Lấy ID bộ môn từ ngành của sinh viên
-        Long boMonId = sv.getLop().getNganh().getBoMon().getId();
+        Long boMonId = sv.getLop().getNganh().getBoMon().getKhoa().getId();
 
         // Query giảng viên theo bộ môn, có tính toán remaining và sắp xếp
         List<GiangVienLiteProjection> rows = giangVienRepository
-                .findAdvisorsWithRemainingByBoMonId(boMonId, TrangThaiDeTai.DA_DUYET);
+                .findAdvisorsWithRemainingByKhoaId(boMonId, TrangThaiDeTai.DA_DUYET);
 
         // Map sang response DTO
         return rows.stream()
@@ -196,7 +197,7 @@ public class GiangVienService {
     public Set<GiangVienInfoResponse> getGiangVienByBoMonAndSoLuongDeTai(Long boMonId) {
         BoMon boMon = boMonRepository.findById(boMonId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
-        Set<GiangVien> giangVienSet = giangVienRepository.findAvailableGiangVienByBoMon(boMonId);
+        Set<GiangVien> giangVienSet = giangVienRepository.findAvailableGiangVienByBoMon(boMonId, TrangThaiDeTai.DA_DUYET);
         Set<GiangVienInfoResponse> responses = giangVienSet.stream()
                 .map(giangVienMapper::toGiangVienInfoResponse)
                 .collect(Collectors.toSet());
@@ -214,7 +215,7 @@ public class GiangVienService {
         Long boMonId = gv.getBoMon().getId();
         BoMon boMon = boMonRepository.findById(boMonId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.BO_MON_NOT_FOUND));
-        Set<GiangVien> giangVienSet = giangVienRepository.findAvailableGiangVienByBoMon(boMonId);
+        Set<GiangVien> giangVienSet = giangVienRepository.findAvailableGiangVienByBoMon(boMonId, TrangThaiDeTai.DA_DUYET);
         Set<GiangVienInfoResponse> responses = giangVienSet.stream()
                 .map(giangVienMapper::toGiangVienInfoResponse)
                 .collect(Collectors.toSet());
@@ -518,5 +519,14 @@ public class GiangVienService {
     }
 
 
+   public List<GiangVienAllResponse> getGiangVien() {
+       List<GiangVien> giangVienList =  giangVienRepository.findAll();
+
+       List<GiangVienAllResponse> responses = giangVienList.stream()
+               .map(giangVienMapper::toGiangVienAllResponse)
+               .collect(Collectors.toList());
+
+       return responses;
+   }
 
 }
