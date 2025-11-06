@@ -91,6 +91,9 @@ export default function useReportDetailViewModel(maSV?: string | null) {
       qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] })
 
+  // Also invalidate the generic reports page so the list view refreshes
+  try { qc.invalidateQueries({ queryKey: ['bao-cao-page'] }) } catch (e) {}
+
       return result
     } catch (err: any) {
       // let the caller (component) display UI notifications to avoid duplicates
@@ -123,7 +126,8 @@ export default function useReportDetailViewModel(maSV?: string | null) {
       } catch (e) {}
 
       // invalidate related queries so other parts of the UI refresh (reports page, student data, reviews list)
-      qc.invalidateQueries({ queryKey: ['bao-cao-page', { maSV }] })
+  qc.invalidateQueries({ queryKey: ['bao-cao-page', { maSV }] })
+  try { qc.invalidateQueries({ queryKey: ['bao-cao-page'] }) } catch (e) {}
       qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] })
       qc.invalidateQueries({ queryKey: ['lecturers-reviews'] as any })
