@@ -13,6 +13,10 @@ public interface DonHoanDoAnMapper {
     @Mapping(source = "nguoiPheDuyet.id", target = "nguoiPheDuyetId")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
+    @Mapping(source = "sinhVien.hoTen", target = "hoTenSinhVien")
+    @Mapping(source = "sinhVien.maSinhVien", target = "maSinhVien")
+    @Mapping(source = "sinhVien.lop.tenLop", target = "lopSinhVien")
+    @Mapping(source = "sinhVien.lop.nganh.tenNganh", target = "nganhSinhVien")
     DonHoanDoAnResponse toResponse(DonHoanDoAn entity);
 
     default Long toId(SinhVien x) { return x != null ? x.getId() : null; }

@@ -239,5 +239,11 @@ public class GiangVienController {
         return ApiResponse.success(giangVienService.getMyProfile());
     }
 
+    @Operation(summary = "Lấy toàn bộ giảng viên" )
+    @GetMapping("/all")
+    public ApiResponse<List<GiangVienAllResponse>> getAllGiangVien() {
+        return ApiResponse.success(giangVienService.getGiangVien());
+    }
+
 
 }
