@@ -32,6 +32,9 @@ public interface GiangVienMapper {
     @Mapping(source = "user.email", target = "email")
     GiangVienInfoResponse toGiangVienInfoResponse(GiangVien entity);
 
+
+    GiangVienAllResponse toGiangVienAllResponse(GiangVien entity);
+
     @Mapping(source = "boMon.id",       target = "boMonId")
     GiangVienLiteResponse toLite(GiangVien entity);
 
