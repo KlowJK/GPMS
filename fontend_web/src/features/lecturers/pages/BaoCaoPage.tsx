@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useReviewsViewModel } from '../viewmodels/DuyetDeTaiViewmodels'
-import { Eye } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import ReportDetail from '../components/BaoCaoChiTiet'
 
 export default function BaoCao() {
@@ -74,8 +74,8 @@ function Inner() {
                         className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 border rounded text-sky-700 hover:bg-sky-100"
                         aria-label={`Xem chi tiết ${r.maSV}`}
                       >
-                        <Eye size={16} />
-                        Xem chi tiết
+                        <FileText size={16} />
+                        <span>Duyệt báo cáo</span>
                       </button>
                     </div>
                   </td>

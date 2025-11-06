@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Check, Edit3 } from 'lucide-react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import useHoiDongViewModel, { useHoiDongDetailViewModel } from '../viewmodels/HoiDongViewmodels'
 import HoiDongScoreModal from '../components/HoiDongScoreModal'
@@ -171,10 +172,14 @@ export default function HoiDongDetailPage() {
                                                             disabled={approving[String(s.idDeTai ?? s.id)]}
                                                             className="inline-flex items-center gap-2 px-3 py-1 text-sm border rounded bg-sky-50 text-sky-700 hover:bg-sky-100"
                                                         >
-                                                            Duyệt
+                                                            <Check size={14} />
+                                                            <span>Duyệt</span>
                                                         </button>
                                                     ) : null}
-                                                        <button onClick={() => openScore(s)} className="ml-2 inline-flex items-center gap-2 px-3 py-1 text-sm border rounded text-sky-700 hover:bg-sky-50">Chấm điểm</button>
+                                                        <button onClick={() => openScore(s)} className="ml-2 inline-flex items-center gap-2 px-3 py-1 text-sm border rounded text-sky-700 hover:bg-sky-50">
+                                                            <Edit3 size={14} />
+                                                            <span>Chấm điểm</span>
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))

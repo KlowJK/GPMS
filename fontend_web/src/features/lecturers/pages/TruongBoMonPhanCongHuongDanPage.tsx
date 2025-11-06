@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { UserPlus } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchStudentsWithoutSupervisor } from '../services'
 import PhanCongModal from '../components/PhanCongHuongDanModal'
@@ -138,7 +139,8 @@ export default function TruongBoMonPhanCongGiangVienPage() {
                         onClick={() => { setAssignRow(r); setShowAssignModal(true) }}
                         className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border rounded text-emerald-700 hover:bg-emerald-100"
                       >
-                        Phân công
+                        <UserPlus size={16} />
+                        <span>Phân công</span>
                       </button>
                     </div>
                   </td>

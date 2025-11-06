@@ -123,7 +123,7 @@ export const router = createBrowserRouter([
 
                     // Lecturer
                     {
-                        element: <RoleGuard allow={['GIANG_VIEN', 'TRUONG_BO_MON']} />,
+                        element: <RoleGuard allow={['GIANG_VIEN', 'TRUONG_BO_MON',"CHU_NHIEM_KHOA"]} />,
                         children: [
                             {
                                 path: 'lecturers',
@@ -146,7 +146,7 @@ export const router = createBrowserRouter([
                                     { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
                                     { path: 'phan-bien', lazy: () => import('@/features/lecturers/pages/PhanBienPage').then(m => ({ Component: m.default })) },
                                     { path: 'hoi-dong', lazy: () => import('@/features/lecturers/pages/HoiDongPage').then(m => ({ Component: m.default })) },
-                                    { path: 'hoi-dong/:id', lazy: () => import('@/features/lecturers/pages/HoiDongDetailPage').then(m => ({ Component: m.default })) },
+                                    { path: 'hoi-dong/:id', lazy: () => import('@/features/lecturers/pages/HoiDongChiTietPage').then(m => ({ Component: m.default })) },
                                 ],
                             },
                         ],
