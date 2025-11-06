@@ -46,6 +46,7 @@ function Card({
 export default function Dashboard() {
   const { roles } = useAuth()
   const isHead = Array.isArray(roles) && roles.includes('TRUONG_BO_MON')
+  const isCnKhoa = Array.isArray(roles) && roles.includes('CHU_NHIEM_KHOA')
 
   return (
     <div className="max-w-7xl mx-auto px-12 py-10">
@@ -56,6 +57,10 @@ export default function Dashboard() {
   <Card to="/lecturers/bao-cao" title="Báo cáo" icon={<ClipboardCheck className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
     <Card to="/lecturers/phan-bien" title="Phản biện" icon={<MessageSquare className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
   <Card to="/lecturers/hoi-dong" title="Hội đồng" icon={<Building className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+
+  {isCnKhoa && (
+    <Card to="/lecturers/chu-nhiem-khoa/hoan-do-an" title="Đơn hoãn đồ án (CN khoa)" icon={<ClipboardCheck className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20" />} color="#0071C6" />
+  )}
 
   {isHead && (
     <>

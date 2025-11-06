@@ -23,6 +23,7 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
 
   const { roles } = useAuth()
   const isHead = Array.isArray(roles) && roles.includes('TRUONG_BO_MON')
+  const isChuNhiemKhoa = Array.isArray(roles) && roles.includes('CHU_NHIEM_KHOA')
 
   const body = (
     <aside className="h-full w-[259px] bg-[#2F7CD3] text-white flex flex-col shadow-md rounded-br-xl relative px-5 py-6">
@@ -73,9 +74,11 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
 
   function DoAnItem({ to, Icon, overlay, onClose }: { to: string; Icon: any; overlay: boolean; onClose: () => void }) {
   const location = useLocation()
-  // Keep Đồ án submenu open when route is under '/lecturers/do-an' or
-  // when user navigates to TBM-specific routes under '/lecturers/truong-bo-mon'.
-  const isDoAnPath = (p: string) => p.startsWith('/lecturers/do-an') || p.startsWith('/lecturers/truong-bo-mon')
+  // Keep Đồ án submenu open when route is under '/lecturers/do-an',
+  // TBM-specific routes under '/lecturers/truong-bo-mon',
+  // or CN khoa routes under '/lecturers/chu-nhiem-khoa'. This ensures
+  // links like '/lecturers/chu-nhiem-khoa/hoan-do-an' don't close the submenu.
+  const isDoAnPath = (p: string) => p.startsWith('/lecturers/do-an') || p.startsWith('/lecturers/truong-bo-mon') || p.startsWith('/lecturers/chu-nhiem-khoa')
   const [open, setOpen] = useState(() => isDoAnPath(location.pathname))
 
   useEffect(() => setOpen(isDoAnPath(location.pathname)), [location.pathname])
@@ -123,6 +126,11 @@ export default function Sidebar({ onClose, overlay = false }: { onClose: () => v
                         Danh sách giảng viên (TBM)
                       </NavLink>
                     </>
+                  )}
+                  {isChuNhiemKhoa && (
+                    <NavLink to="/lecturers/chu-nhiem-khoa/hoan-do-an" className={`block text-sm ${selected === '/lecturers/chu-nhiem-khoa/hoan-do-an' ? 'bg-white text-slate-800 rounded-[8px] px-3 py-2' : 'text-white/90'}`} onClick={() => { if (overlay) onClose(); setSelected('/lecturers/chu-nhiem-khoa/hoan-do-an') }}>
+                      Danh sách đơn hoãn (CN khoa)
+                    </NavLink>
                   )}
                 </>
               )
