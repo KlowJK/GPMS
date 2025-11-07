@@ -71,7 +71,7 @@ public class BaoCaoService {
     public List<BaoCaoResponse> getBaoCaoOfSinhVien() {
     String username = getCurrentUsername();
 
-    List<BaoCao> list = baoCaoRepository.findByDeTai_SinhVien_User_EmailOrderByCreatedAt(username);
+    List<BaoCao> list = baoCaoRepository.findByDeTai_SinhVien_User_EmailOrderByCreatedAtDesc(username);
 
     return list.stream()
             .map(baoCaoMapper::toBaoCaoResponse)

@@ -28,12 +28,6 @@ import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
 import 'package:GPMS/features/student/viewmodels/nhat_ky_viewmodel.dart';
 import 'package:GPMS/features/student/viewmodels/nop_nhat_ky_viewmodel.dart';
 
-/// Main shell cho sinh viên sau khi đăng nhập
-///
-/// Refactored để:
-/// - Setup proper dependency injection cho tất cả services
-/// - Provide ViewModels với services đã inject
-/// - Maintain tab state với AutomaticKeepAliveClientMixin
 class TrangChuSinhVien extends StatefulWidget {
   const TrangChuSinhVien({super.key});
 
@@ -60,7 +54,6 @@ class _TrangChuSinhVienState extends State<TrangChuSinhVien> {
   void initState() {
     super.initState();
     _initializeServices();
-    // ← THÊM DÒNG NÀY
   }
 
   /// Initialize all services với proper dependency injection
@@ -119,7 +112,6 @@ class _TrangChuSinhVienState extends State<TrangChuSinhVien> {
 
   @override
   void dispose() {
-    // Dispose services to clean up resources
     _doAnService.dispose();
     _hoiDongService.dispose();
     _baoCaoService.dispose();
@@ -212,8 +204,8 @@ class _TrangChuSinhVienState extends State<TrangChuSinhVien> {
                   label: 'Nhật ký',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.groups_outlined),
-                  selectedIcon: Icon(Icons.groups),
+                  icon: Icon(Icons.apartment_rounded),
+                  selectedIcon: Icon(Icons.apartment),
                   label: 'Hội đồng',
                 ),
                 NavigationDestination(

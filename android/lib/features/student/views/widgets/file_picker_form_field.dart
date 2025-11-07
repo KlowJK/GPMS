@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
-/// A form field that lets user pick a local file and (optionally) uploads it
-/// using [onLocalPicked], then writes the returned HTTPS URL into [controller].
-///
-/// Form field value = the final URL (https://...) if [onLocalPicked] is provided
-/// and upload succeeds; otherwise it will be the local path (not recommended if
-/// your backend requires an http(s) URL).
 class FilePickerFormField extends FormField<String?> {
   FilePickerFormField({
     Key? key,

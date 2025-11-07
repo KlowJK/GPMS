@@ -1,180 +1,275 @@
-// dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
-
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 import 'package:GPMS/features/lecturer/models/tien_do_sinh_vien.dart';
 import 'package:GPMS/features/lecturer/models/tuan.dart';
-import 'package:GPMS/features/auth/services/auth_service.dart';
 
-/// Service gọi API Nhật ký tiến trình (giảng viên)
 class TienDoService {
-  // -------------------------- BASE URL --------------------------------------
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:8080';
-    const useEmulator = true;
-    if (useEmulator) {
-      return 'http://10.0.2.2:8080';
-    } else {
-      return 'http://192.168.1.10:8080';
-    }
+  final String baseUrl;
+  final Future<String?> Function() tokenProvider;
+
+  TienDoService({required this.baseUrl, required this.tokenProvider});
+
+  /// Get headers with Bearer token
+  Future<Map<String, String>> _headers() async {
+    final token = await tokenProvider();
+
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
   }
 
-  final http.Client _client;
-  String? _authToken;
+  /// Extract list from various response formats
+  List<Map<String, dynamic>> _extractList(dynamic raw) {
+    if (raw == null) return [];
 
-  /// You can still optionally set a token manually, otherwise the service will
-  /// call `AuthService.getToken()` for each request.
-  TienDoService({http.Client? client, String? authToken})
-    : _client = client ?? http.Client(),
-      _authToken = authToken;
+    if (raw is List) {
+      return raw
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
 
-  void setAuthToken(String? token) => _authToken = token;
+    if (raw is Map) {
+      final m = Map<String, dynamic>.from(raw);
+      if (m['result'] is List) return _extractList(m['result']);
+      if (m['content'] is List) return _extractList(m['content']);
+      return [m]; // Single object wrapped in list
+    }
 
+    return [];
+  }
+
+  /// Fetch tất cả nhật ký (theo tuần)
+  ///
+  /// GET /api/nhat-ky-tien-trinh/all-nhat-ky/list?tuan=...
   Future<List<TienDoSinhVien>> fetchAllNhatKy({int? tuan}) async {
+    final queryParams = tuan != null ? {'tuan': '$tuan'} : null;
     final uri = Uri.parse(
       '$baseUrl/api/nhat-ky-tien-trinh/all-nhat-ky/list',
-    ).replace(queryParameters: _cleanParams({'tuan': tuan?.toString()}));
+    ).replace(queryParameters: queryParams);
 
-    final headers = await _headersGet();
-    final res = await _client.get(uri, headers: headers);
-    _ensureSuccess(res);
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-    final list = _extractList(_safeDecode(res.body));
-    return TienDoSinhVien.listFromJson(list);
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return TienDoSinhVien.listFromJson(list);
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
+    }
   }
 
-  Future<List<TienDoSinhVien>> fetchNhatKyByIdList({int? id}) async {
+  /// Fetch nhật ký by ID
+  ///
+  /// GET /api/nhat-ky-tien-trinh/{id}
+  Future<List<TienDoSinhVien>> fetchNhatKyByIdList({required int id}) async {
     final uri = Uri.parse('$baseUrl/api/nhat-ky-tien-trinh/$id');
 
-    final headers = await _headersGet();
-    final res = await _client.get(uri, headers: headers);
-    _ensureSuccess(res);
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-    final decoded = _safeDecode(res.body);
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
 
-    List<dynamic> rawList = <dynamic>[];
-    if (decoded is Map && decoded['result'] is List) {
-      debugPrint(res.body);
-      rawList = List<dynamic>.from(decoded['result'] as List);
-    } else if (decoded is List) {
-      rawList = List<dynamic>.from(decoded);
-    } else if (decoded is Map) {
-      // single object -> wrap into a list
-      rawList = <dynamic>[decoded];
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode == 404) {
+        return []; // Not found
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return TienDoSinhVien.listFromJson(list);
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
     }
-
-    return TienDoSinhVien.listFromJson(rawList);
   }
 
+  /// Fetch sinh viên được hướng dẫn
+  ///
+  /// GET /api/nhat-ky-tien-trinh/my-supervised-students/list?status=...
   Future<List<TienDoSinhVien>> fetchMySupervisedStudents({
     String? status,
   }) async {
+    final queryParams = status != null ? {'status': status} : null;
     final uri = Uri.parse(
       '$baseUrl/api/nhat-ky-tien-trinh/my-supervised-students/list',
-    ).replace(queryParameters: _cleanParams({'status': status}));
+    ).replace(queryParameters: queryParams);
 
-    final headers = await _headersGet();
-    final res = await _client.get(uri, headers: headers);
-    _ensureSuccess(res);
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-    final list = _extractList(_safeDecode(res.body));
-    return TienDoSinhVien.listFromJson(list);
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return TienDoSinhVien.listFromJson(list);
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
+    }
   }
 
+  /// Fetch danh sách tuần
+  ///
+  /// GET /api/nhat-ky-tien-trinh/tuans-by-lecturer?includeAll=...
   Future<List<Tuan>> fetchTuansByLecturer({bool includeAll = false}) async {
     final uri = Uri.parse(
       '$baseUrl/api/nhat-ky-tien-trinh/tuans-by-lecturer',
-    ).replace(queryParameters: {'includeAll': includeAll.toString()});
+    ).replace(queryParameters: {'includeAll': '$includeAll'});
 
-    final headers = await _headersGet();
-    final res = await _client.get(uri, headers: headers);
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-    _ensureSuccess(res);
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
 
-    final decoded = _safeDecode(res.body);
-    final list = _extractList(decoded); // <-- bóc result đúng chuẩn
-    return Tuan.listFromJson(list);
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return Tuan.listFromJson(list);
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
+    }
   }
 
+  /// Duyệt nhật ký
+  ///
+  /// PUT /api/nhat-ky-tien-trinh/{id}/duyet
   Future<void> approveReport({required int id, required String nhanXet}) async {
     final uri = Uri.parse('$baseUrl/api/nhat-ky-tien-trinh/$id/duyet');
     final body = jsonEncode({'id': id, 'nhanXet': nhanXet});
 
-    final headers = await _headersJson();
-    final res = await _client.put(uri, headers: headers, body: body);
-    _ensureSuccess(res);
-  }
-
-  // -------------------------- HELPERS ---------------------------------------
-
-  Future<String?> _resolveToken() async {
-    if (_authToken != null && _authToken!.isNotEmpty) return _authToken;
     try {
-      final token = await AuthService.getToken();
-      return token;
-    } catch (_) {
-      return null;
-    }
-  }
+      final headers = await _headers();
+      final res = await http
+          .put(uri, headers: headers, body: body)
+          .timeout(const Duration(seconds: 15));
 
-  Future<Map<String, String>> _headersGet() async {
-    final out = <String, String>{'Accept': 'application/json'};
-    final token = await _resolveToken();
-    if (token != null && token.isNotEmpty) {
-      out['Authorization'] = 'Bearer $token';
-    }
-    return out;
-  }
-
-  Future<Map<String, String>> _headersJson() async {
-    final out = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    final token = await _resolveToken();
-    if (token != null && token.isNotEmpty) {
-      out['Authorization'] = 'Bearer $token';
-    }
-    return out;
-  }
-
-  Map<String, String>? _cleanParams(Map<String, String?> params) {
-    final out = <String, String>{};
-    params.forEach((k, v) {
-      if (v != null && v.isNotEmpty) out[k] = v;
-    });
-    return out.isEmpty ? null : out;
-  }
-
-  void _ensureSuccess(http.Response res) {
-    if (res.statusCode < 200 || res.statusCode >= 300) {
-      String msg = 'HTTP ${res.statusCode} ${res.reasonPhrase ?? ''}'.trim();
-      final decoded = _safeDecode(res.body);
-      if (decoded is Map && decoded['message'] != null) {
-        msg = decoded['message'].toString();
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
       }
-      throw http.ClientException(msg, res.request?.url);
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final responseBody = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(responseBody));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
     }
   }
-
-  dynamic _safeDecode(String body) {
-    try {
-      return jsonDecode(body);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  List<dynamic> _extractList(dynamic decoded) {
-    if (decoded is Map && decoded['result'] is List) {
-      return List<dynamic>.from(decoded['result'] as List);
-    }
-    if (decoded is List) {
-      return List<dynamic>.from(decoded);
-    }
-    return <dynamic>[];
-  }
-
-  void dispose() => _client.close();
 }

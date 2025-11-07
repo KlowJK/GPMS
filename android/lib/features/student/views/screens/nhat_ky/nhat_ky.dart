@@ -10,12 +10,6 @@ import 'package:GPMS/core/exception/error_code.dart';
 import 'package:GPMS/features/student/viewmodels/nop_nhat_ky_viewmodel.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 
-/// Màn hình Nhật ký tiến trình
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent provider (không tạo mới)
-/// - Handle errors với ErrorCode
-/// - Better state management
 class NhatKy extends StatefulWidget {
   const NhatKy({super.key});
 

@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:GPMS/features/lecturer/views/widgets/news_tile.dart';
-import 'package:GPMS/features/lecturer/views/widgets/card_list.dart';
 import 'package:GPMS/features/lecturer/views/widgets/section_header.dart';
-import 'package:GPMS/features/lecturer/views/widgets/task_tile.dart';
-import 'package:GPMS/features/lecturer/views/widgets/notice_tile.dart';
 import 'package:GPMS/shared/components/all_news_page.dart';
-import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
-import 'package:GPMS/features/home/models/de_tai.dart';
-import 'package:GPMS/shared/components/app_card_list.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
 import 'package:GPMS/shared/components/all_topics_page.dart';
 import 'package:GPMS/features/home/viewmodels/home_viewmodel.dart';
@@ -142,80 +135,8 @@ class TrangChuState extends State<TrangChuPage>
                       child: ListView(
                         padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
                         children: [
-                          // ===== Việc tuần này =====
-                          SectionHeader(
-                            title: 'Việc tuần này',
-                            trailing: TextButton(
-                              onPressed: () {},
-                              child: const Text('Xem tất cả'),
-                            ),
-                          ),
-                          CardList(
-                            children: const [
-                              TaskTile(
-                                title: 'Duyệt sinh viên đăng kí đề tài',
-                                subtitle: 'Hạn: 20/09, 23:59',
-                                actionText: 'Thực hiện',
-                              ),
-                              Divider(height: 1),
-                              TaskTile(
-                                title: 'Duyệt đề cương sinh viên',
-                                subtitle: 'Hạn: 22/09, 23:59',
-                                actionText: 'Thực hiện',
-                              ),
-                              Divider(height: 1),
-                              TaskTile(
-                                title: 'Xác nhận nhật ký sinh viên',
-                                subtitle: 'Hạn: 22/09, 23:59',
-                                actionText: 'Thực hiện',
-                              ),
-                              Divider(height: 1),
-                              TaskTile(
-                                title: 'Duyệt sinh viên yêu cầu hướng dẫn',
-                                subtitle: 'Hạn: 15/09, 23:59',
-                                actionText: 'Thực hiện',
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: gap * 1.5),
-
-                          // ===== Thông báo =====
                           SectionHeader(
                             title: 'Thông báo',
-                            trailing: TextButton(
-                              onPressed: () {},
-                              child: const Text('Xem tất cả'),
-                            ),
-                          ),
-                          CardList(
-                            children: const [
-                              NoticeTile(
-                                badgeColor: Color(0xFFDBEAFE),
-                                title: 'Sinh viên yêu cầu hướng dẫn',
-                                subtitle:
-                                    'Khoa công nghệ thông tin • 10:30 18/09',
-                              ),
-                              Divider(height: 1),
-                              NoticeTile(
-                                badgeColor: Color(0xFFDBEAFE),
-                                title: 'Sinh viên đăng ký đề tài',
-                                subtitle: 'Hệ thống • 09:15 17/09',
-                              ),
-                              Divider(height: 1),
-                              NoticeTile(
-                                badgeColor: Color(0xFFDBEAFE),
-                                title: 'Sinh viên nộp đề cương',
-                                subtitle: 'Hệ thống • 08:00 16/09',
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: gap * 1.5),
-
-                          // ===== Tin tức - Dynamic from ViewModel =====
-                          SectionHeader(
-                            title: 'Tin tức',
                             trailing:
                                 viewModel.notifications != null &&
                                     viewModel.notifications!.isNotEmpty
@@ -236,8 +157,7 @@ class TrangChuState extends State<TrangChuPage>
                           ),
                           _buildNewsContent(viewModel),
 
-                          SizedBox(height: gap * 1.5),
-
+                          SizedBox(height: 5),
                           // ===== Đề tài nổi bật - Dynamic from ViewModel =====
                           SectionHeader(
                             title: 'Đề tài nổi bật',

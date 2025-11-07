@@ -587,6 +587,11 @@ enum ErrorCode {
     code: 5005,
     message: 'Yêu cầu hết thời gian chờ.',
     httpStatusCode: 504, // HttpStatus.GATEWAY_TIMEOUT
+  ),
+  notFound(
+    code: 5006,
+    message: 'Không tìm thấy tài nguyên.',
+    httpStatusCode: 404,
   );
 
   const ErrorCode({

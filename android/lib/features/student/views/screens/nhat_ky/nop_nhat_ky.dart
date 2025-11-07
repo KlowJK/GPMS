@@ -8,12 +8,6 @@ import 'package:GPMS/features/student/viewmodels/nop_nhat_ky_viewmodel.dart';
 import 'package:GPMS/features/student/models/nop_nhat_ki.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
-/// Màn hình nộp nhật ký
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent provider
-/// - Handle errors với ErrorCode
-/// - Better file picker integration
 class SubmitDiaryPage extends StatefulWidget {
   const SubmitDiaryPage({
     super.key,

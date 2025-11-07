@@ -1,5 +1,3 @@
-// Model cho dòng trong danh sách Báo cáo
-
 enum ReportSubmitStatus { submitted, notSubmitted }
 
 ReportSubmitStatus _mapSubmitStatus(String? s) {
@@ -14,10 +12,10 @@ ReportSubmitStatus _mapSubmitStatus(String? s) {
 }
 
 class BaoCaoItem {
-  final String maSV;     // mã sinh viên
-  final String hoTen;    // tên sinh viên
-  final String tenLop;   // lớp
-  final String deTai;    // tên đề tài
+  final String maSV; // mã sinh viên
+  final String hoTen; // tên sinh viên
+  final String tenLop; // lớp
+  final String deTai; // tên đề tài
   final ReportSubmitStatus trangThai; // đã nộp / chưa nộp
 
   BaoCaoItem({

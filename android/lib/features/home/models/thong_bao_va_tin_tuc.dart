@@ -2,7 +2,7 @@ class ThongBaoVaTinTuc {
   final String tieuDe;
   final String noiDung;
   final String duongDanFile;
-  final DateTime ngayDang; // Thay String bằng DateTime
+  final DateTime ngayDang;
   final String loaiThongBao;
 
   ThongBaoVaTinTuc({

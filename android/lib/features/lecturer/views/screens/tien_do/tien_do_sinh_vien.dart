@@ -1,353 +1,215 @@
-import 'package:GPMS/features/lecturer/models/tuan.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:GPMS/features/lecturer/models/tien_do_sinh_vien.dart';
+import 'package:GPMS/features/lecturer/models/tuan.dart';
 import 'package:GPMS/features/lecturer/viewmodels/tien_do_viewmodel.dart';
-import 'package:GPMS/features/lecturer/services/tien_do_service.dart';
 import 'package:GPMS/features/lecturer/views/screens/tien_do/chi_tiet_tien_do.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
 
-class SinhVienTab extends StatefulWidget {
-  const SinhVienTab({super.key});
+class TienDoSinhVienTab extends StatefulWidget {
+  const TienDoSinhVienTab({super.key});
 
   @override
-  State<SinhVienTab> createState() => TienDoSinhVienState();
+  State<TienDoSinhVienTab> createState() => _TienDoSinhVienTabState();
 }
 
-class TienDoSinhVienState extends State<SinhVienTab> {
-  final List<TienDoSinhVien> students = [];
-  final List<Tuan> weeks = [];
-  final Set<int> _loadingIndices = {};
-
-  late final TienDoViewModel _vm;
-  bool _initialLoad = true;
-  bool _isRefreshing = false;
+class _TienDoSinhVienTabState extends State<TienDoSinhVienTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _vm = TienDoViewModel(service: TienDoService());
-    _vm.addListener(_onVmChanged);
-    _bootstrap();
-  }
-
-  Future<void> _bootstrap() async {
-    setState(() => _initialLoad = true);
-    try {
-      await _vm.loadTuans(includeAll: false);
-
-      Tuan? tuanToUse;
-      final selNum = _vm.selectedTuan;
-      if (selNum != null) {
-        try {
-          tuanToUse = _vm.tuans.firstWhere((t) => t.tuan == selNum);
-        } catch (_) {
-          tuanToUse = null;
-        }
-      }
-      tuanToUse ??= _vm.tuans.isNotEmpty ? _vm.tuans.first : null;
-
-      await _vm.loadAll(tuan: tuanToUse);
-    } finally {
-      if (mounted) setState(() => _initialLoad = false);
-    }
-  }
-
-  void _onVmChanged() {
-    if (!mounted) return;
-    setState(() {
-      final dedup = <String, TienDoSinhVien>{};
-      for (final e in _vm.items) {
-        final key = '${e.maSinhVien ?? ''}|${e.idDeTai ?? ''}';
-        dedup[key] = e;
-      }
-      students
-        ..clear()
-        ..addAll(dedup.values);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // ✅ Use existing ViewModel
+      final vm = context.read<TienDoViewModel>();
+      _bootstrap(vm);
     });
   }
 
-  Future<void> _loadVersions({
-    bool refresh = false,
-    Tuan? tuan,
-    String? status,
-    bool supervised = false,
-  }) async {
-    Tuan? resolveTuan(Tuan? param) {
-      if (param != null) return param;
-      final selNum = _vm.selectedTuan;
-      if (selNum != null) {
-        try {
-          return _vm.tuans.firstWhere((t) => t.tuan == selNum);
-        } catch (_) {
-          return null;
-        }
-      }
-      return _vm.tuans.isNotEmpty ? _vm.tuans.first : null;
-    }
+  Future<void> _bootstrap(TienDoViewModel vm) async {
+    // Load tuans first
+    await vm.fetchTuans(includeAll: false);
 
-    if (refresh) {
-      if (!mounted) return;
-      setState(() => _isRefreshing = true); // only set refreshing flag
-      try {
-        await _vm.loadTuans(includeAll: true);
-        final Tuan? tuanToUse = resolveTuan(tuan);
-
-        if (supervised) {
-          await _vm.loadMySupervised(status: status ?? _vm.statusFilter);
-        } else {
-          await _vm.loadAll(tuan: tuanToUse);
-        }
-      } finally {
-        if (mounted) setState(() => _isRefreshing = false);
-      }
-      return;
-    }
-
-    // initial/non-refresh load: use _initialLoad
-    if (!mounted) return;
-    setState(() => _initialLoad = true);
-    try {
-      await _vm.loadTuans(includeAll: true);
-      final Tuan? tuanToUse = resolveTuan(tuan);
-      await _vm.loadAll(tuan: tuanToUse);
-    } finally {
-      if (mounted) setState(() => _initialLoad = false);
+    // Then load data for first tuan
+    if (vm.tuans.isNotEmpty) {
+      await vm.fetchAllNhatKy(tuan: vm.tuans.first);
     }
   }
 
-  @override
-  void dispose() {
-    _vm.removeListener(_onVmChanged);
-    _vm.dispose();
-    super.dispose();
+  Future<void> _handleRefresh(TienDoViewModel vm) async {
+    try {
+      await vm.fetchTuans(includeAll: false);
+      if (vm.tuans.isNotEmpty) {
+        await vm.fetchAllNhatKy(tuan: vm.tuans.first);
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = 'Không thể làm mới dữ liệu';
+
+      if (e is CustomException) {
+        switch (e.errorCode) {
+          case ErrorCode.unauthenticated:
+            message = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            break;
+          case ErrorCode.timeout:
+            message = 'Kết nối hết thời gian chờ. Vui lòng thử lại.';
+            break;
+          default:
+            message = e.errorCode.message;
+        }
+      } else {
+        message = 'Lỗi kết nối: $e';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final firstTuan = _vm.tuans.isNotEmpty ? _vm.tuans.first : null;
-    final DateTime from = firstTuan?.ngayBatDau ?? DateTime.now();
-    final DateTime to =
-        firstTuan?.ngayKetThuc ?? DateTime.now().add(const Duration(days: 7));
-    final String note = firstTuan != null
-        ? 'Thời hạn nộp nhật ký Tuần ${firstTuan.tuan} :'
-        : 'Thời hạn nộp nhật ký Tuần :';
+    super.build(context);
 
-    // 1) Loader toàn màn khi vào trang lần đầu
-    if (_initialLoad && !_isRefreshing) {
-      return const Scaffold(
-        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+    return Consumer<TienDoViewModel>(
+      builder: (context, vm, _) {
+        return RefreshIndicator(
+          onRefresh: () => _handleRefresh(vm),
+          child: SafeArea(
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // Week header
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: _WeekHeader(
+                      tuan: vm.tuans.isNotEmpty ? vm.tuans.first : null,
+                    ),
+                  ),
+                ),
+
+                // Title with count
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(
+                      'Danh sách sinh viên (${_getUniqueStudents(vm.items).length}):',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Body
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  sliver: _buildBody(vm),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(TienDoViewModel vm) {
+    // Error state
+    if (vm.hasError && vm.items.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: _ErrorView(
+          message: vm.error!,
+          errorCode: vm.errorCode,
+          onRetry: () => vm.fetchAllNhatKy(),
+        ),
       );
     }
 
-    // 2) Nội dung bình thường + Pull-to-refresh
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () => _loadVersions(refresh: true),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Dùng AlwaysScrollable để vẫn kéo refresh được khi list trống
-              CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    sliver: SliverToBoxAdapter(
-                      child: _WeekHeader(from: from, to: to, note: note),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    sliver: SliverToBoxAdapter(
-                      child: Text(
-                        'Danh sách sinh viên:',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  ),
+    // Loading state
+    if (vm.isLoading && vm.items.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-                  if (students.isEmpty)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(child: Text('Chưa có dữ liệu')),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      sliver: SliverList.separated(
-                        itemCount: students.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) => _StudentCard(
-                          info: students[i],
-                          isLoading: _loadingIndices.contains(i),
-                          onTap: () async {
-                            if (_loadingIndices.contains(i)) return;
-                            setState(() => _loadingIndices.add(i));
-                            try {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProgressDetailScreen(
-                                    student: students[i],
-                                    tienDoViewModel: _vm,
-                                  ),
-                                ),
-                              );
-                              // Nếu muốn auto refresh sau khi quay lại:
-                              // await _loadVersions(refresh: true);
-                            } finally {
-                              if (mounted) {
-                                setState(() => _loadingIndices.remove(i));
-                              }
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+    // Get unique students
+    final students = _getUniqueStudents(vm.items);
 
-              // 3) Overlay loader khi đang kéo để làm mới (refresh)
-              if (_isRefreshing)
-                const Positioned.fill(
-                  child: IgnorePointer(
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-            ],
-          ),
+    // Empty state
+    if (students.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: _EmptyView(text: 'Chưa có sinh viên'),
+      );
+    }
+
+    // List
+    return SliverList.separated(
+      itemCount: students.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, i) => _StudentCard(
+        student: students[i],
+        onTap: () => _navigateToDetail(context, vm, students[i]),
+      ),
+    );
+  }
+
+  List<TienDoSinhVien> _getUniqueStudents(List<TienDoSinhVien> items) {
+    final seen = <String>{};
+    final unique = <TienDoSinhVien>[];
+
+    for (final item in items) {
+      final key = '${item.maSinhVien ?? ''}|${item.idDeTai ?? ''}';
+      if (!seen.contains(key)) {
+        seen.add(key);
+        unique.add(item);
+      }
+    }
+
+    return unique;
+  }
+
+  void _navigateToDetail(
+    BuildContext context,
+    TienDoViewModel vm,
+    TienDoSinhVien student,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: vm,
+          child: ProgressDetailScreen(student: student, tienDoViewModel: vm),
         ),
       ),
     );
   }
 }
-
-// dart
-class _StudentCard extends StatelessWidget {
-  const _StudentCard({required this.info, this.onTap, this.isLoading = false});
-  final TienDoSinhVien info;
-  final VoidCallback? onTap;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor(SubmitStatus s) {
-      switch (s) {
-        case SubmitStatus.DA_NOP:
-          return const Color(0xFF00C409); // green
-        case SubmitStatus.HOAN_THANH:
-          return const Color(0xFF0090FF); // gray (completed)
-        case SubmitStatus.CHUA_NOP:
-        default:
-          return const Color(0xFFFFDD00); // yellow (not submitted)
-      }
-    }
-
-    String statusText(SubmitStatus s) {
-      switch (s) {
-        case SubmitStatus.DA_NOP:
-          return 'Đã nộp';
-        case SubmitStatus.HOAN_THANH:
-          return 'Hoàn thành';
-        case SubmitStatus.CHUA_NOP:
-        default:
-          return 'Chưa nộp';
-      }
-    }
-
-    final name = info.hoTen ?? '';
-    final studentId = info.maSinhVien ?? '';
-    final className = info.lop ?? '';
-    final topic = info.deTai ?? '';
-    final status = _toSubmitStatus(info.trangThaiNhatKy);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Card(
-        elevation: 1,
-        color: const Color(0xF9FAFBFF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: const Color(0xFFDBEAFE),
-                    child: const Icon(Icons.person, color: Colors.black54),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          className + " - " + studentId,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Đề tài: $topic',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const SizedBox(height: 2),
-                      if (isLoading)
-                        const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      else
-                        RichText(
-                          text: TextSpan(
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            children: [
-                              TextSpan(
-                                text: statusText(status),
-                                style: TextStyle(
-                                  color: statusColor(status),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/* -------------------------------- WIDGET PHỤ ------------------------------- */
 
 class _WeekHeader extends StatelessWidget {
-  const _WeekHeader({required this.from, required this.to, required this.note});
-  final DateTime from;
-  final DateTime to;
-  final String note;
+  const _WeekHeader({this.tuan});
+
+  final Tuan? tuan;
 
   @override
   Widget build(BuildContext context) {
+    final from = tuan?.ngayBatDau ?? DateTime.now();
+    final to = tuan?.ngayKetThuc ?? DateTime.now().add(const Duration(days: 7));
+    final note = tuan != null
+        ? 'Thời hạn nộp nhật ký Tuần ${tuan!.tuan}:'
+        : 'Thời hạn nộp nhật ký Tuần:';
+
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -400,40 +262,180 @@ class _BulletList extends StatelessWidget {
   }
 }
 
-/* --------------------------------- MODELS --------------------------------- */
+class _StudentCard extends StatelessWidget {
+  const _StudentCard({required this.student, this.onTap});
 
-enum SubmitStatus { DA_NOP, CHUA_NOP, HOAN_THANH }
+  final TienDoSinhVien student;
+  final VoidCallback? onTap;
 
-SubmitStatus _toSubmitStatus(Object? v) {
-  if (v == null) return SubmitStatus.CHUA_NOP;
-  if (v is SubmitStatus) return v;
-  final s = v.toString();
-  final name = s.contains('.') ? s.split('.').last : s;
-  switch (name.toUpperCase()) {
-    case 'DA_NOP':
-    case 'SUBMITTED':
-      return SubmitStatus.DA_NOP;
-    case 'HOAN_THANH':
-    case 'COMPLETED':
-      return SubmitStatus.HOAN_THANH;
-    case 'CHUA_NOP':
-    default:
-      return SubmitStatus.CHUA_NOP;
+  @override
+  Widget build(BuildContext context) {
+    final status = _toSubmitStatus(student.trangThaiNhatKy);
+    final statusColor = _getStatusColor(status);
+    final statusText = _getStatusText(status);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Card(
+        elevation: 1,
+        color: const Color(0xFFF9FAFB),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                radius: 20,
+                backgroundColor: Color(0xFFDBEAFE),
+                child: Icon(Icons.person, color: Colors.black54),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      student.hoTen ?? '-',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${student.lop ?? ''} - ${student.maSinhVien ?? ''}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Đề tài: ${student.deTai ?? '-'}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  SubmitStatus _toSubmitStatus(Object? v) {
+    if (v == null) return SubmitStatus.CHUA_NOP;
+    if (v is SubmitStatus) return v;
+    final s = v.toString();
+    final name = s.contains('.') ? s.split('.').last : s;
+    switch (name.toUpperCase()) {
+      case 'DA_NOP':
+      case 'SUBMITTED':
+        return SubmitStatus.DA_NOP;
+      case 'HOAN_THANH':
+      case 'COMPLETED':
+        return SubmitStatus.HOAN_THANH;
+      case 'CHUA_NOP':
+      default:
+        return SubmitStatus.CHUA_NOP;
+    }
+  }
+
+  Color _getStatusColor(SubmitStatus status) {
+    switch (status) {
+      case SubmitStatus.DA_NOP:
+        return const Color(0xFF00C409);
+      case SubmitStatus.HOAN_THANH:
+        return const Color(0xFF0090FF);
+      case SubmitStatus.CHUA_NOP:
+      default:
+        return const Color(0xFFFFDD00);
+    }
+  }
+
+  String _getStatusText(SubmitStatus status) {
+    switch (status) {
+      case SubmitStatus.DA_NOP:
+        return 'Đã nộp';
+      case SubmitStatus.HOAN_THANH:
+        return 'Hoàn thành';
+      case SubmitStatus.CHUA_NOP:
+      default:
+        return 'Chưa nộp';
+    }
   }
 }
 
-class StudentProgress {
-  final String name;
-  final String studentId;
-  final String className;
-  final String topic;
-  final SubmitStatus status;
+class _EmptyView extends StatelessWidget {
+  const _EmptyView({required this.text});
+  final String text;
 
-  StudentProgress({
-    required this.name,
-    required this.studentId,
-    required this.className,
-    required this.topic,
-    required this.status,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 40,
+            color: Theme.of(context).disabledColor,
+          ),
+          const SizedBox(height: 8),
+          Text(text, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
 }
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({
+    required this.message,
+    this.errorCode,
+    required this.onRetry,
+  });
+
+  final String message;
+  final ErrorCode? errorCode;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+              size: 36,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Lỗi: $message',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum SubmitStatus { DA_NOP, CHUA_NOP, HOAN_THANH }

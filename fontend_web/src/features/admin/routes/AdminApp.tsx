@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Topbar from '@shared/components/Topbar';
-import AdminSidebar from '@features/admin/components/Sidebar';
+import AdminSidebar from '@shared/components/AdminSidebar';
 import ToastProvider from '@features/admin/components/ToastProvider';
 
 export default function AdminApp() {

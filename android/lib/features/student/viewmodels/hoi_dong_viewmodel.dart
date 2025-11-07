@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:GPMS/features/student/models/hoi_dong_item.dart';
+import 'package:GPMS/features/lecturer/models/hoi_dong_detail.dart';
 import 'package:GPMS/features/student/services/hoi_dong_service.dart';
 import 'package:GPMS/features/student/services/do_an_service.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
-/// ViewModel cho màn hình Hội đồng
+/// ViewModel cho màn hình Hội đồng (Student)
 ///
 /// Quản lý:
 /// - Danh sách hội đồng
+/// - Chi tiết hội đồng (reuse lecturer models)
 /// - Loading states
 /// - Error handling với ErrorCode
 /// - Pagination support
@@ -16,11 +18,18 @@ class HoiDongViewModel extends ChangeNotifier {
   final HoiDongService _hoiDongService;
   final DoAnService _doAnService;
 
-  // State
+  // State - List
   List<HoiDongItem> _items = [];
   bool _isLoading = false;
   String? _error;
   ErrorCode? _errorCode;
+
+  // State - Detail
+  HoiDongDetail? _detail;
+  bool _isLoadingDetail = false;
+  String? _detailError;
+  ErrorCode? _detailErrorCode;
+
   bool _disposed = false;
 
   // Pagination
@@ -39,7 +48,7 @@ class HoiDongViewModel extends ChangeNotifier {
   }) : _hoiDongService = hoiDongService,
        _doAnService = doAnService;
 
-  // Getters
+  // Getters - List
   List<HoiDongItem> get items => _items;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -47,6 +56,13 @@ class HoiDongViewModel extends ChangeNotifier {
   bool get hasError => _error != null;
   bool get hasMore => _hasMore;
   int get currentPage => _currentPage;
+
+  // Getters - Detail
+  HoiDongDetail? get detail => _detail;
+  bool get isLoadingDetail => _isLoadingDetail;
+  String? get detailError => _detailError;
+  ErrorCode? get detailErrorCode => _detailErrorCode;
+  bool get hasDetailError => _detailError != null;
 
   // Filter getters
   String? get keyword => _keyword;
@@ -126,6 +142,47 @@ class HoiDongViewModel extends ChangeNotifier {
       }
     } finally {
       _isLoading = false;
+      _safeNotify();
+    }
+  }
+
+  /// Fetch chi tiết hội đồng theo ID
+  ///
+  /// Reuses HoiDongDetail model from lecturer
+  Future<void> fetchDetail({required int hoiDongId}) async {
+    if (_isLoadingDetail) return;
+
+    _isLoadingDetail = true;
+    _detailError = null;
+    _detailErrorCode = null;
+    _safeNotify();
+
+    try {
+      _detail = await _hoiDongService.fetchDetail(hoiDongId: hoiDongId);
+      _detailError = null;
+      _detailErrorCode = null;
+
+      if (kDebugMode) {
+        print('✅ Fetched detail for hội đồng $hoiDongId');
+      }
+    } on CustomException catch (e) {
+      _detailErrorCode = e.errorCode;
+      _detailError = e.errorCode.message;
+      _detail = null;
+
+      if (kDebugMode) {
+        print('❌ fetchDetail: CustomException ${e.errorCode.name}');
+      }
+    } catch (e) {
+      _detailErrorCode = ErrorCode.internalServerError;
+      _detailError = 'Lỗi khi tải chi tiết: $e';
+      _detail = null;
+
+      if (kDebugMode) {
+        print('❌ fetchDetail: Unexpected error: $e');
+      }
+    } finally {
+      _isLoadingDetail = false;
       _safeNotify();
     }
   }
@@ -239,10 +296,22 @@ class HoiDongViewModel extends ChangeNotifier {
     return refresh();
   }
 
+  /// Retry fetch detail
+  Future<void> retryFetchDetail(int hoiDongId) async {
+    return fetchDetail(hoiDongId: hoiDongId);
+  }
+
   /// Clear error
   void clearError() {
     _error = null;
     _errorCode = null;
+    _safeNotify();
+  }
+
+  /// Clear detail error
+  void clearDetailError() {
+    _detailError = null;
+    _detailErrorCode = null;
     _safeNotify();
   }
 
@@ -260,6 +329,10 @@ class HoiDongViewModel extends ChangeNotifier {
     _error = null;
     _errorCode = null;
     _isLoading = false;
+    _detail = null;
+    _detailError = null;
+    _detailErrorCode = null;
+    _isLoadingDetail = false;
     _currentPage = 0;
     _hasMore = true;
     _keyword = null;

@@ -1,16 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:GPMS/features/student/models/hoi_dong_item.dart';
+import 'package:GPMS/features/lecturer/models/hoi_dong_detail.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
-/// Service xử lý API calls cho Hội đồng
+/// Service xử lý API calls cho Hội đồng (Student)
 ///
 /// Refactored để support:
 /// - Pure instance-based (no static methods)
 /// - Dependency injection (testable)
 /// - Better error handling với ErrorCode
 /// - Dio-based với proper configuration
+/// - Fetch detail (reuse lecturer models)
 class HoiDongService {
   final Dio _dio;
   final Future<String?> Function() _tokenProvider;
@@ -136,7 +138,7 @@ class HoiDongService {
     int? idDeTai,
     int? idGiangVien,
     int page = 0,
-    int size = 10,
+    int size = 100,
     List<String>? sort,
   }) async {
     final token = await _requireToken();
@@ -181,6 +183,47 @@ class HoiDongService {
     } catch (e) {
       if (e is CustomException) rethrow;
       if (kDebugMode) print('❌ Unexpected error: $e');
+      throw CustomException(ErrorCode.internalServerError);
+    }
+  }
+
+  /// Fetch chi tiết hội đồng theo ID
+  ///
+  /// GET /api/hoi-dong/{hoiDongId}
+  /// Reuses HoiDongDetail model from lecturer package
+  Future<HoiDongDetail> fetchDetail({required int hoiDongId}) async {
+    final token = await _requireToken();
+
+    try {
+      if (kDebugMode) {
+        print('📨 HoiDongService: GET /api/hoi-dong/$hoiDongId');
+      }
+
+      final response = await _dio.get(
+        '/api/hoi-dong/$hoiDongId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (kDebugMode) {
+        print(
+          '✅ HoiDongService: Detail response status ${response.statusCode}',
+        );
+      }
+
+      // Parse response - handle result wrapper
+      final data = response.data;
+      final detailData = data is Map && data['result'] != null
+          ? data['result']
+          : data;
+
+      return HoiDongDetail.fromJson(
+        Map<String, dynamic>.from(detailData as Map),
+      );
+    } on DioException catch (e) {
+      _handleDioError(e);
+    } catch (e) {
+      if (e is CustomException) rethrow;
+      if (kDebugMode) print('❌ Unexpected error in fetchDetail: $e');
       throw CustomException(ErrorCode.internalServerError);
     }
   }
@@ -239,7 +282,7 @@ class HoiDongService {
   Future<List<HoiDongItem>> fetchAll({
     String? keyword,
     int page = 0,
-    int size = 10,
+    int size = 100,
     List<String>? sort,
   }) {
     return fetchHoiDong(keyword: keyword, page: page, size: size, sort: sort);
@@ -249,7 +292,7 @@ class HoiDongService {
   Future<List<HoiDongItem>> fetchByTopic({
     required int topicId,
     int page = 0,
-    int size = 10,
+    int size = 100,
     List<String>? sort,
   }) {
     return fetchHoiDong(idDeTai: topicId, page: page, size: size, sort: sort);
@@ -260,7 +303,7 @@ class HoiDongService {
     required int lecturerId,
     String? keyword,
     int page = 0,
-    int size = 10,
+    int size = 100,
     List<String>? sort,
   }) {
     return fetchHoiDong(

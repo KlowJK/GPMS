@@ -189,3 +189,39 @@ export async function listStudentsNormalized(params?: PageParams): Promise<Page<
   const pg = toPage<any>(res, { page: params?.page ?? 0, size: params?.size ?? 10 });
   return { ...pg, content: (pg.content ?? []).map(normalizeStudent) };
 }
+
+/* ===== LẤY TOÀN BỘ GIẢNG VIÊN (để chọn thành viên hội đồng) ===== */
+
+// 1) Raw call: GET /api/giang-vien/all
+export const listLecturersAll = () =>
+  axios.get('/api/giang-vien/all', { headers: { Accept: '*/*' } });
+
+// 2) Chuẩn hoá kết quả từ /all thành mảng Lecturer
+export async function listLecturersAllNormalized(): Promise<Lecturer[]> {
+  const res  = await listLecturersAll();
+  const raw  = unwrap<any>(res);
+  const arr: any[] =
+    Array.isArray(raw?.result)  ? raw.result  :
+    Array.isArray(raw?.content) ? raw.content :
+    Array.isArray(raw?.data)    ? raw.data    :
+    Array.isArray(raw)          ? raw         : [];
+  return arr.map(normalizeLecturer);
+}
+
+/**
+ * 3) Helper “any”: ưu tiên /all, nếu lỗi hoặc rỗng thì fallback
+ *    về API phân trang /api/giang-vien/list (page=0,size=999)
+ */
+export async function listLecturersAny(): Promise<Lecturer[]> {
+  try {
+    const all = await listLecturersAllNormalized();
+    if (all.length) return all;
+  } catch (_) { /* fallback */ }
+
+  try {
+    const pg = await listLecturersNormalized({ page: 0, size: 999 });
+    return pg.content;
+  } catch (_) {
+    return [];
+  }
+}
