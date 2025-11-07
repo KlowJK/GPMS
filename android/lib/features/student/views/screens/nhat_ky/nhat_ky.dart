@@ -92,7 +92,7 @@ class _NhatKyState extends State<NhatKy> with AutomaticKeepAliveClientMixin {
     // LẤY VM HIỆN CÓ từ TrangChuSinhVien
     final submitVm = context.read<SubmitDiaryViewModel>();
 
-    final result = await Navigator.of(context).push<DiaryEntry?>(
+    final result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider.value(
           value: submitVm, // 👈 truyền đúng instance hiện có
@@ -109,22 +109,26 @@ class _NhatKyState extends State<NhatKy> with AutomaticKeepAliveClientMixin {
 
     if (!mounted) return;
 
-    // Server-backed submission
+    // If server-backed flow, SubmitDiaryPage will return `true` on success.
     if (deTaiId != null || idNhatKy != null) {
-      await _fetchData();
-      setState(() {
-        _localItems.removeWhere((it) => it.week == week);
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã nộp nhật ký thành công')),
-        );
+      if (result == true) {
+        // refresh and show success
+        await _fetchData();
+        setState(() {
+          _localItems.removeWhere((it) => it.week == week);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã nộp nhật ký thành công')),
+          );
+        }
       }
+      // if result != true then user cancelled or submission failed; do nothing
       return;
     }
 
-    // Local submission
-    if (result != null) {
+    // Local submission: expect a DiaryEntry returned
+    if (result is DiaryEntry) {
       setState(() => _localItems.insert(0, result));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -376,19 +380,21 @@ class _DiaryCard extends StatelessWidget {
   final VoidCallback? onSubmit;
 
   (Color bg, Color fg, String label) get _badge {
-    switch (item.status) {
-      case DiaryStatus.HOAN_THANH:
-        return (
-          const Color(0xFFDCFCE7),
-          const Color(0xFF166534),
-          'GVHD đã xác nhận',
-        );
-      case DiaryStatus.CHUA_NOP:
-        return (const Color(0xFFFEE2E2), const Color(0xFF991B1B), 'Chưa nộp');
-      case DiaryStatus.DA_NOP:
-      default:
-        return (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Đã nộp');
+    final st = item.status;
+    if (st == DiaryStatus.HOAN_THANH) {
+      return (
+        const Color(0xFFDCFCE7),
+        const Color(0xFF166534),
+        'GVHD đã xác nhận',
+      );
+    } else if (st == DiaryStatus.CHUA_NOP) {
+      return (const Color(0xFFFEE2E2), const Color(0xFF991B1B), 'Chưa nộp');
+    } else if (st == DiaryStatus.DA_NOP) {
+      return (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Đã nộp');
     }
+
+    // fallback
+    return (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Đã nộp');
   }
 
   @override
@@ -559,8 +565,32 @@ class _DiaryItemCard extends StatelessWidget {
 
   bool _isSubmittedStatus() {
     final s = (item.trangThaiNhatKy ?? '').toLowerCase();
+    // explicit not-submitted
     if (s.contains('chưa') || s.contains('chua')) return false;
-    if (s.contains('đã') || s.contains('da') || s.contains('nộp')) return true;
+
+    // treat any of these indicators as submitted/completed
+    final submittedIndicators = [
+      'đã',
+      'da',
+      'nộp',
+      'nop',
+      'hoàn',
+      'hoan',
+      'thành',
+      'thanh',
+      'hoan_thanh',
+      'hoanthanh',
+      'hoan-thanh',
+      'hoan thanh',
+      'xác nhận',
+      'xac nhan',
+      'xac_nhan'
+    ];
+
+    for (final t in submittedIndicators) {
+      if (s.contains(t)) return true;
+    }
+
     return false;
   }
 

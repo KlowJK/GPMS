@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:GPMS/features/student/models/report_item.dart';
+import 'package:GPMS/features/student/models/bao_cao.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
