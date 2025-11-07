@@ -24,6 +24,22 @@ export const router = createBrowserRouter([
                         return { Component: () => <RequireGuest><Page /></RequireGuest> }
                     }),
             },
+            {
+                path: 'forgot-password',
+                lazy: () =>
+                    import('@features/auth/pages/ForgotPasswordPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
+            },
+            {
+                path: 'reset-password',
+                lazy: () =>
+                    import('@features/auth/pages/ResetPasswordPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
+            },
 
             // Authenticated area
             {

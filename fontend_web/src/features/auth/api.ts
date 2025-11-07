@@ -59,3 +59,34 @@ export async function uploadAvatar(file: File): Promise<{ imageUrl?: string; use
 
 	return unwrap(res);
 }
+
+export type RequestResetPasswordPayload = {
+	email: string
+}
+
+export type ResetPasswordPayload = {
+	token: string
+	newPassword: string
+}
+
+export const requestResetPassword = async (payload: RequestResetPasswordPayload) => {
+	const resp = await axios.post<ApiResponse<any>>('/api/auth/request-reset-password', payload)
+	const data = resp.data
+
+	if (data.code !== 200) {
+		throw new Error(data.message || 'Yêu cầu đặt lại mật khẩu thất bại')
+	}
+
+	return unwrap(resp)
+}
+
+export const resetPassword = async (payload: ResetPasswordPayload) => {
+	const resp = await axios.post<ApiResponse<any>>('/api/auth/reset-password', payload)
+	const data = resp.data
+
+	if (data.code !== 200) {
+		throw new Error(data.message || 'Đặt lại mật khẩu thất bại')
+	}
+
+	return unwrap(resp)
+}
