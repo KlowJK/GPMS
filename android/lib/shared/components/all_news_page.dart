@@ -41,8 +41,9 @@ class _AllNewsPageState extends State<AllNewsPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
-          'Tất cả tin tức',
+          'Tất cả thông báo',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF2563EB),

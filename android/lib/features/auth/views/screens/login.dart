@@ -56,25 +56,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // Navigate based on role
+      // Navigate based on role - REMOVE ALL PREVIOUS ROUTES
       final vm = context.read<AuthViewModel>();
       final role = vm.user?.role ?? '';
+
+      Widget destination;
       if (role.contains('GIANG') ||
           role.contains('TEACHER') ||
           role.contains('QUAN') ||
           role.contains('TRUONG')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const TrangChuGiangVien()),
-        );
+        destination = const TrangChuGiangVien();
       } else if (role.contains('SINH') || role.contains('STUDENT')) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const TrangChuSinhVien()),
-        );
+        destination = const TrangChuSinhVien();
       } else {
-        Navigator.pushReplacementNamed(context, '/');
+        // Unknown role - go to home
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        return;
       }
+
+      // ✅ Use pushAndRemoveUntil to prevent back navigation
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => destination),
+        (route) => false, // Remove all previous routes
+      );
     } on CustomException catch (e) {
       if (!mounted) return;
       if (kDebugMode) {
@@ -222,8 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 12),
                                 Align(
                                   alignment: Alignment.centerRight,
-                                  child: // Trong LoginScreen, thay thế TextButton "Quên mật khẩu?"
-                                  TextButton(
+                                  child: TextButton(
                                     onPressed: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(

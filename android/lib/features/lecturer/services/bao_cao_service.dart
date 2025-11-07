@@ -1,216 +1,283 @@
 import 'dart:convert';
-import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:http/http.dart' as http;
-import 'package:GPMS/features/lecturer/models/bao_cao.dart';
-import 'package:flutter/foundation.dart';
-import 'package:GPMS/features/lecturer/models/student_supervised.dart';
-import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
 import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/features/lecturer/models/bao_cao.dart';
+import 'package:GPMS/features/lecturer/models/student_supervised.dart';
 
 class BaoCaoService {
-  final http.Client _client;
   final String baseUrl;
+  final Future<String?> Function() tokenProvider;
 
-  /// Default base URL depending on platform / emulator
-  static String get defaultBaseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:8080';
-    }
-    const useEmulator = true;
-    if (useEmulator) {
-      return 'http://10.0.2.2:8080';
-    } else {
-      return 'http://192.168.1.10:8080';
-    }
+  BaoCaoService({required this.baseUrl, required this.tokenProvider});
+
+  /// Get headers with Bearer token
+  Future<Map<String, String>> _headers() async {
+    final token = await tokenProvider();
+
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
   }
 
-  BaoCaoService({String? baseUrl, http.Client? client})
-    : baseUrl = baseUrl ?? defaultBaseUrl,
-      _client = client ?? http.Client();
+  /// Extract list from various response formats
+  List<Map<String, dynamic>> _extractList(dynamic raw) {
+    if (raw == null) return [];
 
+    if (raw is List) {
+      return raw
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+
+    if (raw is Map) {
+      final m = Map<String, dynamic>.from(raw);
+      if (m['result'] is List) return _extractList(m['result']);
+      if (m['content'] is List) return _extractList(m['content']);
+      return [m];
+    }
+
+    return [];
+  }
+
+  /// Fetch danh sách sinh viên được hướng dẫn
+  ///
+  /// GET /api/bao-cao/list-sinh-vien-supervised
   Future<List<StudentSupervised>> fetchSupervisedStudents() async {
-    final token = await AuthService.getToken();
     final uri = Uri.parse('$baseUrl/api/bao-cao/list-sinh-vien-supervised');
 
-    final headers = <String, String>{'Accept': 'application/json'};
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return list.map((e) => StudentSupervised.fromJson(e)).toList();
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
     }
-
-    final resp = await _client.get(uri, headers: headers);
-
-    if (resp.statusCode != 200) {
-      _handleErrorResponse(resp);
-    }
-
-    final decoded = jsonDecode(resp.body);
-
-    List<dynamic>? items;
-    if (decoded is Map && decoded['result'] is List) {
-      items = decoded['result'] as List<dynamic>;
-    } else if (decoded is List) {
-      items = decoded;
-    }
-
-    if (items == null) {
-      throw CustomException(ErrorCode.fromResponse(jsonDecode(resp.body)));
-    }
-
-    return items
-        .map((e) => StudentSupervised.fromJson(e as Map<String, dynamic>))
-        .toList();
   }
 
+  /// Fetch danh sách báo cáo
+  ///
+  /// GET /api/bao-cao/list-bao-cao-giang-vien?status=...
   Future<List<ReportSubmission>> fetchList({String? status}) async {
-    final token = await AuthService.getToken();
     final uri = Uri.parse(
       '$baseUrl/api/bao-cao/list-bao-cao-giang-vien',
     ).replace(queryParameters: status != null ? {'status': status} : null);
-    final headers = <String, String>{'Accept': 'application/json'};
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    final resp = await _client.get(uri, headers: headers);
 
-    if (resp.statusCode != 200) {
-      _handleErrorResponse(resp);
-    }
-    final decoded = jsonDecode(resp.body);
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-    List<dynamic>? items;
-    if (decoded is Map && decoded['result'] is List) {
-      items = decoded['result'] as List<dynamic>;
-    } else if (decoded is List) {
-      items = decoded;
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return list.map((e) => ReportSubmission.fromJson(e)).toList();
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
     }
-    if (items == null) {
-      throw CustomException(ErrorCode.fromResponse(jsonDecode(resp.body)));
-    }
-    return items
-        .map((e) => ReportSubmission.fromJson(e as Map<String, dynamic>))
-        .toList();
   }
 
+  /// Fetch báo cáo của sinh viên
+  ///
+  /// GET /api/bao-cao/list-bao-cao-sinh-vien?maSinhVien=...
   Future<List<ReportSubmission>> fetchStudentReports({
     required String maSinhVien,
   }) async {
-    final token = await AuthService.getToken();
     final uri = Uri.parse(
       '$baseUrl/api/bao-cao/list-bao-cao-sinh-vien',
     ).replace(queryParameters: {'maSinhVien': maSinhVien});
 
-    final headers = <String, String>{'Accept': 'application/json'};
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
 
-    final resp = await _client.get(uri, headers: headers);
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
 
-    if (resp.statusCode != 200) {
-      _handleErrorResponse(resp);
-    }
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
 
-    final decoded = jsonDecode(resp.body);
+      if (res.statusCode == 404) {
+        return []; // No reports found
+      }
 
-    List<dynamic>? items;
-    if (decoded is Map && decoded['result'] is List) {
-      items = decoded['result'] as List<dynamic>;
-    } else if (decoded is List) {
-      items = decoded;
-    }
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
 
-    if (items == null) {
-      throw CustomException(ErrorCode.fromResponse(jsonDecode(resp.body)));
-    }
-
-    return items
-        .map((e) => ReportSubmission.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  Future<void> rejectReport({
-    required int idBaoCao,
-    required String nhanXet,
-  }) async {
-    final token = await AuthService.getToken();
-    final uri = Uri.parse('$baseUrl/api/bao-cao/tu-choi').replace(
-      queryParameters: {
-        'idBaoCao': '$idBaoCao',
-        'nhanXet': nhanXet, // sẽ được URL-encode
-      },
-    );
-
-    final headers = {
-      'Accept': 'application/json',
-      if (token?.isNotEmpty == true) 'Authorization': 'Bearer $token',
-    };
-
-    final resp = await _client.put(uri, headers: headers);
-
-    if (resp.statusCode != 200) {
-      _handleErrorResponse(resp);
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return list.map((e) => ReportSubmission.fromJson(e)).toList();
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
     }
   }
 
+  /// Duyệt báo cáo
+  ///
+  /// PUT /api/bao-cao/duyet
   Future<void> approveReport({
     required int idBaoCao,
     required double diemHuongDan,
     String? nhanXet,
   }) async {
-    final token = await AuthService.getToken();
-    final uri = Uri.parse('$baseUrl/api/bao-cao/duyet').replace(
-      queryParameters: {
-        'idBaoCao': '$idBaoCao',
-        if (diemHuongDan != null) 'diemHuongDan': '$diemHuongDan',
-        if (nhanXet != null && nhanXet!.isNotEmpty) 'nhanXet': nhanXet!,
-      },
-    );
-
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+    final queryParams = <String, String>{
+      'idBaoCao': '$idBaoCao',
+      'diemHuongDan': '$diemHuongDan',
+      if (nhanXet != null && nhanXet.isNotEmpty) 'nhanXet': nhanXet,
     };
 
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
+    final uri = Uri.parse(
+      '$baseUrl/api/bao-cao/duyet',
+    ).replace(queryParameters: queryParams);
 
-    final resp = await _client.put(uri, headers: headers);
-
-    if (resp.statusCode != 200) {
-      _handleErrorResponse(resp);
-    }
-  }
-
-  void _handleErrorResponse(http.Response resp) {
-    String? serverMessage;
     try {
-      final decoded = jsonDecode(resp.body);
-      if (decoded is Map) {
-        if (decoded['message'] != null)
-          serverMessage = decoded['message'].toString();
-        // some APIs put payload under 'result' with nested message
-        if (serverMessage == null &&
-            decoded['result'] is Map &&
-            decoded['result']['message'] != null) {
-          serverMessage = decoded['result']['message'].toString();
+      final headers = await _headers();
+      final res = await http
+          .put(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
         }
       }
-    } catch (_) {
-      // ignore parse errors
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
     }
-
-    final code = _mapStatusToErrorCode(resp.statusCode);
-    final message =
-        serverMessage ?? '${code.message} (HTTP ${resp.statusCode})';
-    throw CustomException(ErrorCode.fromResponse(jsonDecode(resp.body)));
   }
 
-  ErrorCode _mapStatusToErrorCode(int status) {
-    if (status == 400) return ErrorCode.unauthenticated;
+  /// Từ chối báo cáo
+  ///
+  /// PUT /api/bao-cao/tu-choi
+  Future<void> rejectReport({
+    required int idBaoCao,
+    required String nhanXet,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/api/bao-cao/tu-choi',
+    ).replace(queryParameters: {'idBaoCao': '$idBaoCao', 'nhanXet': nhanXet});
 
-    return ErrorCode.unauthenticated;
+    try {
+      final headers = await _headers();
+      final res = await http
+          .put(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
+    }
   }
-
-  void dispose() => _client.close();
 }

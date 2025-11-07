@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:GPMS/features/lecturer/views/screens/do_an/sinh_vien/sinh_vien.dart'; // => chứa class SinhVienScreen
+import 'package:GPMS/features/lecturer/views/screens/do_an/sinh_vien/sinh_vien.dart';
 import 'package:GPMS/features/lecturer/views/screens/do_an/de_tai/duyet_de_tai.dart';
 import 'package:GPMS/features/lecturer/views/screens/do_an/de_cuong/duyet_de_cuong.dart';
 
@@ -49,23 +49,7 @@ class DoAn extends StatelessWidget {
               ),
             ],
           ),
-          actions: [
-            IconButton(
-              onPressed: () {},
-              tooltip: 'Thông báo',
-              icon: const Icon(Icons.notifications_outlined),
-              color: Colors.white,
-            ),
-            const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: const Icon(Icons.person, size: 18),
-              ),
-            ),
-          ],
+
           bottom: const PreferredSize(
             preferredSize: Size.fromHeight(44),
             child: _TopTabs(),

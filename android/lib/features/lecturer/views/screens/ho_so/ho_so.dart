@@ -1,7 +1,6 @@
 import 'package:GPMS/features/lecturer/models/giang_vien_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:GPMS/features/lecturer/views/screens/ho_so/LogoutButton.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:GPMS/features/lecturer/viewmodels/ho_so_viewmodel.dart';
 import 'package:GPMS/features/lecturer/views/widgets/custom_app_bar.dart';

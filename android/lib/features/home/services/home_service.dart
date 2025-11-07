@@ -1,18 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:GPMS/core/services/token_provider.dart';
 import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:GPMS/features/home/models/de_tai.dart';
 
-/// Service xử lý API calls cho Home/Guest features
-///
-/// Refactored để support dependency injection và testing
-class MainService {
+class HomeService {
   final http.Client _client;
 
-  // Constructor cho dependency injection
-  MainService({http.Client? client}) : _client = client ?? http.Client();
+  HomeService({http.Client? client}) : _client = client ?? http.Client();
+
+  final Future<String?> Function() tokenProvider = () async {
+    return await TokenProvider().getToken();
+  };
+
+  Future<Map<String, String>> _headers() async {
+    final token = await tokenProvider();
+
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
 
   /// Base URL configuration
   String get baseUrl {
@@ -66,6 +77,43 @@ class MainService {
         print('Error in listThongBao: $e');
       }
       throw Exception('Error loading notifications: $e');
+    }
+  }
+
+  Future<List<ThongBaoVaTinTuc>> listThongBaoByUser() async {
+    final uri = Uri.parse('$baseUrl/api/thong-bao/list-by-user');
+    try {
+      final headers = await _headers(); // ← Lấy token nếu có
+      final response = await _client
+          .get(uri, headers: headers) // ← Dùng headers có token
+          .timeout(const Duration(seconds: 15));
+
+      if (kDebugMode) {
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final result = data['result'];
+        if (result == null || result is! List) {
+          throw Exception(
+            'Invalid response format: missing or invalid result field',
+          );
+        }
+
+        return result
+            .map<ThongBaoVaTinTuc>((item) => ThongBaoVaTinTuc.fromJson(item))
+            .toList();
+      } else {
+        final errorData = jsonDecode(response.body);
+        final message = errorData['message'] ?? 'Unknown error';
+        final code = errorData['code'] ?? response.statusCode;
+        throw Exception('Failed to load notifications: $message (code: $code)');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error in listThongBaoByUser: $e');
+      throw Exception('Error loading user notifications: $e');
     }
   }
 

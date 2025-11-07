@@ -9,12 +9,6 @@ import 'package:GPMS/features/student/models/de_nghi_hoan_model.dart';
 import 'package:GPMS/features/student/viewmodels/hoan_do_an_viewmodel.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
-/// Màn hình Đề nghị hoãn đồ án
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent (passed from TrangChuSinhVien)
-/// - Handle errors với ErrorCode
-/// - Better state management
 class HoanDoAn extends StatefulWidget {
   const HoanDoAn({super.key});
 
@@ -177,6 +171,7 @@ class _HoanDoAnState extends State<HoanDoAn> {
       builder: (context, viewModel, _) {
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: const Color(0xFF2563EB),
             title: const Text(
               'Đề nghị hoãn đồ án',

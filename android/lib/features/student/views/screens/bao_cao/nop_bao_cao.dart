@@ -6,12 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:GPMS/features/student/viewmodels/bao_cao_viewmodel.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
-/// Màn hình nộp báo cáo
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent
-/// - Handle errors với ErrorCode
-/// - Better file picker integration
 class SubmitReportPage extends StatefulWidget {
   const SubmitReportPage({super.key});
 

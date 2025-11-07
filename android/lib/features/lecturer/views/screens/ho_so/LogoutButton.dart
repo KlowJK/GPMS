@@ -20,7 +20,12 @@ class LogoutButton extends StatelessWidget {
                 Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: const Text('Hủy'),
           ),
+
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white, // text/icon color
+            ),
             onPressed: () =>
                 Navigator.of(dialogContext, rootNavigator: true).pop(true),
             child: const Text('Đăng xuất'),

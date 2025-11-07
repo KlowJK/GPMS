@@ -1,10 +1,6 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Token Provider Service
-///
-/// Centralized token management cho dependency injection
-/// Có thể mock cho testing
 class TokenProvider {
   static const String _tokenKey = 'token';
 

@@ -1,18 +1,18 @@
-import 'package:GPMS/shared/components/app_card_list.dart';
 import 'package:flutter/material.dart';
-import 'package:GPMS/features/auth/views/screens/login.dart';
 import 'package:provider/provider.dart';
 import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
 import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 import 'package:GPMS/features/home/services/home_service.dart';
 import 'package:GPMS/features/home/viewmodels/home_viewmodel.dart';
+import 'package:GPMS/features/auth/views/screens/login.dart';
+import 'package:GPMS/features/auth/views/screens/forgot_password.dart';
+import 'package:GPMS/core/constants//auth_guard.dart';
 import 'package:intl/intl.dart';
 import 'package:GPMS/shared/components/news_detail_page.dart';
 import 'package:GPMS/shared/components/all_news_page.dart';
 import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
 import 'package:GPMS/shared/components/all_topics_page.dart';
-import 'package:GPMS/features/auth/views/screens/forgot_password.dart';
 
 void main() {
   runApp(
@@ -22,7 +22,12 @@ void main() {
           create: (_) => AuthViewModel()..loadUserFromStorage(),
         ),
         // Provider cho HomeViewModel
-        ChangeNotifierProvider(create: (_) => HomeViewModel(MainService())),
+        ChangeNotifierProvider(
+          create: (context) => HomeViewModel(
+            HomeService(),
+            context.read<AuthViewModel>(), // ← Inject Auth
+          ),
+        ),
       ],
       child: const GPMSApp(),
     ),
@@ -43,9 +48,11 @@ class GPMSApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: seed),
         scaffoldBackgroundColor: const Color(0xFFE3E3E8),
       ),
-      home: const HomeGuestResponsive(),
+      // ✅ Wrap home with AuthGuard
+      home: const HomeGuestGuard(homeGuest: HomeGuestResponsive()),
       routes: {
-        '/login': (_) => const LoginScreen(),
+        // ✅ Wrap login with AuthGuard
+        '/login': (_) => const LoginScreenGuard(loginScreen: LoginScreen()),
         '/forgot-password': (_) => const ForgotPasswordScreen(),
       },
     );
@@ -184,7 +191,7 @@ class _HomeGuestResponsiveState extends State<HomeGuestResponsive> {
                         children: [
                           // Tin tức
                           SectionHeader(
-                            title: 'Tin tức',
+                            title: 'Thông báo',
                             trailing: TextButton(
                               onPressed:
                                   viewModel.notifications == null ||

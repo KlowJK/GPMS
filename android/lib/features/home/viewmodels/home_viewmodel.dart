@@ -2,13 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:GPMS/features/home/services/home_service.dart';
+import 'package:GPMS/features/auth/viewmodels/auth_viewmodel.dart';
 
-/// ViewModel cho màn hình Home (Guest)
-///
-/// Quản lý state và business logic cho trang chủ guest
-/// Sử dụng ChangeNotifier để notify UI khi có thay đổi
 class HomeViewModel extends ChangeNotifier {
-  final MainService _mainService;
+  final HomeService _mainService;
+  final AuthViewModel _authViewModel; // ← Thêm tham chiếu Auth
 
   // State
   List<ThongBaoVaTinTuc>? _notifications;
@@ -17,8 +15,8 @@ class HomeViewModel extends ChangeNotifier {
   bool _isRefreshing = false;
   String? _errorMessage;
 
-  // Constructor with dependency injection
-  HomeViewModel(this._mainService);
+  // Constructor
+  HomeViewModel(this._mainService, this._authViewModel);
 
   // Getters
   List<ThongBaoVaTinTuc>? get notifications => _notifications;
@@ -38,9 +36,8 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load song song cả 2 API
       final results = await Future.wait([
-        _mainService.listThongBao(),
+        _loadNotifications(), // ← Tự động chọn API
         _mainService.listDeTai(),
       ]);
 
@@ -49,16 +46,14 @@ class HomeViewModel extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Không thể tải dữ liệu: $e';
-      if (kDebugMode) {
-        print('Error loading initial data: $e');
-      }
+      if (kDebugMode) print('Error loading initial data: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Làm mới dữ liệu (pull to refresh)
+  /// Làm mới dữ liệu
   Future<void> refreshData() async {
     if (_isRefreshing) return;
 
@@ -67,9 +62,8 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load song song cả 2 API
       final results = await Future.wait([
-        _mainService.listThongBao(),
+        _loadNotifications(), // ← Tự động chọn API
         _mainService.listDeTai(),
       ]);
 
@@ -78,28 +72,33 @@ class HomeViewModel extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Không thể làm mới dữ liệu';
-      if (kDebugMode) {
-        print('Error refreshing data: $e');
-      }
-      rethrow; // Để UI có thể handle (show SnackBar)
+      if (kDebugMode) print('Error refreshing data: $e');
+      rethrow;
     } finally {
       _isRefreshing = false;
       notifyListeners();
     }
   }
 
-  /// Retry khi có lỗi
-  Future<void> retry() async {
-    await loadInitialData();
+  /// Tải thông báo theo trạng thái đăng nhập
+  Future<List<ThongBaoVaTinTuc>> _loadNotifications() async {
+    if (_authViewModel.isLoggedIn) {
+      return await _mainService.listThongBaoByUser(); // ← Có token
+    } else {
+      return await _mainService.listThongBao(); // ← Public, không token
+    }
   }
 
-  /// Clear error message
+  /// Retry
+  Future<void> retry() async => await loadInitialData();
+
+  /// Clear error
   void clearError() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  /// Reset state (useful for testing or logout)
+  /// Reset state
   void reset() {
     _notifications = null;
     _topics = null;

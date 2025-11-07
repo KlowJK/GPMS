@@ -8,12 +8,6 @@ import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
 
-/// Màn hình Báo cáo
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent provider
-/// - Handle errors với ErrorCode
-/// - Better state management
 class BaoCao extends StatefulWidget {
   const BaoCao({super.key});
 

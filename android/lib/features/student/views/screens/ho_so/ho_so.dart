@@ -7,12 +7,6 @@ import 'package:GPMS/features/student/views/screens/ho_so/LogoutButton.dart';
 import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 
-/// Màn hình Hồ sơ sinh viên
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent provider
-/// - Handle errors với ErrorCode
-/// - Better state management
 class HoSo extends StatefulWidget {
   const HoSo({super.key});
 

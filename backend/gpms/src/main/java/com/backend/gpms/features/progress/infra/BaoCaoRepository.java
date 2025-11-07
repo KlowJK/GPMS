@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public interface BaoCaoRepository extends JpaRepository<BaoCao, Long> {
     Optional<BaoCao> findById(Long id);
-    List<BaoCao> findByDeTai_SinhVien_User_EmailOrderByCreatedAt(String email);
+    List<BaoCao> findByDeTai_SinhVien_User_EmailOrderByCreatedAtDesc(String email);
     List<BaoCao> findByDeTai_GiangVienHuongDan_User_EmailIgnoreCase(String email);
 
     List<BaoCao> findByGiangVienHuongDan_IdOrderByCreatedAt(Long giangVienId);

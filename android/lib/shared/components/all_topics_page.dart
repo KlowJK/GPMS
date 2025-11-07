@@ -65,6 +65,7 @@ class _AllTopicsPageState extends State<AllTopicsPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
           'Tất cả đề tài',
           style: TextStyle(color: Colors.white),

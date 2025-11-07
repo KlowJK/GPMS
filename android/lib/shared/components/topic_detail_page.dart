@@ -20,6 +20,7 @@ class TopicDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
           'Chi tiết đề tài',
           style: TextStyle(color: Colors.white),

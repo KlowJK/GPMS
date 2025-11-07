@@ -23,6 +23,7 @@ class NewsDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
           'Chi tiết tin tức',
           style: TextStyle(color: Colors.white),
@@ -45,7 +46,7 @@ class NewsDetailPage extends StatelessWidget {
               const SizedBox(height: 8),
               // Ngày đăng (nhỏ bên dưới tiêu đề)
               Text(
-                'Ngày đăng: $formattedDate',
+                'Ngày: $formattedDate',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey),

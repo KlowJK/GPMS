@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import 'package:GPMS/features/lecturer/models/sinh_vien_item.dart';
-import 'package:GPMS/features/lecturer/services/sinh_vien_service.dart';
+import 'package:GPMS/features/lecturer/viewmodels/sinh_vien_viewmodel.dart';
 import 'package:GPMS/features/lecturer/views/screens/do_an/chi_tiet_de_tai.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/features/lecturer/viewmodels/de_cuong_viewmodel.dart';
+import 'package:GPMS/features/lecturer/models/chi_tiet_de_tai_args.dart';
 
 String _txt(String? s, {String fb = '—'}) =>
     (s == null || s.trim().isEmpty) ? fb : s.trim();
@@ -14,24 +17,12 @@ class SinhVienTab extends StatefulWidget {
   State<SinhVienTab> createState() => _SinhVienTabState();
 }
 
-// dart
-class _SinhVienTabState extends State<SinhVienTab> {
-  final _items = <SinhVienItem>[];
-  bool _loading = false;
-  String? _error;
-
-  // Search state
-  final TextEditingController _searchController = TextEditingController();
-  String _query = '';
-
+class _SinhVienTabState extends State<SinhVienTab>
+    with AutomaticKeepAliveClientMixin {
   @override
-  void initState() {
-    super.initState();
-    _load();
-    _searchController.addListener(() {
-      setState(() => _query = _searchController.text);
-    });
-  }
+  bool get wantKeepAlive => true;
+
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
@@ -39,158 +30,143 @@ class _SinhVienTabState extends State<SinhVienTab> {
     super.dispose();
   }
 
-  List<SinhVienItem> get _filteredItems {
-    final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return _items;
-    return _items.where((it) {
-      final name = (it.hoTen ?? '').toLowerCase();
-      final ma = (it.maSV ?? '').toLowerCase();
-      final lop = (it.tenLop ?? '').toLowerCase();
-      final deTai = (it.tenDeTai ?? '').toLowerCase();
-      return name.contains(q) ||
-          ma.contains(q) ||
-          lop.contains(q) ||
-          deTai.contains(q);
-    }).toList();
-  }
-
-  Future<void> _load() async {
-    if (_loading) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final list = await SinhVienService.fetch();
-      setState(() {
-        _items
-          ..clear()
-          ..addAll(list);
-      });
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Header with search box + title
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Column(
-            children: [
-              Row(
+    super.build(context);
+
+    return Consumer<SinhVienViewModel>(
+      builder: (context, vm, _) {
+        return Column(
+          children: [
+            // Header with search box
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (v) =>
-                            setState(() => _query = v), // update immediately
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.search),
-                          hintText: 'Tìm kiếm sinh viên...',
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                          ),
-                          suffixIcon: _query.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(
-                                      () => _query = '',
-                                    ); // ensure UI updates
-                                  },
-                                )
-                              : null,
+                  // Search box
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
                         ),
-                        onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (query) => vm.setSearchQuery(query),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        hintText: 'Tìm kiếm sinh viên...',
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        suffixIcon: vm.searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  vm.clearSearch();
+                                },
+                              )
+                            : null,
                       ),
+                      onSubmitted: (_) => FocusScope.of(context).unfocus(),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Title with count
+                  Row(
+                    children: [
+                      Text(
+                        'Danh sách sinh viên (${vm.filteredCount})',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    'Danh sách sinh viên (${_filteredItems.length}):',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                ],
-              ),
-            ],
+            ),
+
+            // Body
+            Expanded(child: _buildBody(vm)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(SinhVienViewModel vm) {
+    // Error state
+    if (vm.hasError && vm.items.isEmpty) {
+      return _ErrorView(
+        message: vm.error!,
+        errorCode: vm.errorCode,
+        onRetry: () => vm.retry(),
+      );
+    }
+
+    // Loading state
+    if (vm.isLoading && vm.items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Empty state (after search or no data)
+    if (vm.filteredItems.isEmpty) {
+      return _EmptyCenter(
+        text: vm.searchQuery.isNotEmpty
+            ? 'Không tìm thấy sinh viên phù hợp'
+            : 'Không có sinh viên.',
+      );
+    }
+
+    // List with refresh
+    return RefreshIndicator(
+      onRefresh: () => vm.fetchList(),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+        itemCount: vm.filteredItems.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          final item = vm.filteredItems[i];
+          return _SinhVienCard(
+            item: item,
+            onTap: () => _navigateToDetail(context, item),
+          );
+        },
+      ),
+    );
+  }
+
+  void _navigateToDetail(BuildContext context, SinhVienItem item) {
+    // Get DeCuongViewModel from context to pass to detail screen
+    final deCuongVm = context.read<DeCuongViewModel>();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: deCuongVm,
+          child: ChiTietDeTai(
+            data: ChiTietDeTaiArgs(
+              maSV: _txt(item.maSV),
+              hoTen: _txt(item.hoTen),
+              tenLop: _txt(item.tenLop),
+              soDienThoai: _txt(item.soDienThoai),
+              tenDeTai: _txt(item.tenDeTai),
+              cvUrl: item.cvUrl,
+            ),
           ),
         ),
-
-        // Body
-        Expanded(
-          child: _error != null
-              ? _ErrorView(message: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : (_filteredItems.isEmpty
-                            ? const _EmptyCenter(text: 'Không có sinh viên.')
-                            : ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(
-                                  12,
-                                  8,
-                                  12,
-                                  24,
-                                ),
-                                itemCount: _filteredItems.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, i) {
-                                  final it = _filteredItems[i];
-                                  return _SinhVienCard(
-                                    item: it,
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => ChiTietDeTai(
-                                            data: ChiTietDeTaiArgs(
-                                              maSV: _txt(it.maSV),
-                                              hoTen: _txt(it.hoTen),
-                                              tenLop: _txt(it.tenLop),
-                                              soDienThoai: _txt(it.soDienThoai),
-                                              tenDeTai: _txt(it.tenDeTai),
-                                              cvUrl: it.cvUrl,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              )),
-                ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -203,14 +179,8 @@ class _SinhVienCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cvText = (item.cvUrl == null || item.cvUrl!.isEmpty)
-        ? 'CV: —'
-        : 'CV: ${Uri.tryParse(item.cvUrl!)?.pathSegments.last ?? item.cvUrl!}';
-
-    final canOpenCV = (item.cvUrl ?? '').startsWith('http');
-
     return Material(
-      color: Color(0xFFF9FAFB),
+      color: const Color(0xFFF9FAFB),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -246,21 +216,12 @@ class _SinhVienCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _txt(item.tenLop),
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
+                    Text(
+                      _txt(item.tenLop),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-
-                    // Dòng 3: Đề tài
                     Text(
                       'Đề tài: ${_txt(item.tenDeTai)}',
                       maxLines: 2,
@@ -270,21 +231,11 @@ class _SinhVienCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
             ],
           ),
         ),
       ),
     );
-  }
-
-  VoidCallback _open(String url) {
-    return () async {
-      final uri = Uri.tryParse(url);
-      if (uri != null) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    };
   }
 }
 
@@ -298,6 +249,7 @@ class _EmptyCenter extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(top: 32),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.info_outline,
@@ -305,7 +257,7 @@ class _EmptyCenter extends StatelessWidget {
               color: Theme.of(context).disabledColor,
             ),
             const SizedBox(height: 8),
-            Text(text),
+            Text(text, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -314,8 +266,14 @@ class _EmptyCenter extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
+  const _ErrorView({
+    required this.message,
+    this.errorCode,
+    required this.onRetry,
+  });
+
   final String message;
+  final ErrorCode? errorCode;
   final VoidCallback onRetry;
 
   @override
@@ -330,7 +288,11 @@ class _ErrorView extends StatelessWidget {
           size: 36,
         ),
         const SizedBox(height: 8),
-        Text('Lỗi: $message'),
+        Text(
+          'Lỗi: $message',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: onRetry,
