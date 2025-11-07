@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:GPMS/features/student/models/report_item.dart';
+import 'package:GPMS/features/student/models/bao_cao.dart';
 import 'package:GPMS/features/student/viewmodels/bao_cao_viewmodel.dart';
 import 'package:GPMS/features/student/views/screens/bao_cao/nop_bao_cao.dart';
 import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
@@ -218,7 +218,11 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
   }
 
   Widget? _buildFAB(BaoCaoViewModel vm) {
+    // Require topic
     if (!vm.hasTopic) return null;
+
+    // Only show FAB if the latest report is rejected (TU_CHOI)
+    if (!_shouldShowFab(vm)) return null;
 
     return Tooltip(
       message: vm.canSubmitNew
@@ -229,6 +233,25 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  // Decide whether to show FAB: true only when the latest report is rejected.
+  bool _shouldShowFab(BaoCaoViewModel vm) {
+    if (vm.items.isEmpty) return false;
+
+    // Find the report(s) with the highest version number
+    int maxVersion = vm.items.map((e) => e.version).reduce((a, b) => a > b ? a : b);
+    final topVersionItems = vm.items.where((e) => e.version == maxVersion).toList();
+
+    // If multiple items share the same max version, pick the most recent by createdAt
+    ReportItem latest = topVersionItems.first;
+    for (final r in topVersionItems) {
+      try {
+        if (r.createdAt.isAfter(latest.createdAt)) latest = r;
+      } catch (_) {}
+    }
+
+    return latest.status == ReportStatus.rejected;
   }
 
   void _handleFABTap(BaoCaoViewModel vm) {
@@ -312,7 +335,7 @@ class _ReportCard extends StatelessWidget {
       color: cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: badgeColor.withOpacity(0.5)),
+        side: BorderSide(color: badgeColor.withAlpha((0.5 * 255).round())),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -363,6 +386,25 @@ class _ReportCard extends StatelessWidget {
                 ),
               ),
             ),
+            // Show score when approved
+            if (item.status == ReportStatus.approved && item.diemBaoCao != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Text(
+                    'Điểm: ',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    item.diemBaoCao!.toStringAsFixed(item.diemBaoCao! % 1 == 0 ? 0 : 2),
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             _buildInfoRow('Ngày nộp', text: _fmtDateOnly(item.createdAt)),
             if (item.note != null && item.note!.isNotEmpty)
               Padding(

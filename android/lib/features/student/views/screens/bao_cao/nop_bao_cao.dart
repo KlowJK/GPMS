@@ -87,6 +87,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Xác nhận'),
           ),
         ],
@@ -153,7 +157,15 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
   }
 
   void _handleError(BaoCaoViewModel vm) {
-    String message = vm.error!;
+    String message = vm.error ?? '';
+
+    // If backend returned a generic system error, map it to the business error
+    // ErrorCode.deCuongNotApproved (code 4009) so the user sees the correct message.
+    if (vm.errorCode == ErrorCode.internalServerError || message.contains('Lỗi hệ thống') || message.toLowerCase().contains('lỗi hệ thống')) {
+      message = ErrorCode.deCuongNotApproved.message; // 'Đề cương chưa được phê duyệt.'
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
 
     // Handle specific errors
     if (vm.errorCode == ErrorCode.unauthenticated) {
@@ -166,9 +178,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       message = 'File không hợp lệ hoặc rỗng.';
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -191,6 +201,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
 
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false, // remove default back button
             backgroundColor: const Color(0xFF2563EB),
             title: const Text(
               'Nộp báo cáo',
@@ -253,6 +264,11 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                                 onPressed: (uploading || _sending)
                                     ? null
                                     : _submit,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                ),
                                 child: _sending
                                     ? const SizedBox(
                                         width: 16,

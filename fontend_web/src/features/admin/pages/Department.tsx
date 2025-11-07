@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import adminService, { Department } from '@features/admin/services/adminService';
 import DepartmentFormModal from '@features/admin/components/DepartmentFormModal';
 import ConfirmDialog from '@features/admin/components/ConfirmDialog';
 import { useToast } from '@features/admin/components/ToastProvider';
+
+// dùng pager dùng chung
+import Pagination from '@/features/assistants/components/Pagination';
+
+/* helpers */
+function useDebounce<T>(value: T, delay = 300) {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), delay); return () => clearTimeout(t); }, [value, delay]);
+  return v;
+}
+const norm = (s = '') => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
 type ModalState = { open: boolean; editing?: Department | null };
 
@@ -14,6 +25,7 @@ export default function DepartmentPage() {
   const [size] = useState(10);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
+  const qx = useDebounce(q, 250);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false });
 
@@ -21,12 +33,11 @@ export default function DepartmentPage() {
     open: boolean; title?: string; description?: string; onConfirm?: () => void | Promise<void>;
   }>({ open: false });
 
-  const keyword = q.trim();
-
   async function load() {
     setLoading(true);
     try {
-      const res = await adminService.listDepartments({ page, size, q: keyword || undefined });
+      // vẫn truyền q lên BE nếu có hỗ trợ tìm kiếm server-side
+      const res = await adminService.listDepartments({ page, size, q: qx.trim() || undefined });
       const pg = adminService.toPage<Department>(res, { page, size });
       setItems(pg.content);
       setTotal(pg.totalElements);
@@ -34,17 +45,13 @@ export default function DepartmentPage() {
       setLoading(false);
     }
   }
-
-  useEffect(() => { load(); }, [page, size, keyword]);
+  useEffect(() => { load(); }, [page, size, qx]); // eslint-disable-line
 
   function openCreate() { setModal({ open: true, editing: null }); }
   function openEdit(row: Department) { setModal({ open: true, editing: row }); }
 
   function askDelete(row: Department) {
-    if (!adminService.canDeleteDepartment(row)) {
-      error('Khoa có sẵn không thể xóa.');
-      return;
-    }
+    if (!adminService.canDeleteDepartment(row)) { error('Khoa có sẵn không thể xóa.'); return; }
     setConfirm({
       open: true,
       title: 'Xóa khoa',
@@ -63,11 +70,17 @@ export default function DepartmentPage() {
     });
   }
 
+  // lọc mềm phía client theo tên hoặc ID
+  const filtered = useMemo(() => {
+    const k = qx.trim();
+    if (!k) return items;
+    const nk = norm(k);
+    return items.filter(r => norm(r.tenKhoa).includes(nk) || String(r.id).includes(k));
+  }, [items, qx]);
+
   const totalPages = Math.max(1, Math.ceil(total / size));
-  const canPrev = page > 0;
-  const canNext = page + 1 < totalPages;
   const from = total ? page * size + 1 : 0;
-  const to = Math.min(total, page * size + items.length);
+  const to = Math.min(total, page * size + filtered.length);
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
@@ -77,7 +90,7 @@ export default function DepartmentPage() {
         <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg">+ Thêm khoa</button>
         <input
           className="h-10 px-3 rounded border w-72"
-          placeholder="Tìm theo tên khoa…"
+          placeholder="Tìm theo tên hoặc ID khoa…"
           value={q}
           onChange={(e) => { setPage(0); setQ(e.target.value); }}
         />
@@ -96,9 +109,9 @@ export default function DepartmentPage() {
           <tbody>
             {loading ? (
               <tr><td className="px-4 py-6 text-center" colSpan={3}>Đang tải…</td></tr>
-            ) : items.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <tr><td className="px-4 py-6 text-center" colSpan={3}>Không có dữ liệu khoa.</td></tr>
-            ) : items.map((row, idx) => {
+            ) : filtered.map((row, idx) => {
               const stt = page * size + idx + 1;
               const canDel = adminService.canDeleteDepartment(row);
               return (
@@ -135,25 +148,15 @@ export default function DepartmentPage() {
           </tbody>
         </table>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-end gap-3 p-3">
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-40"
-            onClick={() => setPage(p => Math.max(0, p - 1))}
-            disabled={!canPrev}
-          >
-            Trước
-          </button>
-
-          <span className="text-sm">{page + 1}/{totalPages}</span>
-
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-40"
-            onClick={() => setPage(p => (p + 1 < totalPages ? p + 1 : p))}
-            disabled={!canNext}
-          >
-            Sau
-          </button>
+        {/* ✅ Pagination dùng chung, căn giữa */}
+        <div className="p-3 flex justify-center">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            showCounter={false}
+            disabled={loading}
+          />
         </div>
       </div>
 
@@ -169,7 +172,7 @@ export default function DepartmentPage() {
               } else {
                 await adminService.createDepartment(payload);
                 success('Thêm khoa thành công.');
-                setPage(0); // đưa về trang đầu để thấy record mới
+                setPage(0);
               }
               setModal({ open: false });
               await load();

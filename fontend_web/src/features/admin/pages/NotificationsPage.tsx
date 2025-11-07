@@ -1,14 +1,19 @@
-// src/features/admin/pages/NotificationsPage.tsx
+// src/features/admin/pages/AdminNotificationsPage.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, Paperclip } from 'lucide-react';
 import { useToast } from '@/features/admin/components/ToastProvider';
 
-import NotificationFormModal from '@/features/admin/components/NotificationFormModal';
 import {
   listNotificationsNormalized,
   createNotification,
   type NotificationRow,
-} from '@/features/admin/services/notification/notificationApi';
+} from '@/features/assistants/services/notification/notificationApi';
+
+import NotificationFormModal
+  from '@/features/assistants/components/NotificationFormModal';
+
+// ✅ dùng pagination dùng chung
+import Pagination from '@/features/assistants/components/Pagination';
 
 function useDebounce<T>(v: T, ms = 300) {
   const [val, setVal] = useState(v);
@@ -17,8 +22,7 @@ function useDebounce<T>(v: T, ms = 300) {
 }
 
 export default function AdminNotificationsPage() {
-  const { error } = useToast();
-
+  const { error, success } = useToast();
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [page, setPage] = useState(0);
   const [size] = useState(10);
@@ -43,7 +47,6 @@ export default function AdminNotificationsPage() {
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, size]);
 
-  // Tìm kiếm theo tiêu đề (đúng yêu cầu)
   const filtered = useMemo(() => {
     const k = qx.trim().toLowerCase();
     if (!k) return items;
@@ -52,6 +55,7 @@ export default function AdminNotificationsPage() {
 
   const from = page * size + 1;
   const to   = Math.min(total, page * size + items.length);
+  const totalPages = Math.max(1, Math.ceil(total / size)); // ✅ cho Pagination
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
@@ -68,7 +72,7 @@ export default function AdminNotificationsPage() {
             className="h-10 w-80 rounded border pl-9 pr-3"
             placeholder="Tìm theo tiêu đề…"
             value={q}
-            onChange={e => setQ(e.target.value)}
+            onChange={e => setQ(e.target.value)}   // ✅ chỉ lọc client-side
           />
         </div>
 
@@ -109,31 +113,21 @@ export default function AdminNotificationsPage() {
           </tbody>
         </table>
 
-        {/* Pagination giữa */}
-        <div className="flex items-center justify-center gap-3 p-3">
-          <button
-            className="rounded border px-3 py-1 disabled:opacity-40"
-            onClick={() => setPage(p => Math.max(0, p - 1))}
-            disabled={page === 0}
-          >
-            « Trước
-          </button>
-          <span className="text-sm">Trang {page + 1}</span>
-          <button
-            className="rounded border px-3 py-1 disabled:opacity-40"
-            onClick={() => setPage(p => (page * size + size < total ? p + 1 : p))}
-            disabled={page * size + size >= total}
-          >
-            Sau »
-          </button>
-        </div>
+        {/* ✅ Pagination dùng chung, không ảnh hưởng search client-side */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+          disabled={loading}
+        />
       </div>
 
       {open && (
         <NotificationFormModal
           onClose={() => setOpen(false)}
-          onSubmit={async ({ tieuDe, noiDung, khoaId, file }) => {
-            await createNotification({ tieuDe, noiDung, khoaId: (khoaId ?? null), file });
+          onSubmit={async ({ tieuDe, noiDung, kieuNguoiNhan, file }) => {
+            await createNotification({ tieuDe, noiDung, kieuNguoiNhan, file });
+            success('Tạo thông báo thành công.');
             await load();
           }}
         />

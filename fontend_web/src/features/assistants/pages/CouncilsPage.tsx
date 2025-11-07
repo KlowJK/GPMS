@@ -1,9 +1,7 @@
-// src/features/assistants/pages/CouncilsPage.tsx
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, Plus, FileUp } from 'lucide-react';
 import { useToast } from '@/features/admin/components/ToastProvider';
 import { useNavigate } from 'react-router-dom';
-
 import {
   type Council,
   type CreateCouncilPayload,
@@ -11,8 +9,9 @@ import {
   createCouncil,
   importCouncilStudents,
 } from '@/features/assistants/services/council/councilApi';
-
 import CouncilFormModal from '@/features/assistants/components/CouncilFormModal';
+// ✅ Pagination dùng chung
+import Pagination from '@/features/assistants/components/Pagination';
 
 function fmt(d?: string) {
   if (!d) return '—';
@@ -20,59 +19,13 @@ function fmt(d?: string) {
   return `${dd}/${m}/${y}`;
 }
 
-/* ============== Pagination (first/prev/numbered/next/last, centered) ============== */
-function PageNav({
-  page, total, size, onChange,
-}: { page: number; total: number; size: number; onChange: (p: number) => void; }) {
-  const totalPages = Math.max(1, Math.ceil(total / size));
-  const p1 = page + 1;
-  const WIN = 5;
-
-  let start = Math.max(1, p1 - Math.floor(WIN / 2));
-  let end = Math.min(totalPages, start + WIN - 1);
-  if (end - start + 1 < WIN) start = Math.max(1, end - WIN + 1);
-
-  const go = (p: number) => onChange(Math.min(Math.max(0, p), totalPages - 1));
-  const btn = (label: string | number, active = false, disabled = false, to?: number): ReactNode => (
-    <button
-      key={`p-${label}`}
-      className={
-        'min-w-8 h-9 px-3 rounded border text-sm ' +
-        (active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50') +
-        (disabled ? ' opacity-40 cursor-not-allowed' : '')
-      }
-      onClick={() => (to != null ? go(to) : undefined)}
-      disabled={disabled}
-      aria-current={active ? 'page' : undefined}
-    >
-      {label}
-    </button>
-  );
-
-  if (totalPages <= 1) {
-    // 1 trang thì không hiển thị gì
-    return null;
-  }
-
-  const nodes: ReactNode[] = [];
-  nodes.push(btn('«', false, page === 0, 0));
-  nodes.push(btn('‹', false, page === 0, page - 1));
-  for (let i = start; i <= end; i++) nodes.push(btn(i, i === p1, false, i - 1));
-  if (totalPages > end) nodes.push(<span key="ellipsis" className="px-1 select-none">…</span>);
-  nodes.push(btn('›', false, page >= totalPages - 1, page + 1));
-  nodes.push(btn('»', false, page >= totalPages - 1, totalPages - 1));
-
-  return <div className="flex items-center justify-center gap-2">{nodes}</div>;
-}
-/* ================================================================================ */
-
 export default function CouncilsPage() {
   const { success, error } = useToast();
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<Council[]>([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(10);                 // <- mỗi trang 10 bản ghi
+  const [size] = useState(10);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,10 +38,9 @@ export default function CouncilsPage() {
   async function load() {
     setLoading(true);
     try {
-      // ✅ TRUYỀN q vào API để totalElements khớp khi tìm kiếm
       const pg = await listCouncilsNormalized({ page, size, q: q.trim() || undefined });
       setRows(pg.content);
-      setTotal(pg.totalElements ?? pg.content.length ?? 0); // fallback an toàn
+      setTotal(pg.totalElements ?? pg.content.length ?? 0);
     } catch (e: any) {
       error(e?.response?.data?.message || 'Không tải được danh sách hội đồng.');
       setRows([]); setTotal(0);
@@ -96,20 +48,17 @@ export default function CouncilsPage() {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, [page, size, q]); // q đổi sẽ về lại trang hiện tại
+  useEffect(() => { load(); }, [page, size, q]);
 
   const filtered = useMemo(() => {
-    // chỉ lọc nhẹ phía client để hỗ trợ hiển thị tức thời;
-    // nguồn dữ liệu đã được server lọc theo q ở trên
     const k = q.trim().toLowerCase();
     if (!k) return rows;
-    return rows.filter(r =>
-      r.tenHoiDong?.toLowerCase().includes(k) || String(r.id).includes(k)
-    );
+    return rows.filter(r => r.tenHoiDong?.toLowerCase().includes(k) || String(r.id).includes(k));
   }, [rows, q]);
 
   const from = page * size + 1;
   const to = Math.min(total, page * size + filtered.length);
+  const totalPages = Math.max(1, Math.ceil(total / size));
 
   async function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -208,10 +157,13 @@ export default function CouncilsPage() {
           </tbody>
         </table>
 
-        {/* ✅ pager mới – căn giữa */}
-        <div className="p-3 flex justify-center">
-          <PageNav page={page} total={total} size={size} onChange={(p) => setPage(p)} />
-        </div>
+        {/* ✅ Pagination dùng chung */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+          disabled={loading}
+        />
       </div>
 
       {/* input file ẩn dùng chung */}

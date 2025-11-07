@@ -13,29 +13,32 @@ export type NotificationRow = {
   fileUrl?: string;
   createdAt?: string;
   loaiThongBao?: string;
-  khoaId?: number | null;
+  khoaId?: number | string | null;
   [k: string]: any;
 };
 
 export type CreateNotificationArgs = {
   tieuDe: string;
   noiDung: string;
-  /** Nếu truyền khoaId > 0 → kieuNguoiNhan=1 (theo khoa), ngược lại = 0 (toàn trường) */
-  khoaId?: number | null;
+  /** ID khoa (string/number). Bỏ qua hoặc null/'' => gửi toàn trường */
+  kieuNguoiNhan?: string | number | null;
   file?: File | null;
 };
 
 export async function createNotification(args: CreateNotificationArgs) {
-  const { tieuDe, noiDung, khoaId } = args;
-
-  const byDept = khoaId != null && Number(khoaId) > 0;
-  const kieuNguoiNhan: 0 | 1 = byDept ? 1 : 0;
-
   const fd = new FormData();
   if (args.file) fd.append('file', args.file);
 
-  const params: Record<string, any> = { tieuDe, noiDung, kieuNguoiNhan };
-  if (byDept) params.khoaId = Number(khoaId); // ⇐ chỉ gửi đúng tên tham số này
+  const params: Record<string, any> = {
+    tieuDe: args.tieuDe,
+    noiDung: args.noiDung,
+  };
+
+  const v = args.kieuNguoiNhan;
+  if (v !== undefined && v !== null && String(v) !== '') {
+    // giữ dạng string để không mất chính xác với ID rất lớn
+    params.kieuNguoiNhan = String(v);
+  }
 
   return axios.post('/api/thong-bao', fd, {
     params,

@@ -54,6 +54,7 @@ class ReportItem {
   final int version;
   final ReportStatus status;
   final String? note;
+  final double? diemBaoCao; // optional score when approved
 
   ReportItem({
     this.id,
@@ -65,6 +66,7 @@ class ReportItem {
     required this.version,
     required this.status,
     this.note,
+    this.diemBaoCao,
   });
 
   factory ReportItem.fromJson(Map<String, dynamic> json) {
@@ -119,6 +121,14 @@ class ReportItem {
       } catch (_) {}
     }
 
+    double? diem;
+    try {
+      if (json['diemBaoCao'] != null) diem = double.tryParse(json['diemBaoCao'].toString());
+      else if (json['diem_bao_cao'] != null) diem = double.tryParse(json['diem_bao_cao'].toString());
+      else if (json['score'] != null) diem = double.tryParse(json['score'].toString());
+      else if (json['diem'] != null) diem = double.tryParse(json['diem'].toString());
+    } catch (_) {}
+
     return ReportItem(
       id: json['id'] is int ? json['id'] as int : (json['id'] != null ? int.tryParse(json['id'].toString()) : null),
       idDeTai: json['idDeTai']?.toString(),
@@ -129,6 +139,7 @@ class ReportItem {
       version: version,
       status: status,
       note: json['nhanXet']?.toString() ?? json['note']?.toString(),
+      diemBaoCao: diem,
     );
   }
 
@@ -142,6 +153,7 @@ class ReportItem {
         'version': version,
         'status': status.toString().split('.').last,
         if (note != null) 'note': note,
+        if (diemBaoCao != null) 'diemBaoCao': diemBaoCao,
       };
 
   @override

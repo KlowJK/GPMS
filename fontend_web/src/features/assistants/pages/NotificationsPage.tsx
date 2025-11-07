@@ -15,7 +15,7 @@ function useDebounce<T>(v: T, ms = 300) {
 }
 
 export default function NotificationsPage() {
-  const { error } = useToast();
+  const { error, success } = useToast();
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [page, setPage] = useState(0);
   const [size] = useState(10);
@@ -121,8 +121,9 @@ export default function NotificationsPage() {
       {open && (
         <NotificationFormModal
           onClose={() => setOpen(false)}
-          onSubmit={async ({ tieuDe, noiDung, khoaId, file }) => {
-            await createNotification({ tieuDe, noiDung, khoaId: (khoaId ?? null), file });
+          onSubmit={async ({ tieuDe, noiDung, kieuNguoiNhan, file }) => {
+            await createNotification({ tieuDe, noiDung, kieuNguoiNhan, file });
+            success('Tạo thông báo thành công.');
             await load();
           }}
         />

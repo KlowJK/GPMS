@@ -50,6 +50,7 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
 
   @override
   void dispose() {
+    // Clean up controllers
     _contentCtrl.dispose();
     _fileCtrl.dispose();
     super.dispose();
@@ -138,31 +139,28 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nộp nhật ký thành công')));
-
-      // Return result
+      // For server-backed flow: return true so caller can decide to show success
       if (widget.deTaiId != null || widget.idNhatKy != null) {
-        Navigator.pop(context, null); // Server-backed
-      } else {
-        // Local (shouldn't happen with new flow)
-        final fileName = _pickedFilePath != null
-            ? _pickedFilePath!.split(Platform.pathSeparator).last
-            : null;
-
-        Navigator.pop(
-          context,
-          DiaryEntry(
-            week: _week,
-            timeRange: _timeRange,
-            content: _contentCtrl.text.trim(),
-            resultFileName: fileName,
-            status: DiaryStatus.DA_NOP,
-            teacherNote: vm.result?.nhanXet,
-          ),
-        );
+        Navigator.pop(context, true);
+        return;
       }
+
+      // Local (shouldn't happen with new flow)
+      final fileName = _pickedFilePath != null
+          ? _pickedFilePath!.split(Platform.pathSeparator).last
+          : null;
+
+      Navigator.pop(
+        context,
+        DiaryEntry(
+          week: _week,
+          timeRange: _timeRange,
+          content: _contentCtrl.text.trim(),
+          resultFileName: fileName,
+          status: DiaryStatus.DA_NOP,
+          teacherNote: vm.result?.nhanXet,
+        ),
+      );
     } else {
       _handleError(vm);
     }
@@ -323,19 +321,21 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
                             const SizedBox(height: 6),
                             TextField(
                               controller: _contentCtrl,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              textCapitalization: TextCapitalization.sentences,
+                              enableSuggestions: true,
+                              autocorrect: true,
                               minLines: 4,
                               maxLines: 8,
                               decoration: InputDecoration(
-                                hintText:
-                                    'Vui lòng nhập nội dung đã thực hiện…',
+                                hintText: 'Vui lòng nhập nội dung đã thực hiện…',
                                 isDense: true,
                                 border: border,
                                 enabledBorder: border,
                                 focusedBorder: border.copyWith(
                                   borderSide: BorderSide(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -533,3 +533,4 @@ class _AttachFileTile extends StatelessWidget {
     );
   }
 }
+

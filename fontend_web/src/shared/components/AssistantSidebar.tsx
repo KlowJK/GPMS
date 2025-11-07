@@ -67,9 +67,9 @@ export default function Sidebar() {
       <Group
         label="Quản lý tổ chức"
         items={[
-          { to: '/assistant/subjects', label: 'Quản lý bộ môn' },
-          { to: '/assistant/majors',   label: 'Quản lý ngành' },
-          { to: '/assistant/classes',  label: 'Quản lý lớp'   },
+          { to: '/assistant/subjects', label: 'Bộ môn' },
+          { to: '/assistant/majors',   label: 'Ngành' },
+          { to: '/assistant/classes',  label: 'Lớp'   },
         ]}
       />
 
