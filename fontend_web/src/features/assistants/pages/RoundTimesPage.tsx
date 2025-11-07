@@ -16,6 +16,7 @@ import {
   type UpdateRoundTime,
 } from '@/features/assistants/services/topic/topicApi';
 import { useToast } from '@/features/admin/components/ToastProvider';
+import Pagination from '@/features/assistants/components/Pagination'; // ✅ dùng chung
 
 const CV_LABELS: Record<string, string> = {
   DANG_KY_DE_TAI: 'Đăng ký đề tài',
@@ -35,6 +36,10 @@ export default function RoundTimesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [modal, setModal] = useState<{ open: boolean; editing?: RoundTimeUI | null }>({ open: false });
 
+  // ✅ phân trang client-side (0-index)
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
+
   const roundNameById = useMemo(() => {
     const m = new Map<string, string>();
     rounds.forEach((r) => m.set(String(r.id), r.tenDotBaoVe));
@@ -46,11 +51,7 @@ export default function RoundTimesPage() {
       try {
         const resR = await listDefenseRounds({ page: 0, size: 999 });
         const rawR = unwrap<any>(resR);
-        const listR: DefenseRound[] = Array.isArray(rawR?.content)
-          ? rawR.content
-          : Array.isArray(rawR)
-          ? rawR
-          : [];
+        const listR: DefenseRound[] = Array.isArray(rawR?.content) ? rawR.content : (Array.isArray(rawR) ? rawR : []);
         setRounds(listR);
       } catch {
         setRounds([]);
@@ -78,13 +79,28 @@ export default function RoundTimesPage() {
     }
   }
 
+  // ✅ clamp trang khi tổng bản ghi thay đổi
+  useEffect(() => {
+    const tp = Math.max(1, Math.ceil(times.length / size));
+    if (page > tp - 1) setPage(Math.max(0, tp - 1));
+  }, [times, size, page]);
+
+  const total = times.length;
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const sliced = useMemo(
+    () => times.slice(page * size, page * size + size),
+    [times, page, size]
+  );
+
+  const from = total ? page * size + 1 : 0;
+  const to = Math.min(total, page * size + sliced.length);
+
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div className="flex items-center">
         <h1 className="text-3xl font-semibold mx-auto">Thời gian thực hiện</h1>
       </div>
 
-      {/* ✅ Nút nằm bên phải nhờ ml-auto */}
       <div className="flex items-center">
         <button
           className=" px-4 h-10 rounded bg-blue-600 text-white inline-flex items-center gap-2"
@@ -92,6 +108,10 @@ export default function RoundTimesPage() {
         >
           <Plus size={16} /> Thêm thời gian
         </button>
+
+        <div className="ml-auto text-sm text-slate-600">
+          {total ? `${from}–${to}/${total}` : ''}
+        </div>
       </div>
 
       <div className="rounded border bg-white">
@@ -117,14 +137,14 @@ export default function RoundTimesPage() {
                 <td colSpan={6} className="px-4 py-6 text-center text-red-600">{err}</td>
               </tr>
             )}
-            {!loading && !err && times.length === 0 && (
+            {!loading && !err && sliced.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center">Chưa có mốc thời gian.</td>
               </tr>
             )}
-            {!loading && !err && times.map((t, idx) => (
+            {!loading && !err && sliced.map((t, idx) => (
               <tr key={String(t.id)} className="border-t">
-                <td className="px-4 py-3">{idx + 1}</td>
+                <td className="px-4 py-3">{page * size + idx + 1}</td>
                 <td className="px-4 py-3">{t.tenDotBaoVe ?? roundNameById(t.dotBaoVeId)}</td>
                 <td className="px-4 py-3">{cvText(t.congViec)}</td>
                 <td className="px-4 py-3">{fmt(t.thoiGianBatDau)}</td>
@@ -142,6 +162,14 @@ export default function RoundTimesPage() {
             ))}
           </tbody>
         </table>
+
+        {/* ✅ Pagination dùng chung */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+          disabled={loading}
+        />
       </div>
 
       {modal.open && (

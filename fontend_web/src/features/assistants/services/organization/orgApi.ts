@@ -9,6 +9,22 @@ export type UpsertDepartmentBody = { tenKhoa: string };
 export const upsertDepartment = (khoaId: Id, body: UpsertDepartmentBody) =>
   axios.put(`/api/khoa/${khoaId}`, body);
 
+/** Luôn trả ra mảng [{ id: string, tenKhoa }] để không mất chính xác ID lớn */
+export async function listDepartmentsNormalized(): Promise<Array<{ id: string; tenKhoa: string }>> {
+  const res = await listDepartments();
+  const raw = unwrap<any>(res);
+  const arr: any[] =
+    Array.isArray(raw?.content) ? raw.content :
+    Array.isArray(raw?.data)    ? raw.data    :
+    Array.isArray(raw)          ? raw         : [];
+
+  return arr.map((x) => ({
+    id: String(x.id ?? x.khoaId ?? x._id),
+    tenKhoa: x.tenKhoa ?? x.ten ?? '',
+  }));
+}
+
+
 /* ===================== NGÀNH ===================== */
 export type Major = { id: Id; maNganh: string; tenNganh: string; khoaId?: Id; khoaTen?: string };
 export type CreateMajorPayload = { maNganh: string; tenNganh: string; khoaId: Id };
@@ -203,3 +219,6 @@ export async function listOrgClassesNormalized(params?: PageParams): Promise<Pag
   });
   return { content: content.map(map), totalElements, page: params?.page ?? 0, size: params?.size ?? 10 };
 }
+
+
+

@@ -1,5 +1,5 @@
 // src/features/assistants/pages/Students.tsx
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, CheckCircle2, AlertTriangle, Pencil } from 'lucide-react';
 import {
   type Student,
@@ -17,15 +17,15 @@ import { type PageParams, unwrap } from '@/features/assistants/services/base';
 
 import StudentFormModal from '@/features/assistants/components/StudentFormModal';
 import ImportStudentsModal from '@/features/assistants/components/ImportStudentsModal';
+import Pagination from '@/features/assistants/components/Pagination'; // ✅ dùng chung
 
 /* ===================== Small helpers ===================== */
-const norm = (v?: string) => (v || '')
-  .toLowerCase()
-  .normalize('NFD')
-  .replace(/\p{Diacritic}/gu, '');
+const norm = (v?: string) =>
+  (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
 function EligibleTag({ value, onClick }: { value?: boolean; onClick?: () => void }) {
-  const base = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm cursor-pointer border';
+  const base =
+    'inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm cursor-pointer border';
   if (value)
     return (
       <span onClick={onClick} className={`${base} bg-green-50 text-green-700 border-green-200`}>
@@ -37,56 +37,6 @@ function EligibleTag({ value, onClick }: { value?: boolean; onClick?: () => void
       <AlertTriangle size={14} /> Chưa đủ điều kiện
     </span>
   );
-}
-
-/* ===================== Pagination (centered) ===================== */
-function PageNav({
-  page,
-  total,
-  size,
-  onChange,
-}: {
-  page: number;
-  total: number;
-  size: number;
-  onChange: (p: number) => void;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / size));
-  const p1 = page + 1;
-
-  // window nhỏ gọn
-  const MAX_WINDOW = 5;
-  let start = Math.max(1, p1 - Math.floor(MAX_WINDOW / 2));
-  let end = Math.min(totalPages, start + MAX_WINDOW - 1);
-  if (end - start + 1 < MAX_WINDOW) start = Math.max(1, end - MAX_WINDOW + 1);
-
-  const go = (p: number) => onChange(Math.min(Math.max(0, p), totalPages - 1));
-
-  const btn = (label: string | number, active = false, disabled = false, to?: number): ReactNode => (
-    <button
-      key={`p-${label}`}
-      className={
-        'min-w-8 h-9 px-3 rounded border text-sm ' +
-        (active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50') +
-        (disabled ? ' opacity-40 cursor-not-allowed' : '')
-      }
-      onClick={() => (to != null ? go(to) : undefined)}
-      disabled={disabled}
-      aria-current={active ? 'page' : undefined}
-    >
-      {label}
-    </button>
-  );
-
-  const buttons: ReactNode[] = [];
-  buttons.push(btn('«', false, page === 0, 0));
-  buttons.push(btn('‹', false, page === 0, page - 1));
-  for (let i = start; i <= end; i++) buttons.push(btn(i, i === p1, false, i - 1));
-  if (totalPages > end) buttons.push(<span key="ellipsis" className="px-1 select-none">…</span>);
-  buttons.push(btn('›', false, page >= totalPages - 1, page + 1));
-  buttons.push(btn('»', false, page >= totalPages - 1, totalPages - 1));
-
-  return <div className="flex items-center justify-center gap-2">{buttons}</div>;
 }
 
 /* ===================== Page ===================== */
@@ -116,7 +66,7 @@ export default function StudentsPage() {
       const pg = await listStudentsNormalized({ page, size, q: keyword || undefined } as PageParams);
       setItems(pg.content);
       setTotal(pg.totalElements);
-    } catch (e) {
+    } catch {
       setItems([]);
       setTotal(0);
       setError('Không tải được danh sách sinh viên.');
@@ -140,21 +90,25 @@ export default function StudentsPage() {
     }
   }
 
-  useEffect(() => { loadClasses(); }, []);
-  useEffect(() => { loadStudents(); }, [page, size, keyword]);
+  useEffect(() => {
+    loadClasses();
+  }, []);
+  useEffect(() => {
+    loadStudents();
+  }, [page, size, keyword]);
 
-  // Lọc mềm phía client để chắc chắn tìm được theo TÊN hoặc MÃ SV
+  // Lọc mềm phía client theo TÊN hoặc MÃ SV (đảm bảo tìm đủ)
   const view = useMemo(() => {
     const k = norm(q);
     if (!k) return items;
-    return items.filter(s =>
-      norm(s.hoTen).includes(k) ||
-      (s.maSinhVien || '').toLowerCase().includes(k)
+    return items.filter(
+      (s) => norm(s.hoTen).includes(k) || (s.maSinhVien || '').toLowerCase().includes(k)
     );
   }, [items, q]);
 
-  const from = page * size + 1;
-  const to = Math.min(total, page * size + items.length);
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  const from = total ? page * size + 1 : 0;
+  const to = Math.min(total, page * size + view.length); // ✅ đếm theo view ở trang hiện tại
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
@@ -175,12 +129,18 @@ export default function StudentsPage() {
           Import Excel
         </button>
         <div className="relative ml-2">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
           <input
             className="h-10 w-80 rounded border pl-9 pr-3"
             placeholder="Tìm theo mã hoặc tên sinh viên…"
             value={q}
-            onChange={(e) => { setPage(0); setQ(e.target.value); }}
+            onChange={(e) => {
+              setPage(0);
+              setQ(e.target.value);
+            }}
           />
         </div>
         <div className="ml-auto text-sm text-slate-600">{total ? `${from}–${to}/${total}` : ''}</div>
@@ -200,9 +160,7 @@ export default function StudentsPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr><td className="px-4 py-6 text-center" colSpan={7}>Đang tải…</td></tr>
-            )}
+            {loading && <tr><td className="px-4 py-6 text-center" colSpan={7}>Đang tải…</td></tr>}
             {!loading && error && (
               <tr><td className="px-4 py-6 text-center text-red-600" colSpan={7}>{error}</td></tr>
             )}
@@ -217,7 +175,10 @@ export default function StudentsPage() {
                 <td className="px-4 py-3">{s.lopTen ?? '—'}</td>
                 <td className="px-4 py-3">{s.soDienThoai ?? '—'}</td>
                 <td className="px-4 py-3">
-                  <EligibleTag value={s.duDieuKien} onClick={() => setStatusModal({ open: true, student: s })} />
+                  <EligibleTag
+                    value={s.duDieuKien}
+                    onClick={() => setStatusModal({ open: true, student: s })}
+                  />
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -234,15 +195,13 @@ export default function StudentsPage() {
           </tbody>
         </table>
 
-        {/* Pagination center */}
-        <div className="p-3 flex justify-center">
-          <PageNav
-            page={page}
-            total={total}
-            size={size}
-            onChange={(p) => setPage(p)}
-          />
-        </div>
+        {/* ✅ Pagination dùng chung */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+          disabled={loading}
+        />
       </div>
 
       {modal.open && (
@@ -281,7 +240,9 @@ export default function StudentsPage() {
             <h3 className="text-lg font-semibold mb-3">
               Đổi trạng thái điều kiện – {statusModal.student.hoTen} ({statusModal.student.maSinhVien})
             </h3>
-            <p className="text-sm text-slate-600 mb-4">Chọn trạng thái mới cho sinh viên này.</p>
+            <p className="text-sm text-slate-600 mb-4">
+              Chọn trạng thái mới cho sinh viên này.
+            </p>
             <div className="flex gap-3">
               <button
                 className="px-4 h-10 rounded border inline-flex items-center gap-2"

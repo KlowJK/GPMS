@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Topbar from '@shared/components/Topbar';
-import Sidebar from '@features/assistants/components/Sidebar';
+import Sidebar from '@/shared/components/AssistantSidebar';
 import ToastProvider from '@features/admin/components/ToastProvider';
 
 export default function AssistantApp() {

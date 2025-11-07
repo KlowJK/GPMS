@@ -1,34 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/features/admin/components/ToastProvider';
-import { type Department, listDepartments } from '@/features/assistants/services/organization/orgApi';
+import { listDepartmentsNormalized } from '@/features/assistants/services/organization/orgApi';
 
 type Props = {
   onClose: () => void;
-  onSubmit: (p: { tieuDe: string; noiDung: string; khoaId?: number | null; file?: File | null }) => Promise<any>;
+  onSubmit: (p: {
+    tieuDe: string;
+    noiDung: string;
+    kieuNguoiNhan?: string | null; // ID khoa hoặc undefined
+    file?: File | null;
+  }) => Promise<any>;
 };
 
-function norm(s = '') {
-  return s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-}
+const norm = (s = '') => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
 export default function NotificationFormModal({ onClose, onSubmit }: Props) {
   const { error } = useToast();
+
   const [tieuDe, setTieuDe] = useState('');
   const [noiDung, setNoiDung] = useState('');
-  const [scope, setScope]   = useState<'all'|'dept'>('all'); // Toàn trường / Theo khoa
-  const [deptQ, setDeptQ]   = useState('');
-  const [deptId, setDeptId] = useState<number | null>(null); // ⇐ Lưu ID khoa
-  const [file, setFile]     = useState<File | null>(null);
-  const [deps, setDeps]     = useState<Department[]>([]);
-  const [busy, setBusy]     = useState(false);
+  const [sendByDept, setSendByDept] = useState(false);
+  const [deptFilter, setDeptFilter] = useState('');
+  const [deptId, setDeptId] = useState<string>(''); // giữ string để không mất chính xác
+  const [deps, setDeps] = useState<Array<{ id: string; tenKhoa: string }>>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const res: any = await listDepartments({ page: 0, size: 999 });
-        const raw = res?.data;
-        const arr: any[] = Array.isArray(raw?.content) ? raw.content : (Array.isArray(raw) ? raw : []);
-        setDeps(arr);
+        const list = await listDepartmentsNormalized();
+        setDeps(list);
       } catch (e: any) {
         error(e?.response?.data?.message || 'Không tải được danh sách khoa.');
       }
@@ -36,12 +38,13 @@ export default function NotificationFormModal({ onClose, onSubmit }: Props) {
   }, [error]);
 
   const filteredDeps = useMemo(() => {
-    const k = norm(deptQ.trim());
+    const k = deptFilter.trim();
     if (!k) return deps;
-    return deps.filter(d => norm(d.tenKhoa || '').includes(k));
-  }, [deps, deptQ]);
+    const kNorm = norm(k);
+    return deps.filter(d => norm(d.tenKhoa).includes(kNorm) || d.id.includes(k));
+  }, [deps, deptFilter]);
 
-  const canSave = tieuDe.trim() && noiDung.trim() && (scope === 'all' || (scope === 'dept' && deptId != null));
+  const canSave = tieuDe.trim() && noiDung.trim() && (!sendByDept || (sendByDept && deptId));
 
   async function save() {
     if (!canSave || busy) return;
@@ -50,7 +53,7 @@ export default function NotificationFormModal({ onClose, onSubmit }: Props) {
       await onSubmit({
         tieuDe: tieuDe.trim(),
         noiDung: noiDung.trim(),
-        khoaId: scope === 'dept' ? (deptId ?? null) : null,  // ⇐ truyền ID khoa hoặc null
+        kieuNguoiNhan: sendByDept ? (deptId || null) : undefined,
         file,
       });
       onClose();
@@ -78,41 +81,42 @@ export default function NotificationFormModal({ onClose, onSubmit }: Props) {
           {/* Gửi đến */}
           <div>
             <label className="block text-sm text-slate-600 mb-1">Gửi đến</label>
-            <div className="flex items-center gap-6">
-              <label className="inline-flex items-center gap-2">
-                <input type="radio" name="scope" checked={scope === 'all'} onChange={() => setScope('all')} />
-                <span>Toàn trường</span>
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input type="radio" name="scope" checked={scope === 'dept'} onChange={() => setScope('dept')} />
-                <span>Theo khoa</span>
-              </label>
-            </div>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={sendByDept}
+                onChange={(e) => { setSendByDept(e.target.checked); if (!e.target.checked) setDeptId(''); }}
+              />
+              <span>Gửi theo khoa</span>
+            </label>
 
-            {scope === 'dept' && (
+            {sendByDept && (
               <div className="mt-3 grid grid-cols-5 gap-3">
                 <input
                   className="col-span-2 h-11 rounded border px-3"
-                  placeholder="Lọc theo tên khoa…"
-                  value={deptQ}
-                  onChange={(e) => setDeptQ(e.target.value)}
+                  placeholder="Tìm theo tên/ID khoa…"
+                  value={deptFilter}
+                  onChange={(e) => setDeptFilter(e.target.value)}
                 />
                 <select
                   className="col-span-3 h-11 rounded border px-3 bg-white"
-                  value={deptId ?? ''}
-                  onChange={(e) => setDeptId(e.target.value ? Number(e.target.value) : null)} // ⇐ value là ID khoa
+                  value={deptId}
+                  onChange={(e) => setDeptId(e.target.value)}
                 >
                   <option value="">— Chọn khoa —</option>
-                  {filteredDeps.map((d) => (
-                    <option key={String(d.id)} value={String(d.id)}>
-                      {d.tenKhoa}
+                  {filteredDeps.length === 0 ? (
+                    <option disabled value="">(Không có khoa)</option>
+                  ) : filteredDeps.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.tenKhoa} (ID: {d.id})
                     </option>
                   ))}
                 </select>
               </div>
             )}
+
             <p className="mt-1 text-xs text-slate-500">
-              * Toàn trường: không gửi kèm khoaId. — Theo khoa: dropdown trả về <b>khoaId</b>.
+              Bỏ tick ⇒ không gửi <code>kieuNguoiNhan</code> (toàn trường). Tick & chọn khoa ⇒ gửi <code>kieuNguoiNhan = ID khoa</code>.
             </p>
           </div>
 

@@ -23,7 +23,7 @@ export default function AdminSidebar({ overlay = false, onClose }: Props) {
   );
 
   const body = (
-    <aside className="w-64 h-full bg-blue-600 text-white rounded-br-[10px] flex flex-col py-4 shadow-md">
+    <aside className="w-72 bg-[#2F7CD3] text-white p-3 min-h-screen">
       <nav className="space-y-2">
         {items.map((link) => (
           <NavLink
