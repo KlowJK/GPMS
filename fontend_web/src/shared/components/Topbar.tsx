@@ -53,14 +53,7 @@
 
           {/* Right: notifications + user menu */}
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative">
-              <button className="p-2 rounded-md hover:bg-slate-100" aria-label="Thông báo">
-                <Bell size={20} />
-              </button>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 grid place-items-center">
-              9
-            </span>
-            </div>
+
 
             <div className="relative" ref={menuRef}>
               <button
