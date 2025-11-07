@@ -164,7 +164,7 @@ export default function LoginPage() {
 
                     {/* Quên mật khẩu */}
                     <div className="text-center mt-5">
-                        <Link to="#" className="text-[#457B9D] underline text-sm">
+                        <Link to="/forgot-password" className="text-[#457B9D] underline text-sm">
                             Quên mật khẩu?
                         </Link>
                     </div>

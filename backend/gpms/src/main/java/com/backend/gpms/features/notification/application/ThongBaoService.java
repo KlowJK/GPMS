@@ -149,8 +149,10 @@ public class ThongBaoService{
                 .collect(Collectors.toList());
     }
 
+
     public Page<ThongBaoResponse> getAllThongBao(Pageable pageable) {
-        Page<ThongBao> thongBao = thongBaoRepository.findAll(pageable);
+        List<LoaiThongBao> allowed = List.of(LoaiThongBao.TRUONG, LoaiThongBao.KHOA);
+        Page<ThongBao> thongBao = thongBaoRepository.findByLoaiThongBaoIn(allowed, pageable);
         return thongBao.map(thongBaoMapper::toThongBaoResponse);
     }
 

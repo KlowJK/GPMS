@@ -68,7 +68,7 @@ public class NhatKyTienTrinhService {
         if (deTai.getTrangThai() != TrangThaiDeTai.DA_DUYET) {
             throw new ApplicationException(ErrorCode.DE_TAI_NOT_ACCEPTED);
         }
-        return deTai.getUpdatedAt();
+        return deTai.getCreatedAt();
     }
 
     // Tính tuần và ngày bắt đầu/kết thúc tuần dựa trên ngày nộp hiện tại

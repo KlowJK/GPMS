@@ -1,6 +1,6 @@
 // src/features/auth/hooks.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { login, me, logout , changePassword, uploadAvatar } from './api'
+import { login, me, logout , changePassword, uploadAvatar, requestResetPassword, resetPassword } from './api'
 import { clearToken, clearUser } from '@shared/libs/storage'
 import { useApiError } from '@shared/hooks/useApiError'
 import { useState } from 'react'
@@ -133,4 +133,22 @@ export function useUploadAvatar() {
         error: (mutation.error as any)?.message ?? null,
         reset: (mutation as any).reset,
     }
+}
+
+export function useRequestResetPassword() {
+    const handleError = useApiError()
+
+    return useMutation({
+        mutationFn: requestResetPassword,
+        onError: handleError,
+    })
+}
+
+export function useResetPassword() {
+    const handleError = useApiError()
+
+    return useMutation({
+        mutationFn: resetPassword,
+        onError: handleError,
+    })
 }
