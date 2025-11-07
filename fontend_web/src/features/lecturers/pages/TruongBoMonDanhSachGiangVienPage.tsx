@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { fetchLecturersByTruongBoMon, GiangVienTb } from '../services/giangVienApi'
+import { toast } from 'sonner'
+import { updateQuotasForRows } from '../viewmodels/TruongBoMonViewmodels'
 
 export default function TruongBoMonDanhSachGiangVienPage() {
   const [rows, setRows] = useState<GiangVienTb[]>([])
@@ -9,6 +11,9 @@ export default function TruongBoMonDanhSachGiangVienPage() {
   const [query, setQuery] = useState<string>('')
   const [page, setPage] = useState<number>(0)
   const [pageSize, setPageSize] = useState<number>(10)
+  const [quotaValue, setQuotaValue] = useState<number>(20)
+  const [showQuotaModal, setShowQuotaModal] = useState<boolean>(false)
+  const [updatingQuota, setUpdatingQuota] = useState<boolean>(false)
 
   useEffect(() => {
     let mounted = true
@@ -51,10 +56,59 @@ export default function TruongBoMonDanhSachGiangVienPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Danh sách giảng viên theo bộ môn</h1>
-         <div className="w-64">
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/email" className="w-full border rounded px-3 py-2 text-sm" />
-          </div>
+         <div className="flex items-center gap-3">
+          <button
+             onClick={() => setShowQuotaModal(true)}
+             disabled={loading || rows.length === 0}
+             className="px-3 py-2 rounded bg-sky-600 text-white text-sm disabled:opacity-50"
+           >
+             Cập nhật số lượng hướng dẫn
+           </button>
+           <div className="w-64">
+             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/email" className="w-full border rounded px-3 py-2 text-sm" />
+           </div>
+           
+         </div>
       </div>
+
+      {showQuotaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium mb-4">Cập nhật số lượng hướng dẫn cho toàn bộ giảng viên</h3>
+            <div className="mb-4">
+              <label className="block text-sm text-slate-600 mb-2">Số lượng đề tài được hướng dẫn</label>
+              <input type="number" min={0} value={String(quotaValue)} onChange={e => setQuotaValue(Number(e.target.value))} className="w-full border rounded px-3 py-2 text-sm" />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowQuotaModal(false)} className="px-4 py-2 rounded bg-gray-200">Hủy</button>
+              <button
+                onClick={async () => {
+                  if (!Number.isFinite(quotaValue) || quotaValue < 0) {
+                    toast.error('Số lượng không hợp lệ')
+                    return
+                  }
+                  setUpdatingQuota(true)
+                  try {
+                    const res = await updateQuotasForRows(rows, quotaValue)
+                    setRows(prev => prev.map(r => ({ ...r, soLuongChoPhepHuongDan: quotaValue })))
+                    toast.success(`Cập nhật xong: thành công ${res.success}`)
+                    setShowQuotaModal(false)
+                  } catch (err) {
+                    console.error('update quotas failed', err)
+                    toast.error('Cập nhật thất bại')
+                  } finally {
+                    setUpdatingQuota(false)
+                  }
+                }}
+                disabled={updatingQuota}
+                className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50"
+              >
+                {updatingQuota ? 'Đang cập nhật...' : 'Cập nhật'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white shadow rounded">
         {loading ? (

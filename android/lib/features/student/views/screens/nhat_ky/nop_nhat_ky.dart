@@ -1,23 +1,28 @@
 import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:open_file/open_file.dart';
-
 import 'package:GPMS/features/student/viewmodels/nop_nhat_ky_viewmodel.dart';
 import 'package:GPMS/features/student/models/nop_nhat_ki.dart';
-
-/* Local diary model and submit page extracted from nhat_ky.dart */
+import 'package:GPMS/core/exception/error_code.dart';
 
 class SubmitDiaryPage extends StatefulWidget {
-  const SubmitDiaryPage({super.key, required this.defaultWeek, this.deTaiId, this.idNhatKy, this.ngayBatDau, this.ngayKetThuc});
+  const SubmitDiaryPage({
+    super.key,
+    required this.defaultWeek,
+    this.deTaiId,
+    this.idNhatKy,
+    this.ngayBatDau,
+    this.ngayKetThuc,
+  });
+
   final int defaultWeek;
-  final int? deTaiId; // optional - if you have it, pass when opening the page
-  final int? idNhatKy; // optional - diary id (server idNhatKy)
-  final DateTime? ngayBatDau; // optional start date for the week (from server)
-  final DateTime? ngayKetThuc; // optional end date for the week (from server)
+  final int? deTaiId;
+  final int? idNhatKy;
+  final DateTime? ngayBatDau;
+  final DateTime? ngayKetThuc;
 
   @override
   State<SubmitDiaryPage> createState() => _SubmitDiaryPageState();
@@ -34,10 +39,10 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
   void initState() {
     super.initState();
     _week = widget.defaultWeek;
-    // If caller provided exact start/end dates, use them; otherwise compute from week
+
+    // Use provided dates or compute from week
     if (widget.ngayBatDau != null && widget.ngayKetThuc != null) {
-      String fmt(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-      _timeRange = '${fmt(widget.ngayBatDau!)} – ${fmt(widget.ngayKetThuc!)}';
+      _timeRange = _formatDateRange(widget.ngayBatDau!, widget.ngayKetThuc!);
     } else {
       _timeRange = _weekToRange(_week);
     }
@@ -45,39 +50,48 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
 
   @override
   void dispose() {
+    // Clean up controllers
     _contentCtrl.dispose();
     _fileCtrl.dispose();
     super.dispose();
   }
 
-  String _weekToRange(int w) {
-    final start = DateTime(2025, 9, 15).add(Duration(days: (w - 1) * 7));
-    final end = start.add(const Duration(days: 6));
+  String _formatDateRange(DateTime start, DateTime end) {
     String fmt(DateTime d) =>
-        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+        '${d.day.toString().padLeft(2, '0')}/'
+        '${d.month.toString().padLeft(2, '0')}/${d.year}';
     return '${fmt(start)} – ${fmt(end)}';
   }
 
+  String _weekToRange(int w) {
+    final start = DateTime(2025, 9, 15).add(Duration(days: (w - 1) * 7));
+    final end = start.add(const Duration(days: 6));
+    return _formatDateRange(start, end);
+  }
+
   Future<void> _pickFile() async {
-    // Use file_picker to pick a single PDF/DOCX
     try {
-      final res = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'docx'],
         withData: false,
       );
-      if (res == null) return; // user canceled
-      final path = res.files.single.path;
+
+      if (result == null) return;
+
+      final path = result.files.single.path;
       if (path == null) return;
+
       setState(() {
         _pickedFilePath = path;
         _fileCtrl.text = path.split(Platform.pathSeparator).last;
       });
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Lỗi khi chọn tệp: $e')));
+      }
     }
   }
 
@@ -89,96 +103,121 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
   }
 
   Future<void> _submit(SubmitDiaryViewModel vm) async {
+    // Validate content
     if (_contentCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập nội dung công việc đã th���c hiện')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập nội dung công việc đã thực hiện'),
+        ),
+      );
       return;
     }
 
-    // Use IDs provided by the caller (widget). The UI no longer shows/edit these fields.
+    // Validate required IDs
     if (widget.idNhatKy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không có ID nhật ký (idNhatKy). Không thể nộp.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có ID nhật ký. Không thể nộp.')),
+      );
       return;
     }
+
     if (widget.deTaiId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không có ID đề tài (deTaiId). Không thể nộp.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không có ID đề tài. Không thể nộp.')),
+      );
       return;
     }
 
-    final idNhatKy = widget.idNhatKy!;
-    final deTaiId = widget.deTaiId!;
-
-    // Use the provided ViewModel instance passed from the button's Consumer
+    // Submit
     final success = await vm.submit(
-      deTaiId: deTaiId,
-      idNhatKy: idNhatKy,
+      deTaiId: widget.deTaiId!,
+      idNhatKy: widget.idNhatKy!,
       noiDung: _contentCtrl.text.trim(),
       filePath: _pickedFilePath,
     );
 
     if (!mounted) return;
+
     if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nộp nhật ký thành công')));
-      // Map server response into local DiaryEntry when possible
+      // For server-backed flow: return true so caller can decide to show success
+      if (widget.deTaiId != null || widget.idNhatKy != null) {
+        Navigator.pop(context, true);
+        return;
+      }
+
+      // Local (shouldn't happen with new flow)
       final fileName = _pickedFilePath != null
           ? _pickedFilePath!.split(Platform.pathSeparator).last
-          : (_fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim());
-      final teacherNote = vm.result?.nhanXet;
-      // If this page was opened for an existing server diary (deTaiId or idNhatKy provided),
-      // do not return a local DiaryEntry — let the parent refresh server data instead.
-      if (widget.deTaiId != null || widget.idNhatKy != null) {
-        Navigator.pop(context, null);
-      } else {
-        Navigator.pop(
-          context,
-          DiaryEntry(
-            week: _week,
-            timeRange: _timeRange,
-            content: _contentCtrl.text.trim(),
-            resultFileName: fileName,
-            status: DiaryStatus.approved,
-            teacherNote: teacherNote,
-          ),
-        );
-      }
-    } else {
-      final err = vm.error ?? 'Không thể nộp nhật ký';
-      // Show detailed dialog with raw error and copy button
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            title: const Text('Lỗi khi nộp nhật ký'),
-            content: SingleChildScrollView(child: Text(vm.rawError ?? err)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Đóng'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final textToCopy = vm.rawError ?? err;
-                  await Clipboard.setData(ClipboardData(text: textToCopy));
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã sao chép lỗi vào clipboard'),
-                      ),
-                    );
-                },
-                child: const Text('Sao chép'),
-              ),
-            ],
-          );
-        },
+          : null;
+
+      Navigator.pop(
+        context,
+        DiaryEntry(
+          week: _week,
+          timeRange: _timeRange,
+          content: _contentCtrl.text.trim(),
+          resultFileName: fileName,
+          status: DiaryStatus.DA_NOP,
+          teacherNote: vm.result?.nhanXet,
+        ),
       );
-      // also show a small snackbar
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(err)));
+    } else {
+      _handleError(vm);
     }
+  }
+
+  void _handleError(SubmitDiaryViewModel vm) {
+    String title = 'Lỗi khi nộp nhật ký';
+    String message = vm.error ?? 'Không thể nộp nhật ký';
+
+    // Handle specific errors
+    if (vm.errorCode == ErrorCode.unauthenticated) {
+      title = 'Phiên đăng nhập hết hạn';
+      message = 'Vui lòng đăng nhập lại';
+    } else if (vm.errorCode == ErrorCode.timeout) {
+      title = 'Kết nối hết thời gian chờ';
+      message = 'Vui lòng thử lại';
+    } else if (vm.errorCode == ErrorCode.uploadFileFailed) {
+      title = 'Tải file thất bại';
+      message = 'Không thể tải file lên. Vui lòng thử lại.';
+    } else if (vm.errorCode == ErrorCode.noiDungRequired) {
+      title = 'Thiếu nội dung';
+      message = 'Vui lòng nhập nội dung công việc';
+    }
+
+    // Show error dialog
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(child: Text(message)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: message));
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã sao chép lỗi vào clipboard'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Sao chép'),
+          ),
+        ],
+      ),
+    );
+
+    // Also show snackbar
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -199,153 +238,299 @@ class _SubmitDiaryPageState extends State<SubmitDiaryPage> {
       borderRadius: BorderRadius.circular(10),
     );
 
-    return ChangeNotifierProvider<SubmitDiaryViewModel>(
-      create: (_) => SubmitDiaryViewModel(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Nộp nhật ký', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF2563EB),
-          centerTitle: true,
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxW),
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
-                children: [
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(gap),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Row(children: [
-                          const Text('Tuần:'),
-                          const SizedBox(width: 8),
-                          // show week as read-only text (taken from widget.defaultWeek)
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Theme.of(context).dividerColor), color: Theme.of(context).colorScheme.surface), child: Text('$_week', style: const TextStyle(fontSize: 14))),
-                          const Spacer(),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: ShapeDecoration(color: Theme.of(context).colorScheme.primaryContainer, shape: const StadiumBorder()), child: Text(_timeRange, style: const TextStyle(fontSize: 12))),
-                        ]),
-
-                        const SizedBox(height: 12),
-
-                        // Removed ID fields: idNhatKy and deTaiId are supplied by the caller (widget.idNhatKy/widget.deTaiId)
-
-                        const SizedBox(height: 12),
-
-                        Text('Nội dung công việc đã thực hiện', style: Theme.of(context).textTheme.bodyLarge),
-                        const SizedBox(height: 6),
-                        TextField(controller: _contentCtrl, minLines: 4, maxLines: 8, decoration: InputDecoration(hintText: 'Vui lòng nhập nội dung đã thực hiện…', isDense: true, border: border, enabledBorder: border, focusedBorder: border.copyWith(borderSide: BorderSide(color: Theme.of(context).colorScheme.primary)))),
-
-                        const SizedBox(height: 12),
-
-                        Text('Kết quả đạt được:', style: Theme.of(context).textTheme.bodyLarge),
-                        const SizedBox(height: 6),
-                        _AttachFileTile(fileName: _fileCtrl.text.trim().isEmpty ? null : _fileCtrl.text.trim(), filePath: _pickedFilePath, onPick: _pickFile, onClear: _pickedFilePath == null ? null : _clearFile),
-
-                        // debug token/ping removed
-
-                        // Show upload progress when submitting with a file
-                        const SizedBox(height: 8),
-                        Consumer<SubmitDiaryViewModel>(builder: (context, vm, _) {
-                          if (!vm.isSubmitting) return const SizedBox.shrink();
-                          if (vm.bytesTotal > 0) {
-                            final pct = (vm.progress * 100).clamp(0, 100).toStringAsFixed(0);
-                            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              LinearProgressIndicator(value: vm.progress),
-                              const SizedBox(height: 6),
-                              Text('Đang tải lên: $pct% (${vm.bytesSent}/${vm.bytesTotal} bytes)', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                            ]);
-                          }
-                          return Column(children: const [LinearProgressIndicator(), SizedBox(height: 6), Text('Đang gửi...', style: TextStyle(fontSize: 12, color: Colors.black54))]);
-                        }),
-
-                        const SizedBox(height: 12),
-                        Align(alignment: Alignment.centerRight, child: Consumer<SubmitDiaryViewModel>(builder: (context, vm, _) {
-                          return FilledButton(
-                            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
-                            onPressed: vm.isSubmitting ? null : () => _submit(vm),
-                            child: vm.isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Nộp nhật ký'),
-                          );
-                        })),
-                      ]),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(gap),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Icon(Icons.info_outline),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Điền nội dung công việc theo tuần, đính kèm file kết quả (nếu có). Sau khi nộp, nhật ký sẽ hiển thị ở trang danh sách.',
+    return Consumer<SubmitDiaryViewModel>(
+      builder: (context, vm, _) {
+        return Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            title: const Text(
+              'Nộp nhật ký',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF2563EB),
+            centerTitle: true,
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxW),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
+                  children: [
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(gap),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Week info
+                            Row(
+                              children: [
+                                const Text('Tuần:'),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Theme.of(context).dividerColor,
+                                    ),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surface,
+                                  ),
+                                  child: Text(
+                                    '$_week',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer,
+                                    shape: const StadiumBorder(),
+                                  ),
+                                  child: Text(
+                                    _timeRange,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+
+                            const SizedBox(height: 12),
+
+                            // Content field
+                            Text(
+                              'Nội dung công việc đã thực hiện',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _contentCtrl,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              textCapitalization: TextCapitalization.sentences,
+                              enableSuggestions: true,
+                              autocorrect: true,
+                              minLines: 4,
+                              maxLines: 8,
+                              decoration: InputDecoration(
+                                hintText: 'Vui lòng nhập nội dung đã thực hiện…',
+                                isDense: true,
+                                border: border,
+                                enabledBorder: border,
+                                focusedBorder: border.copyWith(
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // File picker
+                            Text(
+                              'Kết quả đạt được:',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: 6),
+                            _AttachFileTile(
+                              fileName: _fileCtrl.text.trim().isEmpty
+                                  ? null
+                                  : _fileCtrl.text.trim(),
+                              filePath: _pickedFilePath,
+                              onPick: _pickFile,
+                              onClear: _pickedFilePath == null
+                                  ? null
+                                  : _clearFile,
+                            ),
+
+                            // Upload progress
+                            const SizedBox(height: 8),
+                            if (vm.isSubmitting) _buildProgressIndicator(vm),
+
+                            const SizedBox(height: 12),
+
+                            // Submit button
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: vm.isSubmitting
+                                    ? null
+                                    : () => _submit(vm),
+                                child: vm.isSubmitting
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Nộp nhật ký'),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 12),
+
+                    // Info card
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(gap),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Icon(Icons.info_outline),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Điền nội dung công việc theo tuần, đính kèm file '
+                                'kết quả (nếu có). Sau khi nộp, nhật ký sẽ hiển thị '
+                                'ở trang danh sách.',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressIndicator(SubmitDiaryViewModel vm) {
+    if (vm.bytesTotal > 0) {
+      final pct = (vm.progress * 100).clamp(0, 100).toStringAsFixed(0);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LinearProgressIndicator(value: vm.progress),
+          const SizedBox(height: 6),
+          Text(
+            'Đang tải lên: $pct% (${vm.bytesSent}/${vm.bytesTotal} bytes)',
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: const [
+        LinearProgressIndicator(),
+        SizedBox(height: 6),
+        Text(
+          'Đang gửi...',
+          style: TextStyle(fontSize: 12, color: Colors.black54),
         ),
-      ),
+      ],
     );
   }
 }
 
 class _AttachFileTile extends StatelessWidget {
-  const _AttachFileTile({required this.fileName, required this.onPick, this.onClear, this.filePath});
+  const _AttachFileTile({
+    required this.fileName,
+    required this.onPick,
+    this.onClear,
+    this.filePath,
+  });
+
   final String? fileName;
-  final String? filePath; // local path to open
+  final String? filePath;
   final VoidCallback onPick;
   final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
-    final has = fileName != null && fileName!.isNotEmpty;
-    final text = has ? fileName! : 'Kéo & thả / Chọn tệp (PDF/DOCX)…';
+    final hasFile = fileName != null && fileName!.isNotEmpty;
+    final displayText = hasFile
+        ? fileName!
+        : 'Kéo & thả / Chọn tệp (PDF/DOCX)…';
+
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: Theme.of(context).dividerColor)),
-      child: Row(children: [
-        const Icon(Icons.cloud_upload_outlined),
-        const SizedBox(width: 12),
-        Expanded(
-          child: has && filePath != null
-              ? InkWell(
-                  onTap: () async {
-                    try {
-                      await OpenFile.open(filePath);
-                    } catch (e) {
-                      if (ScaffoldMessenger.maybeOf(context) != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể mở tệp')));
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_upload_outlined),
+          const SizedBox(width: 12),
+          Expanded(
+            child: hasFile && filePath != null
+                ? InkWell(
+                    onTap: () async {
+                      try {
+                        await OpenFile.open(filePath);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Không thể mở tệp')),
+                          );
+                        }
                       }
-                    }
-                  },
-                  child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF2563EB))),
-                )
-              : Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
-        ),
-        const SizedBox(width: 8),
-        if (has && onClear != null) IconButton(onPressed: onClear, icon: const Icon(Icons.close), tooltip: 'Xóa'),
-        FilledButton.tonal(onPressed: onPick, child: Text(has ? 'Sửa' : 'Chọn tệp')),
-      ]),
+                    },
+                    child: Text(
+                      displayText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Color(0xFF2563EB)),
+                    ),
+                  )
+                : Text(
+                    displayText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+          ),
+          const SizedBox(width: 8),
+          if (hasFile && onClear != null)
+            IconButton(
+              onPressed: onClear,
+              icon: const Icon(Icons.close),
+              tooltip: 'Xóa',
+            ),
+          FilledButton.tonal(
+            onPressed: onPick,
+            child: Text(hasFile ? 'Sửa' : 'Chọn tệp'),
+          ),
+        ],
+      ),
     );
   }
 }
+

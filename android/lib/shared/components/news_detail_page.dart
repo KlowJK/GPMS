@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart'; // Để mở liên kết PDF
-import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
+import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 
 class NewsDetailPage extends StatelessWidget {
   final ThongBaoVaTinTuc notification;
@@ -23,6 +23,7 @@ class NewsDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
           'Chi tiết tin tức',
           style: TextStyle(color: Colors.white),
@@ -45,7 +46,7 @@ class NewsDetailPage extends StatelessWidget {
               const SizedBox(height: 8),
               // Ngày đăng (nhỏ bên dưới tiêu đề)
               Text(
-                'Ngày đăng: $formattedDate',
+                'Ngày: $formattedDate',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey),

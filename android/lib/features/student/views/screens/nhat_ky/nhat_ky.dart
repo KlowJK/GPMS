@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:GPMS/features/student/viewmodels/nhat_ky_viewmodel.dart';
-import 'package:GPMS/features/student/models/nhat_ki_tuan.dart';
 import 'package:GPMS/features/student/models/danh_sach_nhat_ky.dart';
 import 'package:GPMS/features/student/models/nop_nhat_ki.dart';
 import 'package:GPMS/features/student/views/screens/nhat_ky/nop_nhat_ky.dart';
 import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/features/student/viewmodels/nop_nhat_ky_viewmodel.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
 
 class NhatKy extends StatefulWidget {
   const NhatKy({super.key});
@@ -16,10 +17,68 @@ class NhatKy extends StatefulWidget {
   State<NhatKy> createState() => _NhatKyState();
 }
 
-class _NhatKyState extends State<NhatKy> {
-  final List<DiaryEntry> _items = [];
+class _NhatKyState extends State<NhatKy> with AutomaticKeepAliveClientMixin {
+  final List<DiaryEntry> _localItems = [];
 
-  // New helper: open submit page with optional defaultWeek
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch data when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
+  }
+
+  Future<void> _fetchData() async {
+    final vm = context.read<NhatKyViewModel>();
+    await Future.wait([
+      vm.fetchTuans(includeAll: false),
+      vm.fetchDiaries(includeAll: false),
+    ]);
+  }
+
+  Future<void> _handleRefresh(NhatKyViewModel vm) async {
+    try {
+      await Future.wait([
+        vm.fetchTuans(includeAll: false),
+        vm.fetchDiaries(includeAll: false),
+      ]);
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = 'Không thể làm mới dữ liệu';
+
+      if (e is CustomException) {
+        switch (e.errorCode) {
+          case ErrorCode.unauthenticated:
+            message = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            break;
+          case ErrorCode.timeout:
+            message = 'Kết nối hết thời gian chờ. Vui lòng thử lại.';
+            break;
+          case ErrorCode.deTaiNotFound:
+            message = 'Bạn chưa đăng ký đề tài.';
+            break;
+          default:
+            message = e.errorCode.message;
+        }
+      } else {
+        message = 'Lỗi kết nối: $e';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _openSubmitPage({
     int? defaultWeek,
     int? deTaiId,
@@ -27,46 +86,62 @@ class _NhatKyState extends State<NhatKy> {
     DateTime? ngayBatDau,
     DateTime? ngayKetThuc,
   }) async {
-    final week = defaultWeek ?? (_items.isEmpty ? 1 : (_items.first.week + 1));
-    final result = await Navigator.of(context).push<DiaryEntry?>(
+    final week =
+        defaultWeek ?? (_localItems.isEmpty ? 1 : (_localItems.first.week + 1));
+
+    // LẤY VM HIỆN CÓ từ TrangChuSinhVien
+    final submitVm = context.read<SubmitDiaryViewModel>();
+
+    final result = await Navigator.of(context).push<Object?>(
       MaterialPageRoute(
-        builder: (_) => SubmitDiaryPage(
-          defaultWeek: week,
-          deTaiId: deTaiId,
-          idNhatKy: idNhatKy,
-          ngayBatDau: ngayBatDau,
-          ngayKetThuc: ngayKetThuc,
+        builder: (_) => ChangeNotifierProvider.value(
+          value: submitVm, // 👈 truyền đúng instance hiện có
+          child: SubmitDiaryPage(
+            defaultWeek: week,
+            deTaiId: deTaiId,
+            idNhatKy: idNhatKy,
+            ngayBatDau: ngayBatDau,
+            ngayKetThuc: ngayKetThuc,
+          ),
         ),
       ),
     );
+
     if (!mounted) return;
-    // If this page was opened for an existing server diary (deTaiId or idNhatKy provided),
-    // refresh server data regardless of whether the page returned a DiaryEntry (we pop null for server-backed submits).
+
+    // If server-backed flow, SubmitDiaryPage will return `true` on success.
     if (deTaiId != null || idNhatKy != null) {
-      final vm = context.read<NhatKyViewModel>();
-      await vm.fetchTuans(includeAll: false);
-      await vm.fetchDiaries(includeAll: false);
-      // Remove any local placeholder that has the same week to avoid duplicate entries
-      setState(() {
-        _items.removeWhere((it) => it.week == week);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã nộp nhật ký thành công')),
-      );
+      if (result == true) {
+        // refresh and show success
+        await _fetchData();
+        setState(() {
+          _localItems.removeWhere((it) => it.week == week);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã nộp nhật ký thành công')),
+          );
+        }
+      }
+      // if result != true then user cancelled or submission failed; do nothing
       return;
     }
 
-    // For local submissions (page opened without deTaiId/idNhatKy), insert the returned DiaryEntry if present
-    if (result != null) {
-      setState(() => _items.insert(0, result));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã nộp nhật ký thành công')),
-      );
+    // Local submission: expect a DiaryEntry returned
+    if (result is DiaryEntry) {
+      setState(() => _localItems.insert(0, result));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã nộp nhật ký thành công')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     final w = MediaQuery.of(context).size.width;
     final double maxW = w >= 1200
         ? 1000
@@ -78,199 +153,248 @@ class _NhatKyState extends State<NhatKy> {
     final double pad = w >= 900 ? 24 : 16;
     final double gap = w >= 900 ? 16 : 12;
 
-    return ChangeNotifierProvider<NhatKyViewModel>(
-      // gọi cả 2 API khi tạo ViewModel
-      create: (_) => NhatKyViewModel()
-        ..fetchTuans(includeAll: false)
-        ..fetchDiaries(includeAll: false),
-      child: Consumer<NhatKyViewModel>(
-        builder: (context, vm, _) {
-          if (vm.error != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (vm.error != null) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(vm.error!)));
-                vm.clearError();
-              }
-            });
-          }
+    return Consumer<NhatKyViewModel>(
+      builder: (context, vm, _) {
+        // Handle errors
+        if (vm.hasError) {
+          return Scaffold(appBar: CustomAppBar(), body: _buildErrorView(vm));
+        }
 
-          return Scaffold(
-            appBar: CustomAppBar(),
-            body: SafeArea(
+        return Scaffold(
+          appBar: CustomAppBar(),
+          body: RefreshIndicator(
+            onRefresh: () => _handleRefresh(vm),
+            child: SafeArea(
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxW),
                   child: ListView(
                     padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
                     children: [
-                      // If the server indicates the student has no topic, show only a single friendly message and hide other lists
+                      // No topic state
                       if (vm.noDeTai) ...[
                         const SizedBox(height: 12),
                         const _EmptyState(
                           icon: Icons.edit_note,
                           title: 'Bạn chưa có đề tài',
-                          subtitle: 'Vui lòng đăng ký đề tài',
+                          subtitle:
+                              'Vui lòng đăng ký đề tài để sử dụng tính năng này',
                         ),
                         const SizedBox(height: 12),
                       ] else ...[
-                        if (!vm.noDeTai)
-                          Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(gap),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 8),
-                                  if (vm.loading)
-                                    const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  else if (vm.tuans.isEmpty)
-                                    const Text('Chưa có tuần nào từ server.')
-                                  else
-                                    ListView.separated(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: vm.tuans.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(height: 8),
-                                      itemBuilder: (_, i) {
-                                        final TuanItem t = vm.tuans[i];
-                                        String fmt(DateTime? d) {
-                                          if (d == null) return '-';
-                                          String two(int v) =>
-                                              v.toString().padLeft(2, '0');
-                                          return '${two(d.day)}/${two(d.month)}/${d.year}';
-                                        }
+                        // Tuần list
+                        _buildTuanCard(context, vm, gap),
+                        const SizedBox(height: 12),
 
-                                        final range =
-                                            '${fmt(t.ngayBatDau)} – ${fmt(t.ngayKetThuc)}';
-                                        return ListTile(
-                                          leading: const Icon(
-                                            Icons.calendar_today,
-                                          ),
-                                          title: Text('Tuần ${t.tuan}'),
-                                          subtitle: Text(range),
-                                        );
-                                      },
-                                    ),
-                                ],
+                        // Empty state
+                        if (_localItems.isEmpty && vm.diaries.isEmpty)
+                          const _EmptyState(
+                            icon: Icons.edit_note,
+                            title: 'Bạn chưa có nhật ký trong hệ thống.',
+                            subtitle: 'Nhấn vào mục nhật ký để bắt đầu nộp.',
+                          ),
+
+                        // Local items
+                        if (_localItems.isNotEmpty)
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _localItems.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, i) => _DiaryCard(
+                              item: _localItems[i],
+                              onSubmit: () => _openSubmitPage(
+                                defaultWeek: _localItems[i].week,
                               ),
                             ),
                           ),
 
-                        const SizedBox(height: 12),
-
-                        // Show empty state only when both local items and server diaries are empty
-                        if (_items.isEmpty && vm.diaries.isEmpty)
-                          const _EmptyState(
-                            icon: Icons.edit_note,
-                            title: 'Bạn chưa có nhật ký trong hệ thống.',
-                            subtitle: 'Nhấn nút “+” để nộp nhật ký tuần.',
-                          )
-                        else
-                        // local diary list (if any)
-                        if (_items.isNotEmpty)
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _items.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (_, i) => _DiaryCard(
-                              item: _items[i],
-                              onSubmit: () =>
-                                  _openSubmitPage(defaultWeek: _items[i].week),
-                            ),
-                          ),
-
-                        // Hiển thị danh sách nhật ký từ backend
-                        Card(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(gap),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Nhật ký ',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
-                                if (vm.loadingDiaries)
-                                  const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                else if (vm.diaries.isEmpty)
-                                  const Text('Chưa có nhật ký từ server.')
-                                else
-                                  ListView.separated(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: vm.diaries.length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(height: 8),
-                                    itemBuilder: (_, i) => _DiaryItemCard(
-                                      item: vm.diaries[i],
-                                      onSubmit: () => _openSubmitPage(
-                                        defaultWeek: vm.diaries[i].tuan,
-                                        deTaiId: vm.diaries[i].idDeTai,
-                                        idNhatKy: vm.diaries[i].id,
-                                        ngayBatDau: vm.diaries[i].ngayBatDau,
-                                        ngayKetThuc: vm.diaries[i].ngayKetThuc,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ], // <- added closing bracket for the `else ...[` spread
+                        // Server diaries
+                        _buildDiariesCard(context, vm, gap),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
-            // floatingActionButton removed per user request
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorView(NhatKyViewModel vm) {
+    String message = vm.error!;
+    IconData icon = Icons.error_outline;
+    VoidCallback? onAction;
+
+    // Handle specific errors
+    if (vm.errorCode == ErrorCode.unauthenticated) {
+      message = 'Phiên đăng nhập hết hạn';
+      icon = Icons.lock_outline;
+      onAction = () {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
+      };
+    } else if (vm.errorCode == ErrorCode.timeout) {
+      message = 'Kết nối hết thời gian chờ';
+      icon = Icons.signal_wifi_off;
+      onAction = () => _fetchData();
+    } else if (vm.errorCode == ErrorCode.deTaiNotFound) {
+      message = 'Bạn chưa đăng ký đề tài';
+      icon = Icons.topic_outlined;
+    } else {
+      onAction = () => _fetchData();
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (onAction != null) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTuanCard(BuildContext context, NhatKyViewModel vm, double gap) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(gap),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Danh sách tuần',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            if (vm.loading && vm.tuans.isEmpty)
+              const Center(child: CircularProgressIndicator())
+            else if (vm.tuans.isEmpty)
+              const Text('Chưa có tuần nào từ server.')
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: vm.tuans.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) {
+                  final t = vm.tuans[i];
+                  String fmt(DateTime? d) {
+                    if (d == null) return '-';
+                    return '${d.day.toString().padLeft(2, '0')}/'
+                        '${d.month.toString().padLeft(2, '0')}/${d.year}';
+                  }
+
+                  return ListTile(
+                    leading: const Icon(Icons.calendar_today),
+                    title: Text('Tuần ${t.tuan}'),
+                    subtitle: Text(
+                      '${fmt(t.ngayBatDau)} – ${fmt(t.ngayKetThuc)}',
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiariesCard(
+    BuildContext context,
+    NhatKyViewModel vm,
+    double gap,
+  ) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(gap),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Nhật ký',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            if (vm.loadingDiaries && vm.diaries.isEmpty)
+              const Center(child: CircularProgressIndicator())
+            else if (vm.diaries.isEmpty)
+              const Text('Chưa có nhật ký từ server.')
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: vm.diaries.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) => _DiaryItemCard(
+                  item: vm.diaries[i],
+                  onSubmit: () => _openSubmitPage(
+                    defaultWeek: vm.diaries[i].tuan,
+                    deTaiId: vm.diaries[i].idDeTai,
+                    idNhatKy: vm.diaries[i].id,
+                    ngayBatDau: vm.diaries[i].ngayBatDau,
+                    ngayKetThuc: vm.diaries[i].ngayKetThuc,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/* ================== DIARY CARD + SUBMIT PAGE + HELPERS ================== */
-
+// Rest of the widgets remain the same...
 class _DiaryCard extends StatelessWidget {
   const _DiaryCard({required this.item, this.onSubmit});
   final DiaryEntry item;
   final VoidCallback? onSubmit;
 
   (Color bg, Color fg, String label) get _badge {
-    switch (item.status) {
-      case DiaryStatus.approved:
-        return (
-          const Color(0xFFDCFCE7),
-          const Color(0xFF166534),
-          'GVHD đã xác nhận',
-        );
-      case DiaryStatus.rejected:
-        return (const Color(0xFFFEE2E2), const Color(0xFF991B1B), 'Từ chối');
-      default:
-        return (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Chờ duyệt');
+    final st = item.status;
+    if (st == DiaryStatus.HOAN_THANH) {
+      return (
+        const Color(0xFFDCFCE7),
+        const Color(0xFF166534),
+        'GVHD đã xác nhận',
+      );
+    } else if (st == DiaryStatus.CHUA_NOP) {
+      return (const Color(0xFFFEE2E2), const Color(0xFF991B1B), 'Chưa nộp');
+    } else if (st == DiaryStatus.DA_NOP) {
+      return (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Đã nộp');
     }
+
+    // fallback
+    return (const Color(0xFFFFF7ED), const Color(0xFF9A3412), 'Đã nộp');
   }
 
   @override
@@ -305,8 +429,7 @@ class _DiaryCard extends StatelessWidget {
             if (item.teacherNote != null)
               _meta('Nhận xét GVHD', item.teacherNote!),
             const SizedBox(height: 8),
-            // Nút nộp nhật ký cho từng mục (ẩn khi đã được duyệt/đã nộp)
-            if (item.status != DiaryStatus.approved)
+            if (item.status == DiaryStatus.CHUA_NOP)
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
@@ -341,9 +464,6 @@ class _DiaryCard extends StatelessWidget {
   );
 }
 
-/* ================== DIARY ITEM CARD ================== */
-
-// New widget to render DiaryItem from backend
 class _DiaryItemCard extends StatelessWidget {
   const _DiaryItemCard({required this.item, this.onSubmit});
   final DiaryItem item;
@@ -351,35 +471,33 @@ class _DiaryItemCard extends StatelessWidget {
 
   String _fmt(DateTime? d) {
     if (d == null) return '-';
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(d.day)}/${two(d.month)}/${d.year}';
+    return '${d.day.toString().padLeft(2, '0')}/'
+        '${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
-  // Map server status text to colored badge (yellow = chưa nộp, green = đã nộp)
   _Badge _statusBadge(String? raw) {
     final s = (raw ?? '').toLowerCase();
-    if (s.contains('chưa') ||
-        s.contains('chua') ||
-        s.contains('chua nop') ||
-        s.contains('chua nộp')) {
+    if (s.contains('chưa') || s.contains('chua')) {
       return const _Badge(
         text: 'Chưa nộp',
         bg: Color(0xFFFFF4D6),
         fg: Color(0xFF7A4B00),
       );
     }
-    if (s.contains('đã') ||
-        s.contains('da') ||
-        s.contains('đã nộp') ||
-        s.contains('da nop') ||
-        s.contains('nop')) {
+    if (s.contains('đã') || s.contains('da') || s.contains('nộp')) {
       return const _Badge(
         text: 'Đã nộp',
         bg: Color(0xFFDFF7E7),
         fg: Color(0xFF10603A),
       );
     }
-    // fallback: show original text in neutral badge
+    if (s.contains('hoan') || s.contains('thanh') || s.contains('hoan_thanh')) {
+      return const _Badge(
+        text: 'Đã hoàn thành',
+        bg: Color(0xFFDFF7E7),
+        fg: Color(0xFF10603A),
+      );
+    }
     return _Badge(
       text: raw ?? '-',
       bg: const Color(0xFFF1F5F9),
@@ -387,7 +505,6 @@ class _DiaryItemCard extends StatelessWidget {
     );
   }
 
-  // Render file meta as a shortened clickable link
   Widget _fileRow(BuildContext context, String url) {
     final uri = Uri.tryParse(url);
     final short = (uri != null && uri.pathSegments.isNotEmpty)
@@ -399,9 +516,9 @@ class _DiaryItemCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 110,
-            child: const Text('File', style: TextStyle(color: Colors.black54)),
+            child: Text('File', style: TextStyle(color: Colors.black54)),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -413,9 +530,11 @@ class _DiaryItemCard extends StatelessWidget {
                     mode: LaunchMode.externalApplication,
                   );
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Không thể mở tệp')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Không thể mở tệp')),
+                    );
+                  }
                 }
               },
               child: Row(
@@ -444,16 +563,34 @@ class _DiaryItemCard extends StatelessWidget {
     );
   }
 
-  // Determine if the server-provided status string indicates the diary is already submitted
   bool _isSubmittedStatus() {
     final s = (item.trangThaiNhatKy ?? '').toLowerCase();
+    // explicit not-submitted
     if (s.contains('chưa') || s.contains('chua')) return false;
-    // treat any form of 'đã', 'da', or 'nộp' as submitted
-    if (s.contains('đã') ||
-        s.contains('da') ||
-        s.contains('nộp') ||
-        s.contains('nop'))
-      return true;
+
+    // treat any of these indicators as submitted/completed
+    final submittedIndicators = [
+      'đã',
+      'da',
+      'nộp',
+      'nop',
+      'hoàn',
+      'hoan',
+      'thành',
+      'thanh',
+      'hoan_thanh',
+      'hoanthanh',
+      'hoan-thanh',
+      'hoan thanh',
+      'xác nhận',
+      'xac nhan',
+      'xac_nhan'
+    ];
+
+    for (final t in submittedIndicators) {
+      if (s.contains(t)) return true;
+    }
+
     return false;
   }
 
@@ -478,7 +615,6 @@ class _DiaryItemCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // show a colored badge for status
                 _statusBadge(item.trangThaiNhatKy),
               ],
             ),
@@ -494,7 +630,6 @@ class _DiaryItemCard extends StatelessWidget {
               _fileRow(context, item.duongDanFile!),
             if (item.nhanXet != null) _meta('Nhận xét', item.nhanXet!),
             const SizedBox(height: 8),
-            // Hide submit button when backend status indicates already submitted
             if (!_isSubmittedStatus())
               Align(
                 alignment: Alignment.centerRight,

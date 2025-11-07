@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:GPMS/features/lecturer/views/widgets/news_tile.dart';
-import 'package:GPMS/features/lecturer/views/widgets/card_list.dart';
+import 'package:provider/provider.dart';
 import 'package:GPMS/features/lecturer/views/widgets/section_header.dart';
-import 'package:GPMS/features/lecturer/views/widgets/task_tile.dart';
-import 'package:GPMS/features/lecturer/views/widgets/notice_tile.dart';
 import 'package:GPMS/shared/components/all_news_page.dart';
-import 'package:GPMS/shared/models/thong_bao_va_tin_tuc.dart';
-import 'package:GPMS/shared/models/de_tai.dart';
-import 'package:GPMS/shared/components/app_card_list.dart';
 import 'package:GPMS/shared/components/topic_detail_page.dart';
 import 'package:GPMS/shared/components/all_topics_page.dart';
-import 'package:GPMS/core/services/main_service.dart';
+import 'package:GPMS/features/home/viewmodels/home_viewmodel.dart';
 import 'package:intl/intl.dart';
 import 'package:GPMS/features/lecturer/views/widgets/custom_app_bar.dart';
 import 'package:GPMS/shared/components/news_detail_page.dart';
@@ -22,14 +16,11 @@ class TrangChuPage extends StatefulWidget {
   State<TrangChuPage> createState() => TrangChuState();
 }
 
-class TrangChuState extends State<TrangChuPage> {
-  // Cache dữ liệu
-  List<ThongBaoVaTinTuc>? _cachedNews;
-  List<DeTai>? _cachedTopics;
-
-  bool _isInitialLoading = true;
-  bool _isRefreshing = false;
-  String? _errorMessage;
+class TrangChuState extends State<TrangChuPage>
+    with AutomaticKeepAliveClientMixin {
+  // Giữ state khi switch tab
+  @override
+  bool get wantKeepAlive => true;
 
   late DateFormat _dateFormat;
 
@@ -37,7 +28,14 @@ class TrangChuState extends State<TrangChuPage> {
   void initState() {
     super.initState();
     _dateFormat = DateFormat('dd/MM/yy');
-    _loadInitialData();
+
+    // Load data từ ViewModel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<HomeViewModel>();
+      if (!viewModel.hasData && !viewModel.isLoading) {
+        viewModel.loadInitialData();
+      }
+    });
   }
 
   @override
@@ -47,222 +45,144 @@ class TrangChuState extends State<TrangChuPage> {
     _dateFormat = DateFormat('dd/MM/yy', localeTag);
   }
 
-  // Load dữ liệu lần đầu (song song)
-  Future<void> _loadInitialData() async {
-    setState(() {
-      _isInitialLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // Load song song cả 2 API
-      final results = await Future.wait([
-        MainService.listThongBao(),
-        MainService.listDeTai(),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _cachedNews = results[0] as List<ThongBaoVaTinTuc>;
-          _cachedTopics = results[1] as List<DeTai>;
-          _isInitialLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isInitialLoading = false;
-          _errorMessage = 'Không thể tải dữ liệu: $e';
-        });
-      }
-    }
-  }
-
-  // Làm mới dữ liệu (kéo xuống)
-  Future<void> _refreshData() async {
-    if (_isRefreshing) return;
-
-    setState(() {
-      _isRefreshing = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // Load song song cả 2 API
-      final results = await Future.wait([
-        MainService.listThongBao(),
-        MainService.listDeTai(),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _cachedNews = results[0] as List<ThongBaoVaTinTuc>;
-          _cachedTopics = results[1] as List<DeTai>;
-          _isRefreshing = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-        });
-
-        // Hiển thị snackbar khi refresh failed
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể làm mới dữ liệu: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Important for KeepAlive!
+
     return Scaffold(
       appBar: const CustomAppBar(),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final w = constraints.maxWidth;
-            final double maxContentWidth = w >= 1200
-                ? 1100
-                : w >= 900
-                ? 900
-                : w >= 600
-                ? 600
-                : w;
-            final double pad = w >= 900 ? 24 : 16;
-            final double gap = w >= 900 ? 16 : 12;
+        child: Consumer<HomeViewModel>(
+          builder: (context, viewModel, child) {
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final w = constraints.maxWidth;
+                final double maxContentWidth = w >= 1200
+                    ? 1100
+                    : w >= 900
+                    ? 900
+                    : w >= 600
+                    ? 600
+                    : w;
+                final double pad = w >= 900 ? 24 : 16;
+                final double gap = w >= 900 ? 16 : 12;
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxContentWidth),
-                child: RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
-                    children: [
-                      // ===== Việc tuần này =====
-                      SectionHeader(
-                        title: 'Việc tuần này',
-                        trailing: TextButton(
-                          onPressed: () {},
-                          child: const Text('Xem tất cả'),
-                        ),
-                      ),
-
-                      CardList(
-                        children: const [
-                          TaskTile(
-                            title: 'Duyệt sinh viên đăng kí đề tài',
-                            subtitle: 'Hạn: 20/09, 23:59',
-                            actionText: 'Thực hiện',
-                          ),
-                          Divider(height: 1),
-                          TaskTile(
-                            title: 'Duyệt đề cương sinh viên',
-                            subtitle: 'Hạn: 22/09, 23:59',
-                            actionText: 'Thực hiện',
-                          ),
-                          Divider(height: 1),
-                          TaskTile(
-                            title: 'Xác nhận nhật ký sinh viên',
-                            subtitle: 'Hạn: 22/09, 23:59',
-                            actionText: 'Thực hiện',
-                          ),
-                          Divider(height: 1),
-                          TaskTile(
-                            title: 'Duyệt sinh viên yêu cầu hướng dẫn',
-                            subtitle: 'Hạn: 15/09, 23:59',
-                            actionText: 'Thực hiện',
-                          ),
+                // Loading skeleton
+                if (viewModel.isLoading) {
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxContentWidth),
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+                        children: [
+                          _buildSkeletonCard(3),
+                          SizedBox(height: gap),
+                          _buildSkeletonCard(4),
                         ],
                       ),
+                    ),
+                  );
+                }
 
-                      SizedBox(height: gap * 1.5),
-
-                      // ===== Thông báo =====
-                      SectionHeader(
-                        title: 'Thông báo',
-                        trailing: TextButton(
-                          onPressed: () {},
-                          child: const Text('Xem tất cả'),
+                // Error state
+                if (viewModel.hasError && !viewModel.hasData) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        Text(
+                          viewModel.errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => viewModel.retry(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-                      CardList(
-                        children: const [
-                          NoticeTile(
-                            badgeColor: Color(0xFFDBEAFE),
-                            title: 'Sinh viên yêu cầu hướng dẫn',
-                            subtitle: 'Khoa công nghệ thông tin • 10:30 18/09',
+                // Main content
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxContentWidth),
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        try {
+                          await viewModel.refreshData();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Không thể làm mới dữ liệu: $e'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
+                        children: [
+                          SectionHeader(
+                            title: 'Thông báo',
+                            trailing:
+                                viewModel.notifications != null &&
+                                    viewModel.notifications!.isNotEmpty
+                                ? TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => AllNewsPage(
+                                            notifications:
+                                                viewModel.notifications!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('Xem thêm'),
+                                  )
+                                : null,
                           ),
-                          Divider(height: 1),
-                          NoticeTile(
-                            badgeColor: Color(0xFFDBEAFE),
-                            title: 'Sinh viên đăng ký đề tài',
-                            subtitle: 'Hệ thống • 09:15 17/09',
+                          _buildNewsContent(viewModel),
+
+                          SizedBox(height: 5),
+                          // ===== Đề tài nổi bật - Dynamic from ViewModel =====
+                          SectionHeader(
+                            title: 'Đề tài nổi bật',
+                            trailing:
+                                viewModel.topics != null &&
+                                    viewModel.topics!.isNotEmpty
+                                ? TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const AllTopicsPage(),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('Xem thêm'),
+                                  )
+                                : null,
                           ),
-                          Divider(height: 1),
-                          NoticeTile(
-                            badgeColor: Color(0xFFDBEAFE),
-                            title: 'Sinh viên nộp đề cương',
-                            subtitle: 'Hệ thống • 08:00 16/09',
-                          ),
+                          _buildTopicsContent(viewModel),
                         ],
                       ),
-
-                      SizedBox(height: gap * 1.5),
-
-                      // ===== Tin tức - PHẦN ĐỘNG =====
-                      SectionHeader(
-                        title: 'Tin tức',
-                        trailing: _cachedNews != null && _cachedNews!.isNotEmpty
-                            ? TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => AllNewsPage(
-                                        notifications: _cachedNews!,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: const Text('Xem thêm'),
-                              )
-                            : null,
-                      ),
-
-                      _buildNewsContent(),
-
-                      SizedBox(height: gap * 1.5),
-
-                      // ===== Đề tài nổi bật - PHẦN ĐỘNG =====
-                      SectionHeader(
-                        title: 'Đề tài nổi bật',
-                        trailing:
-                            _cachedTopics != null && _cachedTopics!.isNotEmpty
-                            ? TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const AllTopicsPage(),
-                                    ),
-                                  );
-                                },
-                                child: const Text('Xem thêm'),
-                              )
-                            : null,
-                      ),
-
-                      _buildTopicsContent(),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
@@ -270,43 +190,9 @@ class TrangChuState extends State<TrangChuPage> {
     );
   }
 
-  // Build nội dung tin tức (trả về Widget thông thường cho ListView)
-  Widget _buildNewsContent() {
-    // Đang loading lần đầu
-    if (_isInitialLoading) {
-      return _buildSkeletonCard(3);
-    }
-
-    // Có lỗi và chưa có cache
-    if (_errorMessage != null && _cachedNews == null) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Center(
-            child: Column(
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 8),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _loadInitialData,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Thử lại'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Không có dữ liệu
-    if (_cachedNews == null || _cachedNews!.isEmpty) {
+  // Build nội dung tin tức từ ViewModel
+  Widget _buildNewsContent(HomeViewModel viewModel) {
+    if (viewModel.notifications == null || viewModel.notifications!.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -326,8 +212,7 @@ class TrangChuState extends State<TrangChuPage> {
       );
     }
 
-    // Hiển thị dữ liệu
-    final displayItems = _cachedNews!.take(3).toList();
+    final displayItems = viewModel.notifications!.take(3).toList();
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -381,43 +266,9 @@ class TrangChuState extends State<TrangChuPage> {
     );
   }
 
-  // Build nội dung đề tài (trả về Widget thông thường cho ListView)
-  Widget _buildTopicsContent() {
-    // Đang loading lần đầu
-    if (_isInitialLoading) {
-      return _buildSkeletonCard(4);
-    }
-
-    // Có lỗi và chưa có cache
-    if (_errorMessage != null && _cachedTopics == null) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Center(
-            child: Column(
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 8),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _loadInitialData,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Thử lại'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Không có dữ liệu
-    if (_cachedTopics == null || _cachedTopics!.isEmpty) {
+  // Build nội dung đề tài từ ViewModel
+  Widget _buildTopicsContent(HomeViewModel viewModel) {
+    if (viewModel.topics == null || viewModel.topics!.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -437,8 +288,7 @@ class TrangChuState extends State<TrangChuPage> {
       );
     }
 
-    // Hiển thị dữ liệu
-    final displayItems = _cachedTopics!.take(4).toList();
+    final displayItems = viewModel.topics!.take(4).toList();
 
     return Card(
       clipBehavior: Clip.antiAlias,

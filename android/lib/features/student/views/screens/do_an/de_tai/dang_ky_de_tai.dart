@@ -5,20 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:GPMS/features/student/models/giang_vien_huong_dan.dart';
 import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
-
-class RegisterResult {
-  final String title;
-  final int advisorId;
-  final String advisorName;
-  final String? overviewFile;
-
-  RegisterResult({
-    required this.title,
-    required this.advisorId,
-    required this.advisorName,
-    this.overviewFile,
-  });
-}
+import 'package:GPMS/features/student/models/register_result.dart';
 
 class DangKyDeTai extends StatefulWidget {
   const DangKyDeTai({super.key});
@@ -193,6 +180,7 @@ class DangKyDeTaiState extends State<DangKyDeTai> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         title: const Text(
           'Đăng ký đề tài',

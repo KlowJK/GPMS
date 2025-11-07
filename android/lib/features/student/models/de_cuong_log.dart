@@ -4,6 +4,8 @@ class DeCuongLog {
   final int id;
   final String? deCuongUrl;
   final String? trangThai;
+  final String? gvPhanBienDuyet;
+  final String? tbmDuyet;
   final int? phienBan;
   final String? tenDeTai;
   final String? msv;
@@ -18,6 +20,8 @@ class DeCuongLog {
     required this.id,
     this.deCuongUrl,
     this.trangThai,
+    this.gvPhanBienDuyet,
+    this.tbmDuyet,
     this.phienBan,
     this.tenDeTai,
     this.msv,
@@ -59,6 +63,8 @@ class DeCuongLog {
       id: idVal,
       deCuongUrl: json['deCuongUrl'],
       trangThai: json['trangThai'],
+      gvPhanBienDuyet: json['gvPhanBienDuyet']?.toString() ?? json['gv_phan_bien_duyet']?.toString(),
+      tbmDuyet: json['tbmDuyet']?.toString() ?? json['tbm_duyet']?.toString(),
       phienBan: phienBanVal,
       tenDeTai: json['tenDeTai'],
       msv: json['msv'],

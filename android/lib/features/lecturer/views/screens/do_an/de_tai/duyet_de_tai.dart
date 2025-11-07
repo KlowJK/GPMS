@@ -1,136 +1,184 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:GPMS/features/lecturer/services/de_tai_service.dart';
 import 'package:GPMS/features/lecturer/models/de_tai_item.dart';
+import 'package:GPMS/features/lecturer/viewmodels/de_tai_viewmodel.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
 
 class DuyetDeTai extends StatefulWidget {
   const DuyetDeTai({super.key});
+
   @override
   State<DuyetDeTai> createState() => _DuyetDeTaiState();
 }
 
-class _DuyetDeTaiState extends State<DuyetDeTai> {
-  final _items = <DeTaiItem>[];
-  bool _loading = false;
-  String? _error;
-
-  // new: block duplicate requests while processing an action
-  bool _processing = false;
-
+class _DuyetDeTaiState extends State<DuyetDeTai>
+    with AutomaticKeepAliveClientMixin {
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  bool get wantKeepAlive => true;
 
-  Future<void> _load() async {
-    if (_loading) return;
-    if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+  Future<void> _handleRefresh(DeTaiViewModel vm) async {
     try {
-      final list = await DeTaiService.fetchApprovalList();
-      if (!mounted) return; // avoid updating state when widget is gone
-
-      setState(() {
-        _items
-          ..clear()
-          ..addAll(list);
-        _error = null;
-      });
+      await vm.fetchApprovalList();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
-    } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    }
-  }
 
-  Future<void> _onAction({required int index, required bool approve}) async {
-    if (_processing) return; // guard
-    if (index < 0 || index >= _items.length) return;
-    setState(() => _processing = true);
+      String message = 'Không thể làm mới dữ liệu';
 
-    final it = _items[index];
-    final note = await _showCommentDialog(context);
-    if (note == null || note.trim().isEmpty) {
-      if (mounted) setState(() => _processing = false);
-      return;
-    }
-
-    try {
-      if (approve) {
-        await DeTaiService.approve(deTaiId: it.id, nhanXet: note.trim());
+      if (e is CustomException) {
+        switch (e.errorCode) {
+          case ErrorCode.unauthenticated:
+            message = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            break;
+          case ErrorCode.timeout:
+            message = 'Kết nối hết thời gian chờ. Vui lòng thử lại.';
+            break;
+          default:
+            message = e.errorCode.message;
+        }
       } else {
-        await DeTaiService.reject(deTaiId: it.id, nhanXet: note.trim());
+        message = 'Lỗi kết nối: $e';
       }
 
-      // reload full list from server to reflect changes
-      await _load();
-
-      if (!mounted) return;
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e')));
-    } finally {
-      if (mounted) setState(() => _processing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(children: [const Text('Danh sách đề tài')]),
-        ),
-        Expanded(
-          child: _error != null
-              ? _ErrorView(message: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : (_items.isEmpty
-                            ? const _EmptyView(text: 'Không có đề tài.')
-                            : ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  8,
-                                  16,
-                                  16,
-                                ),
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 12),
-                                itemCount: _items.length,
-                                itemBuilder: (_, i) => _TopicCard(
-                                  item: _items[i],
-                                  // disable buttons while processing
-                                  onApprove:
-                                      _items[i].status == TopicStatus.pending &&
-                                          !_processing
-                                      ? () => _onAction(index: i, approve: true)
-                                      : null,
-                                  onReject:
-                                      _items[i].status == TopicStatus.pending &&
-                                          !_processing
-                                      ? () =>
-                                            _onAction(index: i, approve: false)
-                                      : null,
-                                ),
-                              )),
-                ),
-        ),
-      ],
+    super.build(context);
+
+    return Consumer<DeTaiViewModel>(
+      builder: (context, vm, _) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Danh sách đề tài (${vm.pendingItems.length})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: _buildBody(vm)),
+          ],
+        );
+      },
     );
+  }
+
+  Widget _buildBody(DeTaiViewModel vm) {
+    // Error state
+    if (vm.hasError && vm.items.isEmpty) {
+      return _ErrorView(
+        message: vm.error!,
+        errorCode: vm.errorCode,
+        onRetry: () => vm.retry(),
+      );
+    }
+
+    // Loading state
+    if (vm.isLoading && vm.items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Empty state
+    if (vm.items.isEmpty) {
+      return const _EmptyView(text: 'Không có đề tài chờ duyệt.');
+    }
+
+    // List with refresh
+    return RefreshIndicator(
+      onRefresh: () => _handleRefresh(vm),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemCount: vm.items.length,
+        itemBuilder: (_, i) {
+          final item = vm.items[i];
+          return _TopicCard(
+            item: item,
+            onApprove: item.status == TopicStatus.pending && !vm.isProcessing
+                ? () => _handleApprove(vm, item)
+                : null,
+            onReject: item.status == TopicStatus.pending && !vm.isProcessing
+                ? () => _handleReject(vm, item)
+                : null,
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleApprove(DeTaiViewModel vm, DeTaiItem item) async {
+    final note = await _showCommentDialog(context);
+    if (note == null || note.trim().isEmpty) return;
+
+    final success = await vm.approveDeTai(
+      deTaiId: item.id,
+      nhanXet: note.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã duyệt đề tài thành công')),
+      );
+    } else {
+      _showError(vm);
+    }
+  }
+
+  Future<void> _handleReject(DeTaiViewModel vm, DeTaiItem item) async {
+    final note = await _showCommentDialog(context);
+    if (note == null || note.trim().isEmpty) return;
+
+    final success = await vm.rejectDeTai(
+      deTaiId: item.id,
+      nhanXet: note.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã từ chối đề tài')));
+    } else {
+      _showError(vm);
+    }
+  }
+
+  void _showError(DeTaiViewModel vm) {
+    String message = vm.error ?? 'Có lỗi xảy ra';
+
+    if (vm.errorCode == ErrorCode.unauthenticated) {
+      message = 'Phiên đăng nhập hết hạn';
+      // Navigate to login
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      return;
+    } else if (vm.errorCode == ErrorCode.timeout) {
+      message = 'Kết nối hết thời gian chờ. Vui lòng thử lại.';
+    } else if (vm.errorCode == ErrorCode.noInternet) {
+      message = 'Không có kết nối mạng';
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -213,13 +261,11 @@ class _TopicCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-
             Text(
               'Đề tài: ${item.title}',
-              style: TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
-
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -229,7 +275,7 @@ class _TopicCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
+                          const Text(
                             'File tổng quan: ',
                             style: TextStyle(fontWeight: FontWeight.w900),
                           ),
@@ -268,9 +314,7 @@ class _TopicCard extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 6),
-
             Row(
               children: [
                 const Text(
@@ -298,7 +342,6 @@ class _TopicCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text('Nhận xét: ${item.comment}'),
             ],
-
             if (pending) ...[
               const SizedBox(height: 12),
               Row(
@@ -345,8 +388,9 @@ class _TopicCard extends StatelessWidget {
     if (url == null || url.isEmpty || !url.startsWith('http')) return null;
     return () async {
       final uri = Uri.tryParse(url);
-      if (uri != null)
+      if (uri != null) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
     };
   }
 }
@@ -378,8 +422,14 @@ class _EmptyView extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
+  const _ErrorView({
+    required this.message,
+    this.errorCode,
+    required this.onRetry,
+  });
+
   final String message;
+  final ErrorCode? errorCode;
   final VoidCallback onRetry;
 
   @override
@@ -394,7 +444,11 @@ class _ErrorView extends StatelessWidget {
           size: 32,
         ),
         const SizedBox(height: 8),
-        Text('Lỗi: $message', style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          'Lỗi: $message',
+          style: Theme.of(context).textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: onRetry,

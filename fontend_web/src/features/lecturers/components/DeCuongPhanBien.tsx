@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchStudentProposals, approveDeCuong, rejectDeCuong } from '../services'
 import { formatDateTime } from '@shared/utils/format'
@@ -58,10 +59,15 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName, u
       // close inline approve box on success
       setApproveOpenId(null)
       setApproveReasonInput('')
-      try { window.alert('Duyệt thành công') } catch (e) {}
+      try { toast.success('Duyệt thành công') } catch (e) {}
     },
     onError: (err: any) => {
-      try { window.alert(`Duyệt thất bại: ${err?.message ?? err}`) } catch (e) {}
+      try {
+        const message = String(err?.message ?? err)
+        // simple prettify for common ascii-only backend messages
+        const pretty = message.replace(/Ngoai/gi, 'Ngoại').replace(/\bnop\b/gi, 'nộp').replace(/bao\s*cao/gi, 'báo cáo').replace(/khong/gi, 'không')
+        toast.error(`Duyệt thất bại: ${pretty}`)
+      } catch (e) {}
     }
   })
 
@@ -73,10 +79,14 @@ export default function DeCuongDetailModal({ open, onClose, item, currentName, u
       // close inline reject box on success
       setRejectOpenId(null)
       setRejectReasonInput('')
-      try { window.alert('Từ chối thành công') } catch (e) {}
+      try { toast.success('Từ chối thành công') } catch (e) {}
     },
     onError: (err: any) => {
-      try { window.alert(`Từ chối thất bại: ${err?.message ?? err}`) } catch (e) {}
+      try {
+        const message = String(err?.message ?? err)
+        const pretty = message.replace(/Ngoai/gi, 'Ngoại').replace(/\bnop\b/gi, 'nộp').replace(/bao\s*cao/gi, 'báo cáo').replace(/khong/gi, 'không')
+        toast.error(`Từ chối thất bại: ${pretty}`)
+      } catch (e) {}
     }
   })
 

@@ -1,4 +1,3 @@
-// lib/features/lecturer/models/tien_do_item.dart
 import 'package:flutter/foundation.dart';
 
 /// Trạng thái nộp nhật ký
@@ -9,7 +8,10 @@ SubmitStatus parseSubmitStatus(dynamic v) {
   if (v is bool) return v ? SubmitStatus.submitted : SubmitStatus.notSubmitted;
   final s = v.toString().toUpperCase();
   // các khả năng BE trả về
-  if (s.contains('DA_NOP') || s.contains('DA NOP') || s.contains('SUBMIT') || s == 'DA_NAP') {
+  if (s.contains('DA_NOP') ||
+      s.contains('DA NOP') ||
+      s.contains('SUBMIT') ||
+      s == 'DA_NAP') {
     return SubmitStatus.submitted;
   }
   return SubmitStatus.notSubmitted;
@@ -86,13 +88,14 @@ class WeeklyEntry {
       tuan: _toInt(j['tuan'] ?? j['week']),
       ngayBatDau: _toDate(j['ngayBatDau'] ?? j['startDate']),
       ngayKetThuc: _toDate(j['ngayKetThuc'] ?? j['endDate']),
-      noiDung: (j['noiDung'] ??
-          j['noiDungCongViec'] ??
-          j['noiDungCongViecDaThucHien'] ??
-          '')
+      noiDung:
+          (j['noiDung'] ??
+                  j['noiDungCongViec'] ??
+                  j['noiDungCongViecDaThucHien'] ??
+                  '')
+              .toString(),
+      duongDanFile: (j['duongDanFile'] ?? j['file'] ?? j['fileUrl'] ?? '')
           .toString(),
-      duongDanFile:
-      (j['duongDanFile'] ?? j['file'] ?? j['fileUrl'] ?? '').toString(),
       nhanXet: (j['nhanXet'] ?? j['ghiChu'] ?? j['comment'])?.toString(),
     );
   }

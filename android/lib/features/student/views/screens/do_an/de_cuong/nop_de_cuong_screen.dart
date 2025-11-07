@@ -100,6 +100,7 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
     return Scaffold(
       backgroundColor: Colors.blueGrey[50],
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF2563EB),
         title: const Text(
           'Nộp đề cương',
@@ -116,27 +117,50 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
               child: ListView(
                 padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
                 children: [
+                  // small hint about submission count
+
                   Card(
-                    elevation: 1,
+                    elevation: 2,
                     shadowColor: Colors.black12,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       side: BorderSide(
-                        color: theme.dividerColor.withOpacity(0.5),
+                        color: theme.dividerColor.withAlpha(60),
                       ),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(gap * 1.5),
+                      padding: EdgeInsets.all(gap * 1.8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: gap * 1.5),
-                          const Text('URL File đề cương:'),
+                          // label
+                          Text(
+                            'URL File đề cương',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
                           SizedBox(height: gap),
+
+                          // input
                           TextFormField(
                             controller: _urlController,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: theme.dividerColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: theme.dividerColor.withAlpha(90)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
                               hintText: 'https://example.com/file.pdf',
                             ),
                             validator: (value) {
@@ -150,25 +174,35 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                               return null;
                             },
                           ),
+
                           SizedBox(height: gap * 2),
+
+                          // submit button
                           Center(
-                            child: FilledButton(
-                              onPressed:
-                                  (viewModel == null || viewModel.isLoadingLogs)
-                                  ? null
-                                  : () => _submit(context),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 48,
-                                  vertical: 14,
+                            child: SizedBox(
+                              width: 220,
+                              child: FilledButton(
+                                onPressed: (viewModel == null || viewModel.isLoadingLogs)
+                                    ? null
+                                    : () => _submit(context),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  elevation: 2,
                                 ),
-                              ),
-                              child: viewModel == null
-                                  ? const Text(
-                                      'Không có dữ liệu (mở từ trang Đồ án)',
-                                    )
-                                  : (viewModel.isLoadingLogs
+                                child: viewModel == null
+                                    ? const Text(
+                                        'Không có dữ liệu (mở từ trang Đồ án)',
+                                        textAlign: TextAlign.center,
+                                      )
+                                    : (viewModel.isLoadingLogs
                                         ? const SizedBox(
                                             width: 20,
                                             height: 20,
@@ -178,9 +212,48 @@ class _NopDeCuongViewState extends State<_NopDeCuongView> {
                                             ),
                                           )
                                         : const Text('Nộp đề cương')),
+                              ),
                             ),
                           ),
+
+                          const SizedBox(height: 14),
+
+                          // info row
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.info_outline,
+                                    color: Colors.blue.shade700,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Chấp nhận link PDF. Sau khi nộp, trạng thái sẽ là "Chờ duyệt".',
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black87),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                         ],
+
                       ),
                     ),
                   ),

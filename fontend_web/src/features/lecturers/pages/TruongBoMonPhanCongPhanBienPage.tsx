@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { UserPlus } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { fetchStudentsWithoutSupervisor } from '../services'
 import PhanCongModal from '../components/PhanCongHuongDanModal'
@@ -22,10 +23,10 @@ export default function TruongBoMonPhanCongPhanBienPage() {
       try {
         // For reviewer assignment we want topics that are already approved
         const resp = await fetchStudentsWithoutSupervisor({ page: 0, size: 100, sort: ['hoTen,ASC'], status: 'DA_DUYET' })
-  const items = Array.isArray(resp?.content) ? resp.content : []
-  // only show records that don't yet have a reviewer assigned
-  const unassigned = items.filter((it: any) => it?.idGiangVienPB == null)
-  setRows(unassigned)
+        const items = Array.isArray(resp?.content) ? resp.content : []
+        // only show records that don't yet have a reviewer assigned
+        const unassigned = items.filter((it: any) => it?.idGiangVienPB == null)
+        setRows(unassigned)
       } catch (err) {
         setErrorDetails({
           message: (err as any)?.message ?? String(err),
@@ -59,7 +60,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-semibold">Phân công giảng viên phản biện</h2>
         <div className="flex items-center gap-3">
-        
+
           <div className="inline-flex items-center rounded-full bg-transparent p-1">
             <button
               onClick={() => navigate('/lecturers/truong-bo-mon/phan-cong-giang-vien')}
@@ -76,7 +77,7 @@ export default function TruongBoMonPhanCongPhanBienPage() {
               Phân công GV phản biện
             </button>
           </div>
-            <div className="w-64">
+          <div className="w-64">
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm theo mã/tên/lớp/đề tài" className="w-full border rounded px-3 py-2 text-sm" />
           </div>
         </div>
@@ -133,7 +134,8 @@ export default function TruongBoMonPhanCongPhanBienPage() {
                         onClick={() => { setAssignRow(r); setShowAssignModal(true) }}
                         className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-50 border rounded text-yellow-700 hover:bg-yellow-100"
                       >
-                        Phân công
+                        <UserPlus size={16} />
+                        <span>Phân công</span>
                       </button>
                     </div>
                   </td>

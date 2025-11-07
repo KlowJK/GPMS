@@ -3,70 +3,123 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:GPMS/features/student/viewmodels/ho_so_viewmodel.dart';
 import 'package:GPMS/features/student/models/student_profile.dart';
-
 import 'package:GPMS/features/student/views/screens/ho_so/LogoutButton.dart';
 import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 
-// ======= PAGE chính (đọc VM) =======
 class HoSo extends StatefulWidget {
   const HoSo({super.key});
 
   @override
-  State<HoSo> createState() => _HoSoPageState();
+  State<HoSo> createState() => _HoSoState();
 }
 
-class _HoSoPageState extends State<HoSo> {
+class _HoSoState extends State<HoSo> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
+    // Load profile when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HoSoViewModel>().loadForCurrentUser();
+      // Don't call loadProfile() here since it's already called in TrangChuSinhVien
+      // Just check if we need to reload
+      final vm = context.read<HoSoViewModel>();
+      if (!vm.hasProfile && !vm.isLoading) {
+        vm.loadProfile();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<HoSoViewModel>();
-    final data = vm.profile;
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
 
-    return Scaffold(
-      appBar: CustomAppBar(),
+    return Consumer<HoSoViewModel>(
+      builder: (context, vm, _) {
+        return Scaffold(appBar: CustomAppBar(), body: _buildBody(vm));
+      },
+    );
+  }
 
-      body: Builder(
-        builder: (context) {
-          if (vm.isLoading && data == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (vm.error != null) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Lỗi: ${vm.error}', textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => vm.loadForCurrentUser(),
-                      child: const Text('Thử lại'),
-                    ),
-                  ],
-                ),
+  Widget _buildBody(HoSoViewModel vm) {
+    // Loading state
+    if (vm.isLoading && !vm.hasProfile) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Error state
+    if (vm.hasError) {
+      return _buildErrorView(vm);
+    }
+
+    // Empty state
+    if (!vm.hasProfile) {
+      return const Center(child: Text('Không có dữ liệu hồ sơ.'));
+    }
+
+    // Success state
+    return RefreshIndicator(
+      onRefresh: () => vm.loadProfile(),
+      child: _HoSoBody(data: vm.profile!),
+    );
+  }
+
+  Widget _buildErrorView(HoSoViewModel vm) {
+    String message = vm.error!;
+    IconData icon = Icons.error_outline;
+    VoidCallback? onAction;
+
+    // Handle specific errors
+    if (vm.errorCode == ErrorCode.unauthenticated) {
+      message = 'Phiên đăng nhập hết hạn';
+      icon = Icons.lock_outline;
+      onAction = () {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
+      };
+    } else if (vm.errorCode == ErrorCode.timeout) {
+      message = 'Kết nối hết thời gian chờ';
+      icon = Icons.signal_wifi_off;
+      onAction = () => vm.retry();
+    } else if (vm.errorCode == ErrorCode.sinhVienNotFound) {
+      message = 'Không tìm thấy thông tin sinh viên';
+      icon = Icons.person_off_outlined;
+    } else {
+      onAction = () => vm.retry();
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (onAction != null) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
               ),
-            );
-          }
-          if (data == null) {
-            return const Center(child: Text('Không có dữ liệu hồ sơ.'));
-          }
-
-          return _HoSoBody(data: data);
-        },
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// ======= BODY layout (trước đây là HoSo) =======
+/// Body của màn hình hồ sơ
 class _HoSoBody extends StatelessWidget {
   const _HoSoBody({required this.data});
   final StudentProfile data;
@@ -90,117 +143,18 @@ class _HoSoBody extends StatelessWidget {
               constraints: BoxConstraints(maxWidth: maxW),
               child: Column(
                 children: [
-                  _ProfileHeader(
-                    data: data,
-                    onChangeAvatar: () async {
-                      final url = await context
-                          .read<HoSoViewModel>()
-                          .pickAndUploadAvatar(context);
-                      if (!context.mounted) return;
-                      if (url != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Cập nhật ảnh đại diện thành công'),
-                          ),
-                        );
-                      }
-                    },
-                    onUploadCv: () async {
-                      final url = await context
-                          .read<HoSoViewModel>()
-                          .pickAndUploadCV(context);
-                      if (!context.mounted) return;
-                      if (url != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tải lên CV thành công'),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-
+                  _ProfileHeader(data: data),
                   Padding(
                     padding: EdgeInsets.fromLTRB(pad, gap, pad, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _SectionTitle('Thông tin cá nhân'),
-                        Card(
-                          elevation: 0,
-                          clipBehavior: Clip.antiAlias,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: Theme.of(context).dividerColor,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              _InfoRow(
-                                icon: Icons.badge_outlined,
-                                label: 'Mã sinh viên',
-                                value: _v(data.maSV),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.person_outline,
-                                label: 'Họ và tên',
-                                value: _v(data.hoTen),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.email_outlined,
-                                label: 'Email',
-                                value: _v(data.email),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.phone_outlined,
-                                label: 'Số điện thoại',
-                                value: _v(data.soDienThoai),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.calendar_month_outlined,
-                                label: 'Ngày sinh',
-                                value: _formatDateShort(data.ngaySinh),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.home_outlined,
-                                label: 'Địa chỉ',
-                                value: _v(data.diaChi),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.school_outlined,
-                                label: 'Ngành',
-                                value: _v(data.tenNganh),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.class_outlined,
-                                label: 'Lớp',
-                                value: _v(data.tenLop),
-                              ),
-                              const Divider(height: 1),
-                              _InfoRow(
-                                icon: Icons.apartment_outlined,
-                                label: 'Khoa',
-                                value: _v(data.tenKhoa),
-                              ),
-                              const Divider(height: 1),
-                            ],
-                          ),
-                        ),
-
+                        _buildInfoCard(context),
                         SizedBox(height: gap * 1.5),
                         const _SectionTitle('Tài liệu'),
                         _CvCard(cvUrl: data.cvUrl),
                         SizedBox(height: gap * 2.5),
-
-                        // Đăng xuất
                         const LogoutButton(),
                       ],
                     ),
@@ -213,27 +167,87 @@ class _HoSoBody extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildInfoCard(BuildContext context) {
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        children: [
+          _InfoRow(
+            icon: Icons.badge_outlined,
+            label: 'Mã sinh viên',
+            value: _v(data.maSV),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.person_outline,
+            label: 'Họ và tên',
+            value: _v(data.hoTen),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.email_outlined,
+            label: 'Email',
+            value: _v(data.email),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.phone_outlined,
+            label: 'Số điện thoại',
+            value: _v(data.soDienThoai),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.calendar_month_outlined,
+            label: 'Ngày sinh',
+            value: _formatDateShort(data.ngaySinh),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.home_outlined,
+            label: 'Địa chỉ',
+            value: _v(data.diaChi),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.school_outlined,
+            label: 'Ngành',
+            value: _v(data.tenNganh),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.class_outlined,
+            label: 'Lớp',
+            value: _v(data.tenLop),
+          ),
+          const Divider(height: 1),
+          _InfoRow(
+            icon: Icons.apartment_outlined,
+            label: 'Khoa',
+            value: _v(data.tenKhoa),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-// ======= HEADER =======
+/// Header với avatar và nút upload
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({
-    required this.data,
-    this.onChangeAvatar,
-    this.onUploadCv,
-  });
-
+  const _ProfileHeader({required this.data});
   final StudentProfile data;
-
-  // Cho phép async callback
-  final Future<void> Function()? onChangeAvatar;
-  final Future<void> Function()? onUploadCv;
 
   @override
   Widget build(BuildContext context) {
     final name = data.hoTen ?? '';
     final initials = _initials(name);
     final avatarUrl = context.watch<HoSoViewModel>().avatarUrl;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
@@ -271,7 +285,10 @@ class _ProfileHeader extends StatelessWidget {
                   shape: const CircleBorder(),
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: onChangeAvatar, // giờ là async ok
+                    onTap: () async {
+                      final vm = context.read<HoSoViewModel>();
+                      await vm.pickAndUploadAvatar(context);
+                    },
                     child: const Padding(
                       padding: EdgeInsets.all(6),
                       child: Icon(Icons.edit, size: 18, color: Colors.black87),
@@ -291,7 +308,10 @@ class _ProfileHeader extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
-            onPressed: onUploadCv, // async ok
+            onPressed: () async {
+              final vm = context.read<HoSoViewModel>();
+              await vm.pickAndUploadCV(context);
+            },
             style: FilledButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black87,
@@ -306,7 +326,7 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-// ======= CV card =======
+/// CV card
 class _CvCard extends StatelessWidget {
   const _CvCard({this.cvUrl});
   final String? cvUrl;
@@ -316,22 +336,26 @@ class _CvCard extends StatelessWidget {
       final uri = Uri.parse(url);
       final ok = await launcher.canLaunchUrl(uri);
       if (!ok) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Không thể mở URL: $url')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Không thể mở URL: $url')));
+        }
         return;
       }
       await launcher.launchUrl(uri);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final has = (cvUrl ?? '').isNotEmpty;
+    final hasCV = (cvUrl ?? '').isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -342,8 +366,8 @@ class _CvCard extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.description_outlined),
         title: const Text('CV'),
-        subtitle: Text(has ? 'Đã tải lên' : 'Chưa có'),
-        trailing: has
+        subtitle: Text(hasCV ? 'Đã tải lên' : 'Chưa có'),
+        trailing: hasCV
             ? TextButton(
                 onPressed: () => _open(context, cvUrl!),
                 child: const Text('Xem CV'),
@@ -354,7 +378,7 @@ class _CvCard extends StatelessWidget {
   }
 }
 
-// ======= Tiêu đề nhỏ =======
+/// Section title
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   final String text;
@@ -373,7 +397,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-// ======= Dòng thông tin =======
+/// Info row
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.icon,
@@ -413,30 +437,31 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ======= utils =======
+// Utility functions
 String _v(String? s) => (s == null || s.trim().isEmpty) ? '—' : s.trim();
 
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));
   if (parts.isEmpty) return '';
-  if (parts.length == 1) return parts.first.characters.take(1).toString();
+  if (parts.length == 1) {
+    return parts.first.characters.take(1).toString().toUpperCase();
+  }
   return (parts.first.characters.take(1).toString() +
           parts.last.characters.take(1).toString())
       .toUpperCase();
 }
 
-// Format date as dd/MM/yyyy (four-digit year). Accepts ISO or common separators; falls back to original or '—'.
 String _formatDateShort(String? s) {
   if (s == null || s.trim().isEmpty) return '—';
   final raw = s.trim();
-  // Try ISO parse first
+
+  // Try ISO parse
   try {
     final d = DateTime.parse(raw);
     final yyyy = d.year.toString().padLeft(4, '0');
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/$yyyy';
   } catch (_) {
-    // try splitting common separators (/, -, .)
-    // split on common date separators: /  -  .
+    // Try splitting common separators
     final parts = raw.split(RegExp(r'[/\-.]'));
     if (parts.length >= 3) {
       var day = parts[0].padLeft(2, '0');
@@ -446,10 +471,11 @@ String _formatDateShort(String? s) {
       // Normalize year to 4 digits
       if (year.length == 2) {
         final num = int.tryParse(year);
-        if (num != null)
+        if (num != null) {
           year = (2000 + num).toString();
-        else
+        } else {
           year = year.padLeft(4, '0');
+        }
       } else if (year.length > 4) {
         year = year.substring(year.length - 4);
       } else if (year.length == 3) {
@@ -459,7 +485,6 @@ String _formatDateShort(String? s) {
       if (int.tryParse(year) == null) return raw;
       return '$day/$month/$year';
     }
-    // fallback: return original trimmed
     return raw;
   }
 }

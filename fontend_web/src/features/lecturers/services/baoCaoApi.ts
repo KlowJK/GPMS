@@ -13,7 +13,8 @@ export async function fetchReportsPage(params: { page?: number; size?: number; s
   if (typeof params.page === 'number') search.append('page', String(params.page))
   if (typeof params.size === 'number') search.append('size', String(params.size))
   if (params.sort) params.sort.forEach(s => search.append('sort', s))
-  if (params.status) search.append('status', params.status)
+  // Treat literal '--' as "no filter" (some UIs send '--' to mean all)
+  if (params.status && params.status !== '--') search.append('status', params.status)
   if (params.maSinhVien) search.append('maSinhVien', params.maSinhVien)
 
   const url = `/api/bao-cao/page-bao-cao-giang-vien?${search.toString()}`
@@ -27,6 +28,9 @@ export async function fetchReportsPage(params: { page?: number; size?: number; s
       idDeTai: it.idDeTai ?? it.idDeTai,
       tenDeTai: it.tenDeTai ?? it.title ?? '',
       maSinhVien: it.maSinhVien ?? it.maSV ?? it.maSV,
+      tenSinhVien: it.tenSinhVien ?? it.hoTen ?? it.tenSinhVien ?? '',
+      lop: it.lop ?? it.tenLop ?? '',
+      soDienThoai: it.soDienThoai ?? it.soDienThoai ?? null,
       trangThai: it.trangThai ?? it.trangthai ?? it.status ?? '',
       phienBan: it.phienBan,
       ngayNop: it.ngayNop,

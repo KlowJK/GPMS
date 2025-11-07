@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:GPMS/shared/models/de_tai.dart';
+import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TopicDetailPage extends StatelessWidget {
@@ -20,6 +20,7 @@ class TopicDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
           'Chi tiết đề tài',
           style: TextStyle(color: Colors.white),
