@@ -8,6 +8,7 @@ import com.backend.gpms.features.council.domain.PhanCongPhanBien;
 import com.backend.gpms.features.council.domain.ThanhVienHoiDong;
 import com.backend.gpms.features.council.infra.PhanCongBaoVeRepository;
 import com.backend.gpms.features.council.infra.PhanCongPhanBienRepository;
+import com.backend.gpms.features.council.infra.ThanhVienHoiDongRepository;
 import com.backend.gpms.features.lecturer.domain.GiangVien;
 import com.backend.gpms.features.lecturer.infra.GiangVienRepository;
 import com.backend.gpms.features.score.domain.Diem;
@@ -45,6 +46,7 @@ public class DiemService    {
     DiemPhanBienRepository diemPhanBienRepository;
     DiemBaoVeChiTietRepository diemBaoVeChiTietRepository;
     DiemRepository diemRepository;
+    ThanhVienHoiDongRepository thanhVienHoiDongRepository;
 
     public String nhapDiemChung(DiemRequest request) {
         String email = getCurrentUsername();
@@ -109,24 +111,16 @@ public class DiemService    {
 
         // === NHẬP ĐIỂM BẢO VỆ (HỘI ĐỒNG) ===
         if (isThanhVienHoiDong) {
-            ThanhVienHoiDong thanhVien = null;
             HoiDong hoiDong = phanCongBaoVeOpt.get().getHoiDongBaoVe();
 
-            // Tìm ThanhVienHoiDong tương ứng
-            if (hoiDong.getChuTich() != null && hoiDong.getChuTich().getId().equals(gv.getId())) {
-                // Chủ tịch không có trong thanhVienHoiDongSet → xử lý riêng
-            } else if (hoiDong.getThuKy() != null && hoiDong.getThuKy().getId().equals(gv.getId())) {
-                // Thư ký
-            } else {
-                thanhVien = hoiDong.getThanhVienHoiDongSet().stream()
-                        .filter(tv -> tv.getGiangVien().getId().equals(gv.getId()))
-                        .findFirst()
-                        .orElseThrow(() -> new ApplicationException(ErrorCode.THANH_VIEN_HOI_DONG_NOT_FOUND));
-            }
+            // Tìm ThanhVienHoiDong cho giảng viên hiện tại
+            ThanhVienHoiDong thanhVien = thanhVienHoiDongRepository
+                    .findByHoiDong_IdAndGiangVien_Id(hoiDong.getId(), gv.getId())
+                    .orElseThrow(() -> new ApplicationException(ErrorCode.THANH_VIEN_HOI_DONG_NOT_FOUND));
 
             // Kiểm tra đã chấm chưa
             Optional<DiemBaoVeChiTiet> existingDiem = diemBaoVeChiTietRepository
-                    .findByDeTai_IdAndThanhVienHoiDong_GiangVien_Id(deTai.getId(), gv.getId());
+                    .findByDeTai_IdAndThanhVienHoiDong_Id(deTai.getId(), thanhVien.getId());
 
             DiemBaoVeChiTiet diemBaoVe;
             if (existingDiem.isPresent()) {
@@ -134,11 +128,10 @@ public class DiemService    {
                 diemBaoVe.setDiem(request.getDiem());
                 diemBaoVe.setNhanXet(request.getNhanXet());
                 diemBaoVe.setTrangThai(TrangThaiDiem.CHO_PHE_DUYET);
-                diemBaoVe.setHopLe(true); // mặc định hợp lệ
             } else {
                 diemBaoVe = DiemBaoVeChiTiet.builder()
                         .deTai(deTai)
-                        .thanhVienHoiDong(thanhVien)
+                        .thanhVienHoiDong(thanhVien) // Không còn null
                         .diem(request.getDiem())
                         .nhanXet(request.getNhanXet())
                         .trangThai(TrangThaiDiem.CHO_PHE_DUYET)
@@ -147,8 +140,6 @@ public class DiemService    {
             }
 
             diemBaoVeChiTietRepository.save(diemBaoVe);
-
-            // Cập nhật điểm hội đồng tổng hợp
             capNhatDiemHoiDongTongHop(deTai.getId());
 
             return String.format("Nhập điểm bảo vệ thành công cho đề tài [%s] - Điểm: %.2f",
