@@ -384,6 +384,8 @@ public class HoiDongService{
         Double diemBaoCao = baoCao.getDiemHuongDan() != null ? baoCao.getDiemHuongDan() : 0.0;
 
         List<PhanCongPhanBienResponse.GiangVienChamDiem> giangVienList = new ArrayList<>();
+        Set<Long> addedGiangVienIds = new HashSet<>(); // Track added IDs
+
 
         // Thêm phản biện (nếu có)
         phanBienList.forEach(pcb -> {
@@ -405,14 +407,28 @@ public class HoiDongService{
                     .trangThai(diemPB != null ? diemPB.getTrangThai().name() : "CHUA_CHAM")
                     .hopLe(null)
                     .build());
+            addedGiangVienIds.add(gv.getId());
         });
 
-        // Thêm thành viên hội đồng
-        addGiangVienHoiDong(giangVienList, hoiDong.getChuTich(), idDeTai, diemBaoVeList, "CHU_TICH");
-        addGiangVienHoiDong(giangVienList, hoiDong.getThuKy(), idDeTai, diemBaoVeList, "THU_KY");
-        hoiDong.getThanhVienHoiDongSet().forEach(tv ->
-                addGiangVienHoiDong(giangVienList, tv.getGiangVien(), idDeTai, diemBaoVeList, "UY_VIEN")
-        );
+        // Thêm Chủ tịch
+        if (hoiDong.getChuTich() != null) {
+            addGiangVienHoiDong(giangVienList, hoiDong.getChuTich(), idDeTai,
+                    diemBaoVeList, "CHU_TICH", addedGiangVienIds);
+        }
+
+        // Thêm Thư ký
+        if (hoiDong.getThuKy() != null) {
+            addGiangVienHoiDong(giangVienList, hoiDong.getThuKy(), idDeTai,
+                    diemBaoVeList, "THU_KY", addedGiangVienIds);
+        }
+
+        // Thêm thành viên hội đồng (chỉ những người chưa được thêm)
+        hoiDong.getThanhVienHoiDongSet().forEach(tv -> {
+            if (!addedGiangVienIds.contains(tv.getGiangVien().getId())) {
+                addGiangVienHoiDong(giangVienList, tv.getGiangVien(), idDeTai,
+                        diemBaoVeList, "UY_VIEN", addedGiangVienIds);
+            }
+        });
 
         return PhanCongPhanBienResponse.builder()
                 .id(deTai.getId())
@@ -440,9 +456,12 @@ public class HoiDongService{
             GiangVien gv,
             Long idDeTai,
             List<DiemBaoVeChiTiet> diemList,
-            String vaiTro) {
+            String vaiTro,
+            Set<Long> addedGiangVienIds) {
 
-        if (gv == null) return;
+        if (gv == null || addedGiangVienIds.contains(gv.getId())) {
+            return; // Skip if already added
+        }
 
         DiemBaoVeChiTiet diem = diemList.stream()
                 .filter(d -> {
@@ -465,6 +484,8 @@ public class HoiDongService{
                 .trangThai(diem != null ? diem.getTrangThai().name() : "CHUA_CHAM")
                 .hopLe(diem != null && diem.getHopLe() != null && diem.getHopLe() ? "HOP_LE" : "KHONG_HOP_LE")
                 .build());
+
+        addedGiangVienIds.add(gv.getId()); // Mark as added
     }
 
     private Double round(Double value, int places) {

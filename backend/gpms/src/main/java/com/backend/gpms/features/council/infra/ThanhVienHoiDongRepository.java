@@ -9,4 +9,7 @@ import java.util.Optional;
 public interface ThanhVienHoiDongRepository extends JpaRepository<ThanhVienHoiDong, Long> {
     List<ThanhVienHoiDong> findByHoiDong_Id(Long hoiDongId);
     Optional<ThanhVienHoiDong> findByGiangVien_Id(Long giangVienId);
+
+    Optional<ThanhVienHoiDong> findByHoiDong_IdAndGiangVien_Id(Long hoiDongId, Long giangVienId);
+
 }
