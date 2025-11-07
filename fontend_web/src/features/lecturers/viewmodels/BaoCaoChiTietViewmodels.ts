@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchReportsPage, approveDeCuong, rejectDeCuong, rejectBaoCao, approveBaoCao, fetchStudentByCode } from '../services'
 import type { SinhVien } from '../models/SinhVien'
@@ -90,9 +91,12 @@ export default function useReportDetailViewModel(maSV?: string | null) {
       qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] })
 
+  // Also invalidate the generic reports page so the list view refreshes
+  try { qc.invalidateQueries({ queryKey: ['bao-cao-page'] }) } catch (e) {}
+
       return result
     } catch (err: any) {
-      try { alert('Lỗi khi duyệt: ' + (err?.message ?? err)) } catch (e) {}
+      // let the caller (component) display UI notifications to avoid duplicates
       throw err
     } finally {
       setLoadingId(null)
@@ -122,14 +126,15 @@ export default function useReportDetailViewModel(maSV?: string | null) {
       } catch (e) {}
 
       // invalidate related queries so other parts of the UI refresh (reports page, student data, reviews list)
-      qc.invalidateQueries({ queryKey: ['bao-cao-page', { maSV }] })
+  qc.invalidateQueries({ queryKey: ['bao-cao-page', { maSV }] })
+  try { qc.invalidateQueries({ queryKey: ['bao-cao-page'] }) } catch (e) {}
       qc.invalidateQueries({ queryKey: ['sinh-vien-proposals', maSV] })
       qc.invalidateQueries({ queryKey: ['sinh-vien', maSV] })
       qc.invalidateQueries({ queryKey: ['lecturers-reviews'] as any })
 
       return result
     } catch (err: any) {
-      try { alert('Lỗi khi từ chối: ' + (err?.message ?? err)) } catch (e) {}
+      // let the caller (component) display UI notifications to avoid duplicates
       throw err
     } finally {
       setLoadingId(null)
