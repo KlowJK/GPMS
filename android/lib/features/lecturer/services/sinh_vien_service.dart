@@ -1,60 +1,105 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:GPMS/features/auth/services/auth_service.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 import 'package:GPMS/features/lecturer/models/sinh_vien_item.dart';
 
 class SinhVienService {
-  /// GET /api/giang-vien/sinh-vien
-  static Future<List<SinhVienItem>> fetch() async {
-    final uri = Uri.parse(
-      '${AuthService.baseUrl}/api/giang-vien/sinh-vien/list',
-    );
-    final headers = await _headers();
+  final String baseUrl;
+  final Future<String?> Function() tokenProvider;
 
-    final res = await http
-        .get(uri, headers: headers)
-        .timeout(const Duration(seconds: 15));
+  SinhVienService({required this.baseUrl, required this.tokenProvider});
 
-    if (res.statusCode != 200) {
-      throw Exception('GET $uri failed: ${res.statusCode} ${res.body}');
-    }
+  /// Get headers with Bearer token
+  Future<Map<String, String>> _headers() async {
+    final token = await tokenProvider();
 
-    final data = jsonDecode(res.body);
-    final list = _extractList(data);
-
-    // map -> model
-    return list
-        .map((e) => SinhVienItem.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
   }
 
-  static Future<Map<String, String>> _headers() async {
-    final token = await AuthService.getToken();
-    return {'Accept': 'application/json', 'Authorization': 'Bearer $token'};
-  }
+  /// Extract list from various response formats
+  List<Map<String, dynamic>> _extractList(dynamic raw) {
+    if (raw == null) return [];
 
-  /// Nhận mọi kiểu trả về thường gặp: List, {result: [...]}, {result:{content:[...]}}, {content:[...]}…
-  static List _extractList(dynamic data) {
-    if (data is List) return data;
-
-    if (data is Map<String, dynamic>) {
-      final r = data['result'];
-
-      if (r is List) return r;
-
-      if (r is Map && r['content'] is List) {
-        return List.from(r['content']);
-      }
-
-      if (r is Map && r['items'] is List) {
-        return List.from(r['items']);
-      }
-
-      if (data['content'] is List) return List.from(data['content']);
-      if (data['items'] is List) return List.from(data['items']);
+    if (raw is List) {
+      return raw
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
     }
 
-    // Không ném TypeError nữa -> trả list rỗng để UI hiển thị "Không có dữ liệu"
-    return <dynamic>[];
+    if (raw is Map) {
+      final m = Map<String, dynamic>.from(raw);
+
+      // Try different response formats
+      if (m['result'] != null) {
+        final result = m['result'];
+        if (result is List) return _extractList(result);
+        if (result is Map) {
+          if (result['content'] is List) return _extractList(result['content']);
+          if (result['items'] is List) return _extractList(result['items']);
+        }
+      }
+
+      if (m['content'] is List) return _extractList(m['content']);
+      if (m['items'] is List) return _extractList(m['items']);
+
+      // Single item
+      return [m];
+    }
+
+    return [];
+  }
+
+  /// Fetch danh sách sinh viên được hướng dẫn
+  ///
+  /// GET /api/giang-vien/sinh-vien/list
+  Future<List<SinhVienItem>> fetch() async {
+    final uri = Uri.parse('$baseUrl/api/giang-vien/sinh-vien/list');
+
+    try {
+      final headers = await _headers();
+      final res = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 401) {
+        throw CustomException(ErrorCode.unauthenticated);
+      }
+
+      if (res.statusCode == 403) {
+        throw CustomException(ErrorCode.forbidden);
+      }
+
+      if (res.statusCode == 404) {
+        // No students found
+        return [];
+      }
+
+      if (res.statusCode != 200) {
+        try {
+          final body = jsonDecode(res.body);
+          throw CustomException(ErrorCode.fromResponse(body));
+        } catch (e) {
+          throw CustomException(ErrorCode.internalServerError);
+        }
+      }
+
+      final body = jsonDecode(res.body);
+      final list = _extractList(body);
+      return list.map((e) => SinhVienItem.fromJson(e)).toList();
+    } on CustomException {
+      rethrow;
+    } on http.ClientException {
+      throw CustomException(ErrorCode.noInternet);
+    } catch (e) {
+      if (e.toString().contains('TimeoutException')) {
+        throw CustomException(ErrorCode.timeout);
+      }
+      throw CustomException(ErrorCode.internalServerError);
+    }
   }
 }

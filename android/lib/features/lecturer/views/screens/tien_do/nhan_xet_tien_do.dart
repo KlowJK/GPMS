@@ -1,190 +1,185 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:GPMS/features/lecturer/views/screens/tien_do/show_review_dialog.dart';
 import 'package:intl/intl.dart';
-import 'package:GPMS/features/lecturer/viewmodels/tien_do_viewmodel.dart';
 import 'package:GPMS/features/lecturer/models/tien_do_sinh_vien.dart';
-import 'package:GPMS/features/lecturer/services/tien_do_service.dart';
+import 'package:GPMS/features/lecturer/viewmodels/tien_do_viewmodel.dart';
+import 'package:GPMS/features/lecturer/views/screens/tien_do/show_review_dialog.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/features/lecturer/models/weekly_entry.dart';
 
-class NhanXetTienDo extends StatefulWidget {
-  const NhanXetTienDo({super.key});
+class NhanXetTienDoTab extends StatefulWidget {
+  const NhanXetTienDoTab({super.key});
 
   @override
-  State<NhanXetTienDo> createState() => NhanXetTienDoState();
+  State<NhanXetTienDoTab> createState() => _NhanXetTienDoTabState();
 }
 
-class NhanXetTienDoState extends State<NhanXetTienDo> {
-  List<TienDoSinhVien> tienDoList = [];
-  List<WeeklyEntry> entries = [];
-
-  late final TienDoViewModel _vm;
-  bool _initialLoad = true;
-  bool _isRefreshing = false;
+class _NhanXetTienDoTabState extends State<NhanXetTienDoTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _vm = TienDoViewModel(service: TienDoService());
-    _fetchNhanXetTienDo();
-  }
-
-  Future<void> _fetchNhanXetTienDo() async {
-    if (!_initialLoad && _isRefreshing == false) {
-      // normal fetch guard (optional)
-    }
-    try {
-      final list = await _vm.fetchMySupervisedStudents(status: 'DA_NOP');
-      if (!mounted) return;
-      setState(() {
-        tienDoList = list;
-        entries = list
-            .map(
-              (t) => WeeklyEntry(
-                id: t.id,
-                studentName: t.hoTen,
-                weekLabel: 'Tuần ${t.tuan ?? ''}',
-                dateRange:
-                    '${formatDateString(t.ngayBatDau)}${(t.ngayKetThuc != null) ? ' - ${formatDateString(t.ngayKetThuc)}' : ''}',
-                work: t.noiDung ?? '-',
-                fileName: t.duongDanFile ?? '-',
-                status: t.trangThaiNhatKy,
-                review: t.nhanXet,
-              ),
-            )
-            .toList();
-        _initialLoad = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {});
-    }
-  }
-
-  Future<void> _onRefresh() async {
-    if (_isRefreshing) return;
-    setState(() => _isRefreshing = true);
-    try {
-      await _fetchNhanXetTienDo();
-    } finally {
-      if (!mounted) return;
-      setState(() => _isRefreshing = false);
-    }
-  }
-
-  Future<void> approveAndRefresh(int id, String nhanXet) async {
-    try {
-      await _vm.approveReport(id, nhanXet);
-      await _fetchNhanXetTienDo();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Lưu nhận xét thành công')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi lưu nhận xét: ${e.toString()}')),
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // ✅ Use existing ViewModel
+      final vm = context.read<TienDoViewModel>();
+      vm.fetchMySupervisedStudents(status: 'DA_NOP');
+    });
   }
 
   @override
-  void dispose() {
-    _vm.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    return Consumer<TienDoViewModel>(
+      builder: (context, vm, _) {
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () => vm.fetchMySupervisedStudents(status: 'DA_NOP'),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // Title
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 17, 12, 10),
+                  sliver: SliverToBoxAdapter(
+                    child: Text(
+                      'Nhận xét tiến độ sinh viên',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Body
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                  sliver: _buildBody(vm),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
-  String formatDateString(Object? raw) {
+  Widget _buildBody(TienDoViewModel vm) {
+    // Error state
+    if (vm.hasSupervisedError && vm.supervisedStudents.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: _ErrorView(
+          message: vm.supervisedError!,
+          errorCode: vm.supervisedErrorCode,
+          onRetry: () => vm.fetchMySupervisedStudents(status: 'DA_NOP'),
+        ),
+      );
+    }
+
+    // Loading state
+    if (vm.isLoadingSupervised && vm.supervisedStudents.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Convert to entries
+    final entries = _convertToEntries(vm.supervisedStudents);
+
+    // Empty state
+    if (entries.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: _EmptyView(text: 'Chưa có nhật ký cần nhận xét'),
+      );
+    }
+
+    // List
+    return SliverList.separated(
+      itemCount: entries.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, i) => _WeekCard(
+        entry: entries[i],
+        onReview: () => _handleReview(vm, entries[i]),
+      ),
+    );
+  }
+
+  List<WeeklyEntry> _convertToEntries(List<TienDoSinhVien> items) {
+    return items.map((t) {
+      return WeeklyEntry(
+        id: t.id,
+        studentName: t.hoTen,
+        weekLabel: 'Tuần ${t.tuan ?? ''}',
+        dateRange:
+            '${_formatDate(t.ngayBatDau)}${t.ngayKetThuc != null ? ' - ${_formatDate(t.ngayKetThuc)}' : ''}',
+        work: t.noiDung ?? '-',
+        fileName: t.duongDanFile ?? '-',
+        status: t.trangThaiNhatKy,
+        review: t.nhanXet,
+      );
+    }).toList();
+  }
+
+  String _formatDate(dynamic raw) {
     if (raw == null) return '';
-    // If it's already a DateTime, format directly
+
     if (raw is DateTime) {
       return DateFormat('dd/MM/yyyy').format(raw);
     }
-    // If it's a String, try to parse and format
+
     if (raw is String) {
       if (raw.isEmpty) return '';
       try {
         final dt = DateTime.parse(raw);
         return DateFormat('dd/MM/yyyy').format(dt);
       } catch (_) {
-        try {
-          final parts = raw.split(RegExp(r'[-\/T\s:]'));
-          if (parts.length >= 3) {
-            final year = int.tryParse(parts[0]);
-            final month = int.tryParse(parts[1]);
-            final day = int.tryParse(parts[2]);
-            if (year != null && month != null && day != null) {
-              return DateFormat(
-                'dd/MM/yyyy',
-              ).format(DateTime(year, month, day));
-            }
-          }
-        } catch (_) {}
+        return raw;
       }
-      return raw; // fallback to original string
     }
+
     return raw.toString();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-          children: [
-            const SizedBox(height: 5),
-            Text(
-              'Nhận xét tiến độ sinh viên',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF111827),
-              ),
-            ),
-            const SizedBox(height: 10),
-            for (final e in entries) ...[
-              _WeekCard(
-                entry: e,
-                onReview: () async {
-                  if (e.id == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Thiếu id nhật ký')),
-                    );
-                    return;
-                  }
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (_) => ReviewDialog(
-                      studentName: e.studentName ?? '',
-                      weekLabel: e.weekLabel,
-                      entryId: e.id!,
-                      initialReview: e.review,
-                      onSubmit: (id, nhanXet) async {
-                        await _vm.approveReport(id, nhanXet);
-                      },
-                    ),
-                  );
+  Future<void> _handleReview(TienDoViewModel vm, WeeklyEntry entry) async {
+    if (entry.id == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Thiếu id nhật ký')));
+      return;
+    }
 
-                  if (ok == true) {
-                    await _fetchNhanXetTienDo();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Đã lưu nhận xét cho ${e.studentName ?? ''} - ${e.weekLabel}',
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
-          ],
-        ),
+    final success = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => ReviewDialog(
+        studentName: entry.studentName ?? '',
+        weekLabel: entry.weekLabel,
+        entryId: entry.id!,
+        initialReview: entry.review,
+        onSubmit: (id, nhanXet) async {
+          await vm.approveReport(id: id, nhanXet: nhanXet);
+        },
       ),
     );
+
+    if (success == true && mounted) {
+      await vm.fetchMySupervisedStudents(status: 'DA_NOP');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Đã lưu nhận xét cho ${entry.studentName ?? ''} - ${entry.weekLabel}',
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -198,37 +193,9 @@ class _WeekCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const borderColor = Color(0xFFE5E7EB);
 
-    String _statusLabel(String? code) {
-      if (code == null) return '';
-      switch (code) {
-        case 'CHUA_NOP':
-          return 'Chưa nộp';
-        case 'DA_NOP':
-          return 'Đã nộp';
-        case 'HOAN_THANH':
-          return 'Hoàn thành';
-        default:
-          return code;
-      }
-    }
-
-    Color _statusTextColor(String? code) {
-      if (code == null) return Colors.transparent;
-      switch (code) {
-        case 'CHUA_NOP':
-          return const Color(0xFFFFB020); // amber/orange
-        case 'DA_NOP':
-          return const Color(0xFF00C409); // green
-        case 'HOAN_THANH':
-          return const Color(0xFF2563EB); // blue
-        default:
-          return const Color(0xFF6B7280); // gray
-      }
-    }
-
     return Container(
       decoration: BoxDecoration(
-        color: Color(0xFFF9FAFB),
+        color: const Color(0xFFF9FAFB),
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
@@ -239,10 +206,12 @@ class _WeekCard extends StatelessWidget {
         padding: const EdgeInsets.all(15),
         child: Stack(
           children: [
-            // main content
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (entry.studentName != null)
+                  _rowLabelValue('Sinh viên: ', entry.studentName!),
+                const SizedBox(height: 6),
                 _rowLabelValue('', entry.weekLabel, isTitle: true),
                 const SizedBox(height: 6),
                 _rowLabelValue('Thời gian:  ', entry.dateRange),
@@ -262,13 +231,11 @@ class _WeekCard extends StatelessWidget {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 2),
                 if (entry.review != null) ...[
                   const SizedBox(height: 6),
                   _rowLabelValue('Nhận xét:  ', entry.review!),
                 ],
-                const SizedBox(height: 2),
-                // dart
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     const Text(
@@ -281,94 +248,22 @@ class _WeekCard extends StatelessWidget {
                         color: Colors.black,
                       ),
                     ),
-
-                    // Single Expanded to provide proper flex constraints
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final file = entry.fileName;
-                          if (file == null ||
-                              file.trim().isEmpty ||
-                              file == '-') {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Không có file để xem'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final uri = Uri.tryParse(file.trim());
-                          if (uri != null &&
-                              (uri.scheme == 'http' || uri.scheme == 'https')) {
-                            try {
-                              final launched = await launchUrl(
-                                uri,
-                                mode: LaunchMode.externalApplication,
-                              );
-                              if (!launched) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Không thể mở đường dẫn'),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Lỗi khi mở file: ${e.toString()}',
-                                  ),
-                                ),
-                              );
-                            }
-                          } else {
-                            await showDialog<void>(
-                              context: context,
-                              builder: (dCtx) => AlertDialog(
-                                title: const Text('Xem chi tiết'),
-                                content: Text(file),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(dCtx).pop(),
-                                    child: const Text('Đóng'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'Xem chi tiết',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Color(0xFF0090FF),
-                            fontSize: 14,
-                            decoration: TextDecoration.underline,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-
+                    Expanded(child: _FileLink(fileName: entry.fileName)),
                     const SizedBox(width: 8),
-
                     if (entry.status == 'DA_NOP')
                       _ActionButton(label: 'Nhận xét', onTap: onReview),
                   ],
                 ),
               ],
             ),
-
-            // positioned status badge (top-right)
             if (entry.status != null)
               Positioned(
                 top: 6,
                 right: 6,
                 child: Text(
-                  _statusLabel(entry.status),
+                  _getStatusLabel(entry.status),
                   style: TextStyle(
-                    color: _statusTextColor(entry.status),
+                    color: _getStatusColor(entry.status),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     height: 1,
@@ -407,10 +302,106 @@ class _WeekCard extends StatelessWidget {
       ),
     );
   }
+
+  String _getStatusLabel(String? status) {
+    switch (status) {
+      case 'CHUA_NOP':
+        return 'Chưa nộp';
+      case 'DA_NOP':
+        return 'Đã nộp';
+      case 'HOAN_THANH':
+        return 'Hoàn thành';
+      default:
+        return status ?? '';
+    }
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'CHUA_NOP':
+        return const Color(0xFFFFB020);
+      case 'DA_NOP':
+        return const Color(0xFF00C409);
+      case 'HOAN_THANH':
+        return const Color(0xFF2563EB);
+      default:
+        return const Color(0xFF6B7280);
+    }
+  }
+}
+
+class _FileLink extends StatelessWidget {
+  const _FileLink({required this.fileName});
+
+  final String fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _handleFileTap(context),
+      child: const Text(
+        'Xem chi tiết',
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Color(0xFF0090FF),
+          fontSize: 14,
+          decoration: TextDecoration.underline,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleFileTap(BuildContext context) async {
+    if (fileName.trim().isEmpty || fileName == '-') {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Không có file để xem')));
+      return;
+    }
+
+    final uri = Uri.tryParse(fileName.trim());
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      try {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể mở đường dẫn')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Lỗi khi mở file: $e')));
+        }
+      }
+    } else {
+      if (context.mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Xem chi tiết'),
+            content: Text(fileName),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
 }
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({required this.label, required this.onTap});
+
   final String label;
   final VoidCallback onTap;
 
@@ -438,65 +429,69 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label});
-  final String value;
-  final String label;
+class _EmptyView extends StatelessWidget {
+  const _EmptyView({required this.text});
+
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF2F6BFF),
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+          Icon(
+            Icons.info_outline,
+            size: 40,
+            color: Theme.of(context).disabledColor,
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF2F6BFF),
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
+          const SizedBox(height: 8),
+          Text(text, textAlign: TextAlign.center),
         ],
       ),
     );
   }
 }
 
-class WeeklyEntry {
-  final int? id;
-  final String? studentName;
-  final String weekLabel;
-  final String dateRange;
-  final String work;
-  final String fileName;
-  final String? status;
-  final String? review;
-
-  WeeklyEntry({
-    this.id,
-    this.studentName,
-    required this.weekLabel,
-    required this.dateRange,
-    required this.work,
-    required this.fileName,
-    this.status,
-    this.review,
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({
+    required this.message,
+    this.errorCode,
+    required this.onRetry,
   });
+
+  final String message;
+  final ErrorCode? errorCode;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+              size: 36,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Lỗi: $message',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

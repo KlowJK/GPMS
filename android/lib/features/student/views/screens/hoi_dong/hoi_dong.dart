@@ -5,13 +5,8 @@ import 'package:GPMS/features/student/viewmodels/hoi_dong_viewmodel.dart';
 import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
 import 'package:GPMS/core/exception/error_code.dart';
 import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/features/student/views/screens/hoi_dong/hoi_dong_detail_screen.dart';
 
-/// Màn hình Hội đồng bảo vệ
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent provider
-/// - Handle errors với ErrorCode
-/// - Better state management
 class HoiDong extends StatefulWidget {
   const HoiDong({super.key});
 
@@ -303,77 +298,94 @@ class _CouncilCard extends StatelessWidget {
     final (bg, fg, label) = _badge;
     final cs = Theme.of(context).colorScheme;
 
-    return Card(
-      elevation: 0,
-      color: const Color(0xFFEFF7FF),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: cs.primaryContainer,
-              child: const Icon(Icons.apartment_rounded),
+    return InkWell(
+      onTap: () {
+        // Navigate to detail screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: context.read<HoiDongViewModel>(),
+              child: HoiDongDetailScreen(
+                hoiDongId: item.id!,
+                hoiDongName: item.tenHoiDong,
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: item.tenHoiDong,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ],
+          ),
+        );
+      },
+      child: Card(
+        elevation: 0,
+        color: const Color(0xFFF9FAFB),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: cs.primaryContainer,
+                child: const Icon(Icons.apartment_rounded),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: item.tenHoiDong,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      _Badge(text: label, bg: bg, fg: fg),
-                    ],
-                  ),
+                        _Badge(text: label, bg: bg, fg: fg),
+                      ],
+                    ),
 
-                  const SizedBox(height: 6),
-                  if (item.diaDiem?.isNotEmpty == true)
+                    const SizedBox(height: 6),
+                    if (item.diaDiem?.isNotEmpty == true)
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: item.diaDiem ?? '',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 4),
                     Text.rich(
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: item.diaDiem ?? '',
+                            text: 'Thời gian: ',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text:
+                                '${_fmt(item.thoiGianBatDau)}  –  ${_fmt(item.thoiGianKetThuc)}',
                           ),
                         ],
                       ),
                     ),
-                  const SizedBox(height: 4),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Thời gian: ',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        TextSpan(
-                          text:
-                              '${_fmt(item.thoiGianBatDau)}  –  ${_fmt(item.thoiGianKetThuc)}',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

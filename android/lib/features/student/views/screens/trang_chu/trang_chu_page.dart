@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:GPMS/features/student/views/widgets/task_tile.dart';
-import 'package:GPMS/features/student/views/widgets/all_tasks_page.dart';
 import 'package:GPMS/features/student/views/widgets/section_header.dart';
-import 'package:GPMS/features/student/views/widgets/noti_tile.dart';
-import 'package:GPMS/features/student/views/widgets/all_noti_page.dart';
-import 'package:GPMS/features/student/views/widgets/all_news_page.dart';
+import 'package:GPMS/shared/components/all_news_page.dart';
 import 'package:GPMS/features/home/models/thong_bao_va_tin_tuc.dart';
 import 'package:GPMS/features/home/models/de_tai.dart';
 import 'package:GPMS/features/home/viewmodels/home_viewmodel.dart';
@@ -141,48 +137,8 @@ class _TrangChuPageState extends State<TrangChuPage>
                       child: ListView(
                         padding: EdgeInsets.fromLTRB(pad, gap, pad, pad + 8),
                         children: [
-                          // Tiến độ đồ án tốt nghiệp
-                          _buildProgressCard(context, gap),
-
-                          SizedBox(height: gap),
-
-                          // Việc tuần này
-                          SectionHeader(
-                            title: 'Việc tuần này',
-                            trailing: TextButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AllTasksPage(),
-                                ),
-                              ),
-                              child: const Text('Xem tất cả'),
-                            ),
-                          ),
-                          _buildTasksCard(),
-
-                          SizedBox(height: gap * 1.5),
-
-                          // Thông báo
                           SectionHeader(
                             title: 'Thông báo',
-                            trailing: TextButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AllNotiPage(),
-                                ),
-                              ),
-                              child: const Text('Xem tất cả'),
-                            ),
-                          ),
-                          _buildNotificationsCard(),
-
-                          SizedBox(height: gap * 1.5),
-
-                          // Tin tức - Dynamic from ViewModel
-                          SectionHeader(
-                            title: 'Tin tức',
                             trailing:
                                 viewModel.notifications != null &&
                                     viewModel.notifications!.isNotEmpty
@@ -190,7 +146,10 @@ class _TrangChuPageState extends State<TrangChuPage>
                                     onPressed: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => const AllNewsPage(),
+                                        builder: (_) => AllNewsPage(
+                                          notifications:
+                                              viewModel.notifications!,
+                                        ),
                                       ),
                                     ),
                                     child: const Text('Xem thêm'),
@@ -199,7 +158,7 @@ class _TrangChuPageState extends State<TrangChuPage>
                           ),
                           _buildNewsSection(viewModel, gap),
 
-                          SizedBox(height: gap * 1.5),
+                          SizedBox(height: gap * 1),
 
                           // Đề tài nổi bật - Dynamic from ViewModel
                           SectionHeader(
@@ -292,71 +251,6 @@ class _TrangChuPageState extends State<TrangChuPage>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // Build tasks card (static)
-  Widget _buildTasksCard() {
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: const [
-          TaskTile(
-            title: 'Ghi nhật ký tuần 5',
-            subtitle: 'Hạn: 23:59-20/09',
-            actionText: 'Thực hiện',
-            statusColor: null,
-          ),
-          Divider(height: 1),
-          TaskTile(
-            title: 'Chỉnh sửa đề cương theo góp ý',
-            subtitle: 'Hạn: 23:59-22/09',
-            actionText: 'Thực hiện',
-            statusColor: null,
-          ),
-          Divider(height: 1),
-          TaskTile(
-            title: 'Nộp bản cập nhật tuần 4',
-            subtitle: 'Hạn: 23:59-15/09 ',
-            actionText: 'Thực hiện',
-            statusColor: Color(0xFFFCA5A5),
-            overdue: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Build notifications card (static)
-  Widget _buildNotificationsCard() {
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: const [
-          NotiTile(
-            color: Color(0xFFDBEAFE),
-            title: 'Đề cương #P-2025-031 đang chờ duyệt',
-            subtitle: 'GVHD: TS. Trần Văn B • 10:30 18/09',
-          ),
-          Divider(height: 1),
-          NotiTile(
-            color: Color(0xFFDCFCE7),
-            title: 'Đề tài của bạn đã được duyệt',
-            subtitle: 'Hệ thống • 09:15 17/09',
-          ),
-          Divider(height: 1),
-          NotiTile(
-            color: Color(0xFFFEE2E2),
-            title: 'Nhật ký tuần 4 quá hạn nộp',
-            subtitle: 'Hệ thống • 08:00 16/09',
-            warn: true,
-          ),
-        ],
       ),
     );
   }

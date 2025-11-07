@@ -5,6 +5,7 @@ class HoiDongItem {
   final DateTime? thoiGianKetThuc;
   final String? chuTich;
   final String? thuKy;
+  final String? diaDiem; // có thể thêm trường địa điểm nếu cần
 
   HoiDongItem({
     required this.id,
@@ -13,6 +14,7 @@ class HoiDongItem {
     this.thoiGianKetThuc,
     this.chuTich,
     this.thuKy,
+    this.diaDiem,
   });
 
   static int _safeInt(dynamic v) {
@@ -25,7 +27,9 @@ class HoiDongItem {
     if (v == null) return null;
     if (v is String && v.isNotEmpty) {
       // server có thể trả '2025-10-01' hoặc '2025-10-01T00:00:00'
-      try { return DateTime.parse(v); } catch (_) {}
+      try {
+        return DateTime.parse(v);
+      } catch (_) {}
     }
     return null;
   }
@@ -38,6 +42,7 @@ class HoiDongItem {
       thoiGianKetThuc: _parseDate(j['thoiGianKetThuc']),
       chuTich: j['chuTich']?.toString(),
       thuKy: j['thuKy']?.toString(),
+      diaDiem: j['diaDiem']?.toString(),
     );
   }
 }

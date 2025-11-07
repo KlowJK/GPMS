@@ -15,13 +15,6 @@ import 'package:GPMS/core/exception/custom_exception.dart';
 
 enum DoAnTab { detai, decuong }
 
-/// Màn hình Đồ án
-///
-/// Refactored để:
-/// - Consume ViewModel từ parent provider
-/// - AutomaticKeepAliveClientMixin cho tab persistence
-/// - RefreshIndicator cho pull-to-refresh
-/// - Handle errors với ErrorCode
 class DoAn extends StatefulWidget {
   const DoAn({super.key});
 
