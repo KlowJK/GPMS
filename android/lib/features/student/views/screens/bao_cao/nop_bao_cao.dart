@@ -207,6 +207,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
 
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false, // remove default back button
             backgroundColor: const Color(0xFF2563EB),
             title: const Text(
               'Nộp báo cáo',
