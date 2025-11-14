@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:GPMS/features/student/viewmodels/do_an_viewmodel.dart';
 import 'package:GPMS/features/student/models/de_cuong_log.dart';
 import 'package:GPMS/features/student/models/nhan_xet.dart';
+import 'package:GPMS/core/exception/error_code.dart';
 
 class DeCuong extends StatefulWidget {
   const DeCuong({super.key, required this.gap, required this.onCreate});
@@ -17,39 +18,59 @@ class DeCuong extends StatefulWidget {
 
 class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
   @override
-  bool get wantKeepAlive => true; // Giữ state khi chuyển tab
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
 
-    // Tự động load dữ liệu khi mở tab
+    // ✅ Chỉ load logs nếu đã có đề tài
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<DoAnViewModel>();
-      if (vm.deCuongLogs.isEmpty && !vm.isLoadingLogs && vm.logsError == null) {
-        vm.fetchDeCuongLogs();
+
+      // ✅ Check if student has registered a topic first
+      if (vm.deTaiDetail != null) {
+        if (vm.deCuongLogs.isEmpty &&
+            !vm.isLoadingLogs &&
+            vm.logsError == null) {
+          vm.fetchDeCuongLogs();
+        }
       }
     });
   }
 
   Future<void> _onRefresh() async {
     final vm = context.read<DoAnViewModel>();
-    await vm.fetchDeCuongLogs();
+
+    // ✅ Only fetch logs if topic exists
+    if (vm.deTaiDetail != null) {
+      await vm.fetchDeCuongLogs();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Yêu cầu cho KeepAlive
+    super.build(context);
 
     return Consumer<DoAnViewModel>(
       builder: (context, viewModel, child) {
+        // ✅ Check if student has registered a topic first
+        if (viewModel.deTaiDetail == null) {
+          return _buildNoTopicState();
+        }
+
         // Xác định nội dung
         Widget body;
 
         if (viewModel.isLoadingLogs && viewModel.deCuongLogs.isEmpty) {
           body = _buildSkeleton();
         } else if (viewModel.logsError != null) {
-          body = _buildErrorView(viewModel);
+          // ✅ Treat deCuongNotFound as empty state, not error
+          if (viewModel.logsErrorCode == ErrorCode.deCuongNotFound) {
+            body = _buildEmptyState();
+          } else {
+            body = _buildErrorView(viewModel);
+          }
         } else if (viewModel.deCuongLogs.isEmpty) {
           body = _buildEmptyState();
         } else {
@@ -59,14 +80,8 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
         return Scaffold(
           body: Stack(
             children: [
-              // RefreshIndicator must wrap the scrollable widget directly to
-              // reliably detect pull-to-refresh gestures. We put it around
-              // `body` (which is a scrollable ListView/SingleChildScrollView).
-              RefreshIndicator(
-                onRefresh: _onRefresh,
-                child: body,
-              ),
-              // Show FAB only when the effective status of the latest submission is 'Từ chối'
+              RefreshIndicator(onRefresh: _onRefresh, child: body),
+              // ✅ Show FAB when empty OR when latest is rejected
               if (_shouldShowFab(viewModel))
                 Positioned(
                   bottom: 16,
@@ -77,18 +92,29 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
                     child: const Icon(Icons.add),
                   ),
                 ),
-             ],
-           ),
-         );
-       },
-     );
-   }
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-  // Return the effective normalized status for a log using the same rules
-  // as displayed in the UI (uppercase, trimmed):
-  // - if gvPhanBienDuyet == DA_DUYET -> use tbmDuyet (if present) else DA_DUYET
-  // - else if trangThai == DA_DUYET and gvPhanBienDuyet exists -> use gvPhanBienDuyet
-  // - else use trangThai
+  // ✅ Widget hiển thị khi chưa đăng ký đề tài
+  Widget _buildNoTopicState() {
+    return ListView(
+      padding: EdgeInsets.all(widget.gap),
+      children: [
+        const SizedBox(height: 20),
+        _EmptyState(
+          icon: Icons.topic_outlined,
+          title: 'Bạn chưa đăng ký đề tài',
+          subtitle:
+              'Vui lòng đăng ký đề tài ở tab "Đề tài" trước khi nộp đề cương.',
+        ),
+      ],
+    );
+  }
+
   String? _effectiveStatusForLog(DeCuongLog log) {
     String? norm(String? s) => s == null ? null : s.trim().toUpperCase();
     final gvPb = norm(log.gvPhanBienDuyet);
@@ -103,11 +129,18 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
     return main;
   }
 
-  // Decide whether to show the FAB: only when the latest log's effective
-  // status is 'TU_CHOI' (Từ chối). If there are no logs, hide the FAB.
   bool _shouldShowFab(DoAnViewModel vm) {
-    if (vm.deCuongLogs.isEmpty) return false;
+    // ✅ Show FAB if empty (no logs or deCuongNotFound error)
+    if (vm.deCuongLogs.isEmpty) {
+      // Show FAB if it's truly empty or deCuongNotFound error
+      if (vm.logsErrorCode == ErrorCode.deCuongNotFound ||
+          vm.logsError == null) {
+        return true;
+      }
+      return false;
+    }
 
+    // ✅ Show FAB if latest log is rejected
     DeCuongLog? latest;
     DateTime latestDate = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -119,15 +152,12 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
             latestDate = d;
             latest = l;
           }
-        } catch (_) {
-          // ignore parse errors
-        }
+        } catch (_) {}
       }
     }
 
-    // Fallback to highest phienBan when createdAt isn't available
     if (latest == null) {
-      int maxPhien = -9223372036854775808; // very low
+      int maxPhien = -9223372036854775808;
       for (final l in vm.deCuongLogs) {
         final p = l.phienBan ?? -9223372036854775808;
         if (p > maxPhien) {
@@ -144,7 +174,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
     return normEff == 'TU_CHOI' || normEff == 'TUCHOI';
   }
 
-  // === SKELETON LOADING ===
   Widget _buildSkeleton() {
     return ListView.builder(
       padding: EdgeInsets.all(widget.gap),
@@ -163,13 +192,13 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(height: 16, width: 200, color: Colors.grey[300]),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Container(
                   height: 14,
                   width: double.infinity,
                   color: Colors.grey[200],
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Container(height: 14, width: 150, color: Colors.grey[200]),
               ],
             ),
@@ -179,9 +208,7 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  // === ERROR VIEW ===
   Widget _buildErrorView(DoAnViewModel vm) {
-    // Ensure the error view is scrollable so RefreshIndicator can detect pull-to-refresh
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: SizedBox(
@@ -191,7 +218,7 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               Text(
                 vm.logsError ?? 'Đã xảy ra lỗi',
@@ -211,7 +238,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  // === EMPTY STATE ===
   Widget _buildEmptyState() {
     return ListView(
       padding: EdgeInsets.all(widget.gap),
@@ -220,16 +246,16 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
         _EmptyState(
           icon: Icons.assignment,
           title: 'Bạn chưa có đề cương trong hệ thống',
+          subtitle: 'Nhấn nút + để nộp đề cương mới.',
         ),
       ],
     );
   }
 
-  // === LOG LIST ===
   Widget _buildLogList(BuildContext context, List<DeCuongLog> logs) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.only(bottom: 80),
+      padding: const EdgeInsets.only(bottom: 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -259,7 +285,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  // === LOG ITEM (giữ nguyên logic cũ) ===
   Widget _buildLogItem(BuildContext context, DeCuongLog log) {
     final textTheme = Theme.of(context).textTheme;
 
@@ -296,10 +321,8 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
               ],
             ),
             const SizedBox(height: 6),
-            // Show who approved when applicable
             _approvalRow(log),
             const SizedBox(height: 8),
-
             _buildInfoRow(
               context,
               'Phiên bản: ',
@@ -324,7 +347,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
             ),
             _buildInfoRow(context, 'Ngày nộp: ', text: _fmtDate(log.createdAt)),
             const SizedBox(height: 8),
-
             if (log.nhanXets.isNotEmpty) ...[
               Text(
                 'Nhận xét',
@@ -406,10 +428,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
   }
 
   Widget _statusChip(DeCuongLog log) {
-    // Normalize input and compute effective status per rule:
-    // If gvPhanBienDuyet == DA_DUYET -> effective status = tbmDuyet (if present) else DA_DUYET
-    // Else if trangThai == DA_DUYET and gvPhanBienDuyet exists -> effective status = gvPhanBienDuyet
-    // Else effective status = trangThai
     String? norm(String? s) => s == null ? null : s.trim().toUpperCase();
     final gvPbNorm = norm(log.gvPhanBienDuyet);
     final tbmNorm = norm(log.tbmDuyet);
@@ -417,7 +435,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
 
     String? raw;
     if (gvPbNorm == 'DA_DUYET') {
-      // If TBM provided, prefer it. Otherwise show DA_DUYET as fallback.
       raw = (tbmNorm?.isNotEmpty == true) ? tbmNorm : 'DA_DUYET';
     } else if (mainNorm == 'DA_DUYET' && (gvPbNorm?.isNotEmpty == true)) {
       raw = gvPbNorm;
@@ -465,13 +482,11 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
   Widget _approvalRow(DeCuongLog log) {
     final List<Widget> rows = [];
 
-    // Normalize statuses for robust comparison
     String? norm(String? s) => s == null ? null : s.trim().toUpperCase();
     final gvPb = norm(log.gvPhanBienDuyet);
     final tbm = norm(log.tbmDuyet);
     final main = norm(log.trangThai);
 
-    // Rejection lines (show explicitly when any role has TU_CHOI)
     if (main == 'TU_CHOI' || main == 'TUCHOI') {
       rows.add(_rejectionLine('Giảng viên hướng dẫn từ chối'));
     }
@@ -482,7 +497,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
       rows.add(_rejectionLine('Trưởng bộ môn từ chối'));
     }
 
-    // Pending lines
     if (main == 'CHO_DUYET' || main == 'CHODUYET') {
       rows.add(_pendingLine('Giảng viên hướng dẫn chưa duyệt'));
     }
@@ -493,7 +507,6 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
       rows.add(_pendingLine('Trưởng bộ môn chưa duyệt'));
     }
 
-    // Approved lines
     if (main == 'DA_DUYET' || main == 'DADUYET') {
       final name = log.hoTenGiangVienHuongDan;
       rows.add(_approvalLine('Giảng viên hướng dẫn đã duyệt', name));
@@ -522,7 +535,10 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -540,7 +556,10 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -558,7 +577,10 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
           Expanded(
             child: Text(
               (name != null && name.isNotEmpty) ? '$label: $name' : label,
-              style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.green.shade700,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -599,9 +621,11 @@ class _DeCuongState extends State<DeCuong> with AutomaticKeepAliveClientMixin {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.title});
+  const _EmptyState({required this.icon, required this.title, this.subtitle});
+
   final IconData icon;
   final String title;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -624,6 +648,14 @@ class _EmptyState extends StatelessWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ),
     );

@@ -584,7 +584,7 @@ class _DiaryItemCard extends StatelessWidget {
       'hoan thanh',
       'xác nhận',
       'xac nhan',
-      'xac_nhan'
+      'xac_nhan',
     ];
 
     for (final t in submittedIndicators) {

@@ -192,7 +192,7 @@ class _MembersSection extends StatelessWidget {
             if (detail.giangVienPhanBien.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Giảng viên phản biện:',
+                'Ủy viên:',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF6B7280),

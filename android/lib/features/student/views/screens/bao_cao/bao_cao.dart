@@ -22,7 +22,7 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
-    // Fetch data when screen loads
+    // Fetch data khi màn hình mở
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BaoCaoViewModel>().fetchReports();
     });
@@ -129,7 +129,7 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
       return _buildErrorView(vm, pad);
     }
 
-    // No topic
+    // Chưa có đề tài
     if (!vm.hasTopic) {
       return Padding(
         padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
@@ -141,7 +141,7 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
       );
     }
 
-    // Empty list
+    // Danh sách rỗng
     if (vm.items.isEmpty) {
       return Padding(
         padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
@@ -153,7 +153,7 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
       );
     }
 
-    // List with pull to refresh
+    // Danh sách + kéo để refresh
     return RefreshIndicator(
       onRefresh: () => _handleRefresh(vm),
       child: ListView.separated(
@@ -170,7 +170,7 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
     IconData icon = Icons.error_outline;
     VoidCallback? onAction;
 
-    // Handle specific errors
+    // Xử lý lỗi cụ thể
     if (vm.errorCode == ErrorCode.unauthenticated) {
       message = 'Phiên đăng nhập hết hạn';
       icon = Icons.lock_outline;
@@ -217,17 +217,25 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
     );
   }
 
+  /// FAB: hiển thị khi đã có đề tài.
+  /// - Nếu danh sách rỗng: luôn hiển thị để nộp báo cáo đầu tiên.
+  /// - Nếu có dữ liệu: chỉ hiển thị khi báo cáo mới nhất bị từ chối.
   Widget? _buildFAB(BaoCaoViewModel vm) {
-    // Require topic
+    // Phải có đề tài mới cho phép nộp
     if (!vm.hasTopic) return null;
 
-    // Only show FAB if the latest report is rejected (TU_CHOI)
+    // Tooltip theo ngữ cảnh
+    final tooltip = vm.items.isEmpty
+        ? 'Nộp báo cáo đầu tiên'
+        : (vm.canSubmitNew
+              ? 'Nộp báo cáo mới'
+              : 'Chỉ nộp mới khi báo cáo trước bị từ chối');
+
+    // Ẩn nếu không đạt điều kiện
     if (!_shouldShowFab(vm)) return null;
 
     return Tooltip(
-      message: vm.canSubmitNew
-          ? 'Nộp báo cáo mới'
-          : 'Chỉ nộp mới khi báo cáo trước bị từ chối',
+      message: tooltip,
       child: FloatingActionButton(
         onPressed: () => _handleFABTap(vm),
         child: const Icon(Icons.add),
@@ -235,15 +243,21 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  // Decide whether to show FAB: true only when the latest report is rejected.
+  /// Quyết định hiển thị FAB:
+  /// - TRUE nếu chưa có báo cáo (cho phép nộp lần đầu).
+  /// - TRUE nếu báo cáo mới nhất (so version, rồi createdAt) bị từ chối.
   bool _shouldShowFab(BaoCaoViewModel vm) {
-    if (vm.items.isEmpty) return false;
+    if (vm.items.isEmpty) return true; // ✅ Hiển thị khi chưa có dữ liệu
 
-    // Find the report(s) with the highest version number
-    int maxVersion = vm.items.map((e) => e.version).reduce((a, b) => a > b ? a : b);
-    final topVersionItems = vm.items.where((e) => e.version == maxVersion).toList();
+    // Tìm version lớn nhất
+    final maxVersion = vm.items
+        .map((e) => e.version)
+        .reduce((a, b) => a > b ? a : b);
+    final topVersionItems = vm.items
+        .where((e) => e.version == maxVersion)
+        .toList();
 
-    // If multiple items share the same max version, pick the most recent by createdAt
+    // Lấy bản mới nhất theo createdAt trong nhóm version lớn nhất
     ReportItem latest = topVersionItems.first;
     for (final r in topVersionItems) {
       try {
@@ -264,6 +278,7 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
     String msg;
 
     if (latest == null) {
+      // Danh sách rỗng → mở nộp ngay
       _goSubmit(context);
       return;
     } else if (latest.status == ReportStatus.pending) {
@@ -283,7 +298,6 @@ class _BaoCaoState extends State<BaoCao> with AutomaticKeepAliveClientMixin {
 class _ReportCard extends StatelessWidget {
   const _ReportCard({required this.item});
   final ReportItem item;
-
   String get _statusLabel => switch (item.status) {
     ReportStatus.approved => 'Đã duyệt',
     ReportStatus.rejected => 'Từ chối',
@@ -386,17 +400,20 @@ class _ReportCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Show score when approved
-            if (item.status == ReportStatus.approved && item.diemBaoCao != null) ...[
+            // Hiển thị điểm khi đã duyệt
+            if (item.status == ReportStatus.approved &&
+                item.diemBaoCao != null) ...[
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Text(
+                  const Text(
                     'Điểm: ',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    item.diemBaoCao!.toStringAsFixed(item.diemBaoCao! % 1 == 0 ? 0 : 2),
+                    item.diemBaoCao!.toStringAsFixed(
+                      item.diemBaoCao! % 1 == 0 ? 0 : 2,
+                    ),
                     style: TextStyle(
                       color: Colors.green.shade700,
                       fontWeight: FontWeight.w700,
