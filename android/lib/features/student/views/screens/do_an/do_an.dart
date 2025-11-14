@@ -120,7 +120,7 @@ class _DoAnState extends State<DoAn> with AutomaticKeepAliveClientMixin {
       context,
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider.value(
-          value: hoanVm, // truyền đúng instance hiện có
+          value: hoanVm,
           child: const HoanDoAn(),
         ),
       ),

@@ -21,12 +21,9 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => AuthViewModel()..loadUserFromStorage(),
         ),
-        // Provider cho HomeViewModel
         ChangeNotifierProvider(
-          create: (context) => HomeViewModel(
-            HomeService(),
-            context.read<AuthViewModel>(), // ← Inject Auth
-          ),
+          create: (context) =>
+              HomeViewModel(HomeService(), context.read<AuthViewModel>()),
         ),
       ],
       child: const GPMSApp(),
