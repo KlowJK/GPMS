@@ -1,0 +1,183 @@
+
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import App from '@/App';
+import ProtectedRoute from './ProtectedRoute';
+import RoleGuard from './RoleGuard';
+import StudentLayout from '@/layouts/StudentLayout'
+import LecturerLayout from '@/layouts/LecturerLayout'
+import RequireGuest from './RequireGuest';
+
+
+export const router = createBrowserRouter([
+    {
+        path: '/',
+        element: <App />,
+        children: [
+            { index: true, element: <Navigate to="/login" replace /> },
+
+            // Public
+            {
+                path: 'login',
+                lazy: () =>
+                    import('@features/auth/pages/LoginPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
+            },
+            {
+                path: 'forgot-password',
+                lazy: () =>
+                    import('@features/auth/pages/ForgotPasswordPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
+            },
+            {
+                path: 'reset-password',
+                lazy: () =>
+                    import('@features/auth/pages/ResetPasswordPage').then(m => {
+                        const Page = m.default;
+                        return { Component: () => <RequireGuest><Page /></RequireGuest> }
+                    }),
+            },
+
+            // Authenticated area
+            {
+                element: <ProtectedRoute />,
+                children: [
+                    // Trang chủ sau đăng nhập
+                    {
+                        path: 'topics',
+                        lazy: () =>
+                            import('@features/topics/pages/TopicsPage').then(m => ({ Component: m.default })),
+                    },
+                    {
+                        path: 'profile',
+                        lazy: () =>
+                            import('@features/auth/pages/ProfilePage').then(m => ({ Component: m.default })),
+                    },
+                    // Common authenticated
+                    {
+                        path: 'outlines',
+                        lazy: () =>
+                            import('@features/outlines/pages/OutlinesPage').then(m => ({ Component: m.default })),
+                    },
+                    {
+                        path: 'reports',
+                        lazy: () =>
+                            import('@features/reports/pages/ReportsPage').then(m => ({ Component: m.default })),
+                    },
+
+                    // Admin
+                    {
+                        element: <RoleGuard allow={['QUAN_TRI_VIEN']} />,
+                        children: [
+                            {
+                                path: 'admin',
+                                lazy: () => import('@features/admin/routes/AdminApp').then(m => ({ Component: m.default })),
+                                children: [
+                                    { index: true, lazy: () => import('@features/admin/pages/Dashboard').then(m => ({ Component: m.default })) },
+                                    { path: 'departments', lazy: () => import('@features/admin/pages/Department').then(m => ({ Component: m.default })) },
+                                    { path: 'assistants', lazy: () => import('@features/admin/pages/Assistants').then(m => ({ Component: m.default })) },
+                                    { path: 'notifications', lazy: () => import('@features/admin/pages/NotificationsPage').then(m => ({ Component: m.default })) },
+                                ]
+                            },
+                            {
+                                path: 'accounts',
+                                lazy: () =>
+                                    import('@features/accounts/pages/AccountsListPage').then(m => ({ Component: m.default })),
+                            },
+                            {
+                                path: 'departments',
+                                lazy: () =>
+                                    import('@features/departments/pages/DepartmentsListPage').then(m => ({ Component: m.default })),
+                            },
+                        ],
+                    },
+                    // Assistant (Trợ lý khoa)
+                    {
+  element: <RoleGuard allow={['TRO_LY_KHOA']} />,
+  children: [
+    {
+      path: 'assistant',
+      lazy: () => import('@features/assistants/routes/AssistantApp').then(m => ({ Component: m.default })),
+      children: [
+        { index: true, lazy: () => import('@features/assistants/pages/Dashboard').then(m => ({ Component: m.default })) },
+        { path: 'subjects', lazy: () => import('@features/assistants/pages/Subjects').then(m => ({ Component: m.default })) },
+        { path: 'majors',   lazy: () => import('@features/assistants/pages/Majors').then(m => ({ Component: m.default })) },
+        { path: 'classes', lazy: () => import('@features/assistants/pages/Classes').then(m => ({ Component: m.default })) },
+        { path: 'staff',    lazy: () => import('@features/assistants/pages/Staff').then(m => ({ Component: m.default })) },
+        { path: 'students', lazy: () => import('@features/assistants/pages/Students').then(m => ({ Component: m.default })) },
+        { path: 'defense-rounds', lazy: () => import('@features/assistants/pages/DefenseRounds').then(m => ({ Component: m.default })) },
+        { path: 'round-schedule', lazy: () => import('@features/assistants/pages/RoundTimesPage').then(m => ({ Component: m.default })) },
+        { path: 'councils', lazy: () => import('@features/assistants/pages/CouncilsPage').then(m => ({ Component: m.default })) },
+        { path: 'councils/:id', lazy: () => import('@features/assistants/pages/CouncilDetailPage').then(m => ({ Component: m.default })) },    
+        { path: 'notifications', lazy: () => import('@features/assistants/pages/NotificationsPage').then(m => ({ Component: m.default })) },
+],
+        
+    },
+  ],
+},
+                    
+                        
+
+
+                    // Student
+                    {
+                        element: <RoleGuard allow={['SINH_VIEN']} />,
+                        children: [
+                            {
+                                path: 'students',
+                                // Wrap student routes with StudentLayout so Topbar appears for students
+                                element: <StudentLayout />,
+                                children: [
+                                    { index: true, lazy: () => import('@features/students/pages/StudentsListPage').then(m => ({ Component: m.default })) },
+                                ],
+                            },
+                        ],
+                    },
+
+                    // Lecturer
+                    {
+                        element: <RoleGuard allow={['GIANG_VIEN', 'TRUONG_BO_MON',"CHU_NHIEM_KHOA"]} />,
+                        children: [
+                            {
+                                path: 'lecturers',
+                                // Wrap lecturer routes with LecturerLayout so Topbar appears for lecturers
+                                element: <LecturerLayout />,
+                                children: [
+                                    { index: true, lazy: () => import('@/features/lecturers/pages/TrangChuPage').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/list', lazy: () => import('@/features/lecturers/pages/DanhSachSinhVienHuongDanPage').then(m => ({ Component: m.default })) },
+                                    { path: 'do-an/duyet', lazy: () => import('@/features/lecturers/pages/DuyetDeTaiPage').then(m => ({ Component: m.default })) },
+                                    {
+                                        element: <RoleGuard allow={['TRUONG_BO_MON']} />,
+                                        children: [
+                                            { path: 'truong-bo-mon/duyet-de-cuong-cuoi', lazy: () => import('@/features/lecturers/pages/TruongBoMonDuyetDeCuongCuoiPage').then(m => ({ Component: m.default })) },
+                                            { path: 'truong-bo-mon/phan-cong-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongHuongDanPage').then(m => ({ Component: m.default })) },
+                                            { path: 'truong-bo-mon/phan-cong-phan-bien', lazy: () => import('@/features/lecturers/pages/TruongBoMonPhanCongPhanBienPage').then(m => ({ Component: m.default })) },
+                                            { path: 'truong-bo-mon/danh-sach-giang-vien', lazy: () => import('@/features/lecturers/pages/TruongBoMonDanhSachGiangVienPage').then(m => ({ Component: m.default })) },
+                                        ],
+                                    },
+                                    { path: 'nhat-ky', lazy: () => import('@/features/lecturers/pages/NhatKyPage').then(m => ({ Component: m.default })) },
+                                    { path: 'bao-cao', lazy: () => import('@/features/lecturers/pages/BaoCaoPage').then(m => ({ Component: m.default })) },
+                                    { path: 'phan-bien', lazy: () => import('@/features/lecturers/pages/PhanBienPage').then(m => ({ Component: m.default })) },
+                                    { path: 'hoi-dong', lazy: () => import('@/features/lecturers/pages/HoiDongPage').then(m => ({ Component: m.default })) },
+                                    { path: 'hoi-dong/:id', lazy: () => import('@/features/lecturers/pages/HoiDongChiTietPage').then(m => ({ Component: m.default })) },
+                                    {
+                                        element: <RoleGuard allow={['CHU_NHIEM_KHOA']} />,
+                                        children: [
+                                            { path: 'chu-nhiem-khoa/hoan-do-an', lazy: () => import('@/features/lecturers/pages/ChuNhiemKhoaHoanDoAnPage').then(m => ({ Component: m.default })) },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+
+            { path: '403', element: <div className="p-6">Forbidden</div> },
+            { path: '*', element: <div className="p-6">Not Found</div> },
+        ],
+    },
+]);

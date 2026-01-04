@@ -1,0 +1,453 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:GPMS/features/student/models/hoi_dong_item.dart';
+import 'package:GPMS/features/student/viewmodels/hoi_dong_viewmodel.dart';
+import 'package:GPMS/features/student/views/widgets/custom_app_bar.dart';
+import 'package:GPMS/core/exception/error_code.dart';
+import 'package:GPMS/core/exception/custom_exception.dart';
+import 'package:GPMS/features/student/views/screens/hoi_dong/hoi_dong_detail_screen.dart';
+
+class HoiDong extends StatefulWidget {
+  const HoiDong({super.key});
+
+  @override
+  State<HoiDong> createState() => _HoiDongState();
+}
+
+class _HoiDongState extends State<HoiDong> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch data when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HoiDongViewModel>().fetchForCurrentStudent(
+        fallbackToAll: true,
+      );
+    });
+  }
+
+  Future<void> _handleRefresh(HoiDongViewModel vm) async {
+    try {
+      await vm.fetchForCurrentStudent(fallbackToAll: true);
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = 'Không thể làm mới dữ liệu';
+
+      if (e is CustomException) {
+        switch (e.errorCode) {
+          case ErrorCode.unauthenticated:
+            message = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            break;
+          case ErrorCode.timeout:
+            message = 'Kết nối hết thời gian chờ. Vui lòng thử lại.';
+            break;
+          case ErrorCode.deTaiNotFound:
+            message = 'Bạn chưa đăng ký đề tài.';
+            break;
+          default:
+            message = e.errorCode.message;
+        }
+      } else {
+        message = 'Lỗi kết nối: $e';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
+    return Scaffold(
+      appBar: CustomAppBar(),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final double maxW = w >= 1200
+                ? 1100
+                : w >= 900
+                ? 900
+                : w >= 600
+                ? 600
+                : w;
+            final double pad = w >= 900 ? 24 : 16;
+            final double gap = w >= 900 ? 16 : 12;
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxW),
+                child: Consumer<HoiDongViewModel>(
+                  builder: (context, vm, _) {
+                    // Handle errors with ErrorCode
+                    if (vm.hasError) {
+                      return _buildErrorView(vm, pad);
+                    }
+
+                    return RefreshIndicator(
+                      onRefresh: () => _handleRefresh(vm),
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(pad, gap, pad, pad),
+                        children: [
+                          Text(
+                            'Danh sách hội đồng bảo vệ',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: gap),
+
+                          if (vm.isLoading && vm.items.isEmpty)
+                            const Center(child: CircularProgressIndicator())
+                          else if (vm.items.isEmpty)
+                            const _EmptyState(
+                              icon: Icons.apartment,
+                              title: 'Chưa có hội đồng nào.',
+                              subtitle: 'Vui lòng quay lại sau.',
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: vm.items.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (_, i) =>
+                                  _CouncilCard(item: vm.items[i]),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorView(HoiDongViewModel vm, double pad) {
+    String message = vm.error!;
+    IconData icon = Icons.error_outline;
+    VoidCallback? onAction;
+
+    // Handle specific errors
+    if (vm.errorCode == ErrorCode.unauthenticated) {
+      message = 'Phiên đăng nhập hết hạn';
+      icon = Icons.lock_outline;
+      onAction = () {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
+      };
+    } else if (vm.errorCode == ErrorCode.timeout) {
+      message = 'Kết nối hết thời gian chờ';
+      icon = Icons.signal_wifi_off;
+      onAction = () => vm.fetchForCurrentStudent(fallbackToAll: true);
+    } else if (vm.errorCode == ErrorCode.deTaiNotFound) {
+      message = 'Bạn chưa đăng ký đề tài';
+      icon = Icons.topic_outlined;
+    } else {
+      onAction = () => vm.fetchForCurrentStudent(fallbackToAll: true);
+    }
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (onAction != null) ...[
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Card hiển thị thông tin hội đồng
+class _CouncilCard extends StatelessWidget {
+  const _CouncilCard({required this.item});
+  final HoiDongItem item;
+
+  String _fmt(DateTime? d) {
+    if (d == null) return '-';
+    String two(int v) => v.toString().padLeft(2, '0');
+    final date = '${two(d.day)}/${two(d.month)}/${d.year}';
+    final time = '${two(d.hour)}:${two(d.minute)}';
+    return (d.hour == 0 && d.minute == 0) ? date : '$date $time';
+  }
+
+  (Color bg, Color fg, String label) get _badge {
+    final nowUtc = DateTime.now().toUtc();
+    final start = item.thoiGianBatDau;
+    final end = item.thoiGianKetThuc;
+
+    DateTime? toUtcSafe(DateTime? dt) {
+      if (dt == null) return null;
+      try {
+        return dt.toUtc();
+      } catch (_) {
+        return dt;
+      }
+    }
+
+    final startUtc = toUtcSafe(start);
+    DateTime? endUtc = toUtcSafe(end);
+
+    // Make end time inclusive (end of day)
+    if (endUtc != null &&
+        endUtc.hour == 0 &&
+        endUtc.minute == 0 &&
+        endUtc.second == 0 &&
+        endUtc.millisecond == 0 &&
+        endUtc.microsecond == 0) {
+      endUtc = endUtc
+          .add(const Duration(days: 1))
+          .subtract(const Duration(milliseconds: 1));
+    }
+
+    // Handle swapped dates
+    if (startUtc != null && endUtc != null && startUtc.isAfter(endUtc)) {
+      debugPrint(
+        '[HoiDong] Warning: startUtc > endUtc for id=${item.id}; swapping',
+      );
+      final tmp = startUtc;
+      final newStartUtc = endUtc;
+      final newEndUtc = tmp;
+
+      if (nowUtc.isBefore(newStartUtc!)) {
+        return (
+          const Color(0xFFDBEAFE),
+          const Color(0xFF1E3A8A),
+          'Sắp diễn ra',
+        );
+      }
+      if (nowUtc.isAfter(newEndUtc)) {
+        return (
+          const Color(0xFFD1FAE5),
+          const Color(0xFF065F46),
+          'Đã kết thúc',
+        );
+      }
+      return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
+    }
+
+    // Normal date comparison
+    if (startUtc != null && endUtc != null) {
+      if (nowUtc.isBefore(startUtc)) {
+        return (
+          const Color(0xFFDBEAFE),
+          const Color(0xFF1E3A8A),
+          'Sắp diễn ra',
+        );
+      }
+      if (nowUtc.isAfter(endUtc)) {
+        return (
+          const Color(0xFFD1FAE5),
+          const Color(0xFF065F46),
+          'Đã kết thúc',
+        );
+      }
+      return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
+    }
+
+    // Fallback to status string
+    final status = (item.trangThai ?? '').toLowerCase();
+    if (status.contains('upcoming') ||
+        status.contains('sap') ||
+        status.contains('sắp')) {
+      return (const Color(0xFFDBEAFE), const Color(0xFF1E3A8A), 'Sắp diễn ra');
+    }
+    if (status.contains('ongoing') ||
+        status.contains('dang') ||
+        status.contains('đang')) {
+      return (const Color(0xFFFDE68A), const Color(0xFF92400E), 'Đang diễn ra');
+    }
+    return (const Color(0xFFD1FAE5), const Color(0xFF065F46), 'Đã kết thúc');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (bg, fg, label) = _badge;
+    final cs = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: () {
+        // Navigate to detail screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: context.read<HoiDongViewModel>(),
+              child: HoiDongDetailScreen(
+                hoiDongId: item.id!,
+                hoiDongName: item.tenHoiDong,
+              ),
+            ),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 0,
+        color: const Color(0xFFF9FAFB),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: cs.primaryContainer,
+                child: const Icon(Icons.apartment_rounded),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: item.tenHoiDong,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        _Badge(text: label, bg: bg, fg: fg),
+                      ],
+                    ),
+
+                    const SizedBox(height: 6),
+                    if (item.diaDiem?.isNotEmpty == true)
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: item.diaDiem ?? '',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Thời gian: ',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text:
+                                '${_fmt(item.thoiGianBatDau)}  –  ${_fmt(item.thoiGianKetThuc)}',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final h = MediaQuery.of(context).size.height;
+
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(minHeight: h * 0.55),
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 64, color: cs.primary),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(subtitle, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.text, required this.bg, required this.fg});
+  final String text;
+  final Color bg;
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: ShapeDecoration(color: bg, shape: const StadiumBorder()),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
+    );
+  }
+}

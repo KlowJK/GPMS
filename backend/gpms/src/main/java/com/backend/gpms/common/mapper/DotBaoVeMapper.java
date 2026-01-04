@@ -1,0 +1,33 @@
+package com.backend.gpms.common.mapper;
+
+import com.backend.gpms.features.defense.domain.DotBaoVe;
+import com.backend.gpms.features.defense.dto.request.DotBaoVeRequest;
+import com.backend.gpms.features.defense.dto.response.DotBaoVeResponse;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
+
+@Mapper(
+        componentModel = "spring",
+        unmappedSourcePolicy = ReportingPolicy.IGNORE
+)
+public interface DotBaoVeMapper {
+
+    @Mapping(source = "tenDot", target = "tenDotBaoVe")
+    @Mapping(source = "ngayBatDau", target = "thoiGianBatDau")
+    @Mapping(source = "ngayKetThuc", target = "thoiGianKetThuc")
+    @Mapping(source = "khoaDot" , target = "trangThai")
+    DotBaoVeResponse toDotBaoVeResponse(DotBaoVe request);
+
+    @Mapping(source = "tenDotBaoVe", target = "tenDot")
+    @Mapping(source = "thoiGianBatDau", target = "ngayBatDau")
+    @Mapping(source = "thoiGianKetThuc", target = "ngayKetThuc")
+    DotBaoVe toDotBaoVe(DotBaoVeRequest request);
+
+    @Mapping(source = "tenDotBaoVe", target = "tenDot")
+    @Mapping(source = "thoiGianBatDau", target = "ngayBatDau")
+    @Mapping(source = "thoiGianKetThuc", target = "ngayKetThuc")
+    void updateDotBaoVeFromDto(DotBaoVeRequest request, @MappingTarget DotBaoVe entity);
+
+}
